@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Lotto 5/90 Predictive Engine",
+  "description": "An advanced lottery predictive platform using lightweight machine learning algorithms (frequency, gaps, Markov, affinity, spectral, fractal) with empirical calibration, backtesting, and a real-time ticket analyzer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

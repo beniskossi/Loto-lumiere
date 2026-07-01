@@ -1,0 +1,61 @@
+project_id = "kmkdwivnymcumgoorsiv"
+
+[functions.adaptive-orchestration]
+verify_jwt = true
+
+[functions.evaluate-predictions]
+verify_jwt = true
+
+[functions.train-algorithms]
+verify_jwt = true
+
+[functions.auto-tune-algorithms]
+verify_jwt = true
+
+[functions.select-best-algorithm]
+verify_jwt = true
+
+[functions.personalized-prediction]
+verify_jwt = true
+
+[functions.multi-algorithm-comparison]
+verify_jwt = false
+
+[functions.multi-draw-prediction]
+verify_jwt = false
+
+[functions.evaluate-algorithms]
+verify_jwt = true
+
+[functions.scrape-results]
+verify_jwt = true
+
+[functions.seed-data]
+verify_jwt = true
+
+[functions.advanced-ai-prediction-v2]
+verify_jwt = false
+
+[functions.precalculate-predictions]
+verify_jwt = false
+
+[functions.advanced-monitoring]
+verify_jwt = true
+
+[functions.automated-validation]
+verify_jwt = true
+
+[functions.real-time-analytics]
+verify_jwt = true
+
+[functions.prediction-feedback]
+verify_jwt = true
+
+[functions.ai-prediction-analyzer]
+verify_jwt = true
+
+[functions.auto-fetch-results]
+verify_jwt = false
+
+[functions.forensic-audit]
+verify_jwt = false
