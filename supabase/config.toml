@@ -45,9 +45,6 @@ verify_jwt = true
 [functions.automated-validation]
 verify_jwt = true
 
-[functions.real-time-analytics]
-verify_jwt = true
-
 [functions.prediction-feedback]
 verify_jwt = true
 
