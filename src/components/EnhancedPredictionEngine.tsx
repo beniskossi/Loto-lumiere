@@ -13,6 +13,7 @@ import { usePredictionOrchestrator } from "@/hooks/usePredictionOrchestrator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PredictionExplanationModal } from "./PredictionExplanationModal";
 import { CustomGridAnalyzer } from "./CustomGridAnalyzer";
+import { LocalPredictionEnginePanel } from "./LocalPredictionEnginePanel";
 
 const FormulasDashboard = lazy(() => import("./FormulasDashboard").then(m => ({ default: m.FormulasDashboard })));
 
@@ -138,12 +139,13 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
       </Card>
 
       <Tabs defaultValue="predictions" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-auto gap-1 text-[10px] sm:text-xs p-1 bg-secondary/40 backdrop-blur-sm rounded-xl border border-border/30">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto gap-1 text-[10px] sm:text-xs p-1 bg-secondary/40 backdrop-blur-sm rounded-xl border border-border/30">
           <TabsTrigger value="predictions" className="rounded-lg py-1.5 transition-all">Prédictions</TabsTrigger>
           <TabsTrigger value="formulas" className="rounded-lg py-1.5 transition-all">Formules</TabsTrigger>
           <TabsTrigger value="tree" className="rounded-lg py-1.5 transition-all">Arbre IA</TabsTrigger>
           <TabsTrigger value="performance" className="rounded-lg py-1.5 transition-all">Performance</TabsTrigger>
           <TabsTrigger value="custom" className="rounded-lg py-1.5 transition-all">Analyse Perso</TabsTrigger>
+          <TabsTrigger value="local-engine" className="rounded-lg py-1.5 transition-all">Moteur Local</TabsTrigger>
         </TabsList>
 
         <TabsContent value="predictions" className="space-y-4">
@@ -385,6 +387,10 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
 
         <TabsContent value="custom" className="space-y-4">
           <CustomGridAnalyzer drawName={drawName} formulasBreakdown={formulasBreakdown} />
+        </TabsContent>
+
+        <TabsContent value="local-engine" className="space-y-4">
+          <LocalPredictionEnginePanel drawName={drawName} />
         </TabsContent>
       </Tabs>
 

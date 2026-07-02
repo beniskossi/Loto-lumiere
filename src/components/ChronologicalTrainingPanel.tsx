@@ -266,7 +266,7 @@ export const ChronologicalTrainingPanel = () => {
               <SelectContent>
                 {uniqueDrawNames.map((name) => (
                   <SelectItem key={name} value={name}>
-                    Tirage {name}
+                    {name}
                   </SelectItem>
                 ))}
               </SelectContent>
