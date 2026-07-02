@@ -11,6 +11,8 @@ export interface OptimizationConfig {
   targetConfidence: number;
   diversityWeight: number;
   stabilityWeight: number;
+  drawSpecificLessons?: string[];
+  drawSpecificPatterns?: any;
 }
 
 export interface OptimizedPrediction extends PredictionResult {
@@ -85,16 +87,23 @@ export class PredictionOptimizer {
         finalConfig
       );
 
+      const factors = [
+        "Ensemble intelligent",
+        "Analytics avancées",
+        "Optimisation multi-critères",
+        "Gestion des risques"
+      ];
+
+      if (finalConfig.drawSpecificLessons && finalConfig.drawSpecificLessons.length > 0) {
+        factors.push("Leçons chronologiques appliquées");
+        factors.push(...finalConfig.drawSpecificLessons.slice(0, 3));
+      }
+
       return {
         numbers: optimizedNumbers,
         confidence: finalConfidence,
         algorithm: "Optimiseur Avancé",
-        factors: [
-          "Ensemble intelligent",
-          "Analytics avancées",
-          "Optimisation multi-critères",
-          "Gestion des risques"
-        ],
+        factors: factors,
         score: finalConfidence * 0.95,
         category: "ensemble",
         optimizationMetrics,

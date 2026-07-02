@@ -83,6 +83,21 @@ serve(async (req) => {
       }
 
       try {
+        const { data: configs } = await supabase.from('algorithm_config').select('parameters').limit(10);
+        let lessons: string[] = [];
+        let patterns: any = null;
+        if (configs) {
+          for (const conf of configs) {
+            if (conf.parameters?.draw_specific?.[drawName]?.lessons) {
+              lessons.push(...conf.parameters.draw_specific[drawName].lessons);
+            }
+            if (conf.parameters?.draw_specific?.[drawName]?.patterns) {
+              patterns = conf.parameters.draw_specific[drawName].patterns;
+            }
+          }
+          lessons = Array.from(new Set(lessons)).slice(0, 5); // Unique lessons
+        }
+
         // Utiliser l'optimiseur de prédictions
         const optimizedPrediction = await predictionOptimizer.optimizePrediction(results, {
           riskLevel: "balanced",
@@ -90,7 +105,9 @@ serve(async (req) => {
           useEnsemble: true,
           useAnalytics: true,
           diversityWeight: 0.25,
-          stabilityWeight: 0.35
+          stabilityWeight: 0.35,
+          drawSpecificLessons: lessons,
+          drawSpecificPatterns: patterns
         });
 
         // Analyser les corrélations avec d'autres tirages
