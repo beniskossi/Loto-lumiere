@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/utils.ts";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 
 interface RequestData {
   drawName: string;
@@ -18,7 +22,7 @@ interface DrawResult {
   id: string;
   draw_time: string;
   draw_name: string;
-  date: string;
+  draw_date: string;
   winning_numbers: number[];
 }
 
@@ -46,7 +50,7 @@ serve(async (req) => {
       .from("draw_results")
       .select("*")
       .eq("draw_name", drawName)
-      .order("date", { ascending: true });
+      .order("draw_date", { ascending: true });
 
     if (resultsError) throw resultsError;
     if (!results || results.length < MIN_RESULTS) {
