@@ -187,7 +187,25 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
       let insertedCount = 0;
       let skippedCount = 0;
       
+      const VALID_DRAW_NAMES = Array.from(
+        new Set(
+          Object.values(DRAW_SCHEDULE)
+            .flat()
+            .map((draw) => draw.name)
+        )
+      );
+      
       for (const result of previewResults) {
+        if (!VALID_DRAW_NAMES.includes(result.draw_name)) {
+          toast({
+            title: "Nom de tirage invalide",
+            description: `Le tirage '${result.draw_name}' n'existe pas dans le programme. Import ignoré pour cette ligne.`,
+            variant: "destructive"
+          });
+          skippedCount++;
+          continue;
+        }
+
         // Check if result already exists
         const { data: existing } = await supabase
           .from("draw_results")

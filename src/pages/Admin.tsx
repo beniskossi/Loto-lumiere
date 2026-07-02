@@ -29,6 +29,7 @@ const AlgorithmEvaluationPanel = lazy(() => import("@/components/AlgorithmEvalua
 const DiagnosticPanel = lazy(() => import("@/components/DiagnosticPanel").then(m => ({ default: m.DiagnosticPanel })));
 const AdaptiveOrchestrationPanel = lazy(() => import("@/components/AdaptiveOrchestrationPanel").then(m => ({ default: m.AdaptiveOrchestrationPanel })));
 const PredictionConfigPanel = lazy(() => import("@/components/PredictionConfigPanel").then(m => ({ default: m.PredictionConfigPanel })));
+const ChronologicalTrainingPanel = lazy(() => import("@/components/ChronologicalTrainingPanel").then(m => ({ default: m.ChronologicalTrainingPanel })));
 
 const PanelFallback = () => (
   <div className="space-y-3">
@@ -515,6 +516,10 @@ const Admin = () => {
               <div className="p-1.5 rounded-md bg-purple-500/10 text-purple-500"><TrendingUp className="w-4 h-4" /></div>
               <span className="font-medium">Performance</span>
             </TabsTrigger>
+            <TabsTrigger value="training" className="gap-3 justify-start py-3 px-4 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all whitespace-nowrap md:whitespace-normal">
+              <div className="p-1.5 rounded-md bg-orange-500/10 text-orange-500"><Activity className="w-4 h-4" /></div>
+              <span className="font-medium">Entraînement</span>
+            </TabsTrigger>
             <TabsTrigger value="config" className="gap-3 justify-start py-3 px-4 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all whitespace-nowrap md:whitespace-normal">
               <div className="p-1.5 rounded-md bg-orange-500/10 text-orange-500"><Settings className="w-4 h-4" /></div>
               <span className="font-medium">Config</span>
@@ -717,6 +722,12 @@ const Admin = () => {
               <Suspense fallback={<PanelFallback />}>
                 <AlgorithmPerformanceComparison />
                 <AlgorithmEvaluationPanel />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="training" className="space-y-6 mt-0">
+              <Suspense fallback={<PanelFallback />}>
+                <ChronologicalTrainingPanel />
               </Suspense>
             </TabsContent>
 

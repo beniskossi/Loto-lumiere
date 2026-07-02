@@ -1,4 +1,13 @@
 import { z } from "zod";
+import { DRAW_SCHEDULE } from "../types/lottery";
+
+const VALID_DRAW_NAMES = Array.from(
+  new Set(
+    Object.values(DRAW_SCHEDULE)
+      .flat()
+      .map((draw) => draw.name)
+  )
+);
 
 // Validation des numéros de loterie
 export const lotteryNumberSchema = z.number().int().min(1).max(90);
@@ -10,7 +19,7 @@ export const lotteryNumbersSchema = z
 
 // Validation des prédictions
 export const predictionSchema = z.object({
-  drawName: z.string().min(1, "Nom du tirage requis"),
+  drawName: z.string().min(1, "Nom du tirage requis").refine((val) => VALID_DRAW_NAMES.includes(val), "Nom de tirage inconnu"),
   numbers: lotteryNumbersSchema,
   confidence: z.number().min(0).max(1).optional(),
   algorithm: z.string().optional(),
@@ -19,7 +28,7 @@ export const predictionSchema = z.object({
 // Validation des favoris
 export const favoriteSchema = z.object({
   user_id: z.string().uuid("ID utilisateur invalide"),
-  draw_name: z.string().min(1, "Nom du tirage requis"),
+  draw_name: z.string().min(1, "Nom du tirage requis").refine((val) => VALID_DRAW_NAMES.includes(val), "Nom de tirage inconnu"),
   favorite_numbers: lotteryNumbersSchema,
   notes: z.string().max(500, "Notes trop longues (max 500 caractères)").nullable().optional(),
   category: z.enum(["personnel", "famille", "anniversaire", "chance", "analyse"]).optional(),
@@ -27,7 +36,7 @@ export const favoriteSchema = z.object({
 
 // Validation des résultats de tirage
 export const drawResultSchema = z.object({
-  draw_name: z.string().min(1, "Nom du tirage requis"),
+  draw_name: z.string().min(1, "Nom du tirage requis").refine((val) => VALID_DRAW_NAMES.includes(val), "Nom de tirage inconnu"),
   draw_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format de date invalide (YYYY-MM-DD)"),
   winning_numbers: lotteryNumbersSchema,
   machine_numbers: lotteryNumbersSchema.nullable().optional(),
@@ -35,7 +44,7 @@ export const drawResultSchema = z.object({
 
 // Validation des préférences utilisateur
 export const userPreferencesSchema = z.object({
-  preferred_draw_name: z.string().optional(),
+  preferred_draw_name: z.string().refine((val) => !val || VALID_DRAW_NAMES.includes(val), "Nom de tirage inconnu").optional(),
   notification_enabled: z.boolean().optional(),
   theme: z.enum(["light", "dark", "system"]).optional(),
 });

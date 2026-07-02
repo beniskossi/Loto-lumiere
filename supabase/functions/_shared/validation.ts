@@ -2,6 +2,16 @@ import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 // ==================== BASE VALIDATION SCHEMAS ====================
 
+const VALID_DRAW_NAMES = [
+  "Reveil", "Etoile", "Akwaba", "Monday Special",
+  "La Matinale", "Emergence", "Sika", "Lucky Tuesday",
+  "Premiere Heure", "Fortune", "Baraka", "Midweek",
+  "Kado", "Privilege", "Monni", "Fortune Thursday",
+  "Cash", "Solution", "Wari", "Friday Bonanza",
+  "Soutra", "Diamant", "Moaye", "National",
+  "Benediction", "Prestige", "Awale", "Espoir"
+];
+
 // Draw name validation schema with strict constraints
 export const drawNameSchema = z.string()
   .trim()
@@ -9,8 +19,8 @@ export const drawNameSchema = z.string()
   .max(50, 'Draw name must be less than 50 characters')
   .regex(/^[a-zA-Z0-9\s\u00C0-\u017F-]+$/, 'Draw name can only contain letters, numbers, spaces, accents, and hyphens')
   .refine(
-    (val) => val.length > 0 && val.length <= 50,
-    { message: 'Draw name length must be between 1 and 50 characters' }
+    (val) => VALID_DRAW_NAMES.includes(val),
+    { message: 'Nom de tirage inconnu ou invalide dans le programme' }
   );
 
 // User ID validation schema
