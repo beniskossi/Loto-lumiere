@@ -50,11 +50,11 @@ export function analyzeCrossDrawCorrelation(
 }
 
 export function predictFromCrossDrawAnalysis(
-  midiResults: DrawResult[],
-  soirResults: DrawResult[],
-  lastMidiNumbers: number[]
+  draw1Results: DrawResult[],
+  draw2Results: DrawResult[],
+  lastDraw1Numbers: number[]
 ): PredictionResult {
-  const correlations = analyzeCrossDrawCorrelation(midiResults, soirResults);
+  const correlations = analyzeCrossDrawCorrelation(draw1Results, draw2Results);
   
   const scores: Record<number, number> = {};
   for (let i = 1; i <= 90; i++) scores[i] = 0;
@@ -63,7 +63,7 @@ export function predictFromCrossDrawAnalysis(
     scores[corr.number] += corr.correlation * 10;
   });
   
-  lastMidiNumbers.forEach(num => {
+  lastDraw1Numbers.forEach(num => {
     for (let i = Math.max(1, num - 5); i <= Math.min(90, num + 5); i++) {
       scores[i] += 2;
     }
@@ -73,12 +73,12 @@ export function predictFromCrossDrawAnalysis(
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
     .map(([num]) => parseInt(num));
-  
+    
   return {
     numbers: predictedNumbers,
     confidence: 0.78,
     algorithm: "Analyse Multi-Tirages",
-    factors: ["Corrélation Midi-Soir", "Proximité numérique", "Patterns croisés"],
+    factors: ["Corrélation inter-tirages", "Proximité numérique", "Patterns croisés"],
     score: 0.78,
     category: "statistical",
   };

@@ -54,13 +54,11 @@ export function selectBestAlgorithm(
     };
   }
   
-  // Règle prioritaire 3: Tirages fréquents (Midi/Soir) avec peu d'historique
-  const isFrequentDraw = drawName.toLowerCase().includes("midi") || 
-                         drawName.toLowerCase().includes("soir");
-  if (isFrequentDraw && historicalCount < 100) {
+  // Règle prioritaire 3: Tirages avec peu d'historique (moins de 100 tirages)
+  if (historicalCount < 100) {
     return {
       selectedAlgorithm: "FrequencyPro",
-      reason: `Tirage fréquent (${drawName}) avec historique limité (${historicalCount} tirages) - Analyse fréquentielle optimale`
+      reason: `Historique limité pour ${drawName} (${historicalCount} tirages) - Analyse fréquentielle optimale`
     };
   }
   

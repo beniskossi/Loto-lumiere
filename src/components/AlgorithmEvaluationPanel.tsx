@@ -30,7 +30,7 @@ interface AlgorithmEvaluation {
 
 export const AlgorithmEvaluationPanel = () => {
   const { toast } = useToast();
-  const [selectedDraw, setSelectedDraw] = useState("Midi");
+  const [selectedDraw, setSelectedDraw] = useState("Etoile");
   const [evaluations, setEvaluations] = useState<AlgorithmEvaluation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 

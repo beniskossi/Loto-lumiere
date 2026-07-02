@@ -155,8 +155,7 @@ serve(async (req) => {
         continue;
       }
 
-      // Ici, vous pourriez appeler une API externe pour récupérer les résultats
-      // Pour l'instant, on log simplement qu'un scraping est nécessaire
+      // Appeler la fonction de scraping pour récupérer les résultats
       console.log(`[auto-fetch-results] Tirage ${draw.name} nécessite récupération (${draw.minutesSinceDraw} min après)`);
       
       // Appeler la fonction de scraping si disponible

@@ -56,6 +56,5 @@ verify_jwt = false
 
 [functions.forensic-audit]
 verify_jwt = false
--e 
 [functions.chronological-training]
 verify_jwt = true
