@@ -159,17 +159,17 @@ serve(async (req) => {
       
       // Evaluate algorithms on real data
       if (algoName.includes("freq") || algoName.includes("poisson")) {
-        // Frequency models do well if recent draws respect global top 15
-        simulatedScore = freqRate > 0.3 ? 0.7 : (freqRate > 0.2 ? 0.55 : 0.4);
+        // Reward continu basé sur une sigmoïde pour la fréquence
+        simulatedScore = 0.3 + 0.5 * (1 / (1 + Math.exp(-30 * (freqRate - 0.25))));
         learnedPattern = `Taux de réussite des numéros chauds: ${(freqRate*100).toFixed(1)}%.`;
       } else if (algoName.includes("gap") || algoName.includes("ecart")) {
-        // Gap models do well if repetitions are low
-        simulatedScore = repRate < 0.08 ? 0.65 : 0.45;
+        // Reward inverse continu : moins il y a de répétitions, plus les gaps fonctionnent
+        simulatedScore = 0.4 + 0.3 * (1 - (1 / (1 + Math.exp(-50 * (repRate - 0.08)))));
         learnedPattern = `Taux de répétition mesuré: ${(repRate*100).toFixed(1)}%.`;
       } else if (algoName.includes("markov") || algoName.includes("pattern")) {
-        // Pattern models do well if transition patterns are high
+        // Reward continu pour la force des patterns de transition
         const patternPower = p1Rate + m1Rate + mirrorRate + shadowRate;
-        simulatedScore = patternPower > 0.2 ? 0.75 : 0.5;
+        simulatedScore = 0.45 + 0.35 * (1 / (1 + Math.exp(-40 * (patternPower - 0.18))));
         learnedPattern = `Force des transitions détectée: ${(patternPower*100).toFixed(1)}%.`;
       } else {
         // Fallback for other models: adjust slightly based on dataset size

@@ -1,7 +1,7 @@
 // Prediction Optimizer - Optimiseur de prédictions avec ML avancé
 import type { DrawResult, PredictionResult } from "./types.ts";
 import { smartEnsemble } from "./smart-ensemble.ts";
-import { advancedAnalytics } from "./advanced-analytics.ts";
+import { advancedAnalytics, AdvancedAnalytics, CyclicalPattern } from "./advanced-analytics.ts";
 import { selectBalancedNumbers, log } from "./utils.ts";
 
 export interface OptimizationConfig {
@@ -12,7 +12,7 @@ export interface OptimizationConfig {
   diversityWeight: number;
   stabilityWeight: number;
   drawSpecificLessons?: string[];
-  drawSpecificPatterns?: any;
+  drawSpecificPatterns?: Record<string, unknown>;
 }
 
 export interface OptimizedPrediction extends PredictionResult {
@@ -131,7 +131,7 @@ export class PredictionOptimizer {
   private async optimizeNumbers(
     baseNumbers: number[],
     results: DrawResult[],
-    analytics: any,
+    analytics: AdvancedAnalytics | null,
     config: OptimizationConfig
   ): Promise<number[]> {
     // Créer un pool de candidats élargi
@@ -151,7 +151,7 @@ export class PredictionOptimizer {
   private buildCandidatePool(
     baseNumbers: number[],
     results: DrawResult[],
-    analytics: any
+    analytics: AdvancedAnalytics
   ): number[] {
     const candidates = new Set<number>(baseNumbers);
     
@@ -166,14 +166,14 @@ export class PredictionOptimizer {
     
     // Ajouter les numéros des patterns cycliques si disponibles
     if (analytics?.cyclicalPatterns) {
-      analytics.cyclicalPatterns.forEach((pattern: any) => {
+      analytics.cyclicalPatterns.forEach((pattern: CyclicalPattern) => {
         pattern.numbers.slice(0, 5).forEach((num: number) => candidates.add(num));
       });
     }
     
     // Ajouter les numéros des corrélations fortes
     if (analytics?.correlationMatrix?.strongPairs) {
-      analytics.correlationMatrix.strongPairs.slice(0, 10).forEach((pair: any) => {
+      analytics.correlationMatrix.strongPairs.slice(0, 10).forEach((pair: {num1: number, num2: number, correlation: number}) => {
         candidates.add(pair.num1);
         candidates.add(pair.num2);
       });
@@ -214,7 +214,7 @@ export class PredictionOptimizer {
   private aggressiveOptimization(
     candidates: number[],
     results: DrawResult[],
-    analytics: any,
+    analytics: AdvancedAnalytics | null,
     config: OptimizationConfig
   ): number[] {
     // Stratégie agressive: privilégier les patterns émergents et les anomalies
@@ -225,7 +225,7 @@ export class PredictionOptimizer {
       
       // Bonus pour les patterns cycliques
       if (analytics?.cyclicalPatterns) {
-        analytics.cyclicalPatterns.forEach((pattern: any) => {
+        analytics.cyclicalPatterns.forEach((pattern: CyclicalPattern) => {
           if (pattern.numbers.includes(num)) {
             score += pattern.strength * 0.4;
           }
@@ -234,7 +234,7 @@ export class PredictionOptimizer {
       
       // Bonus pour les corrélations fortes
       if (analytics?.correlationMatrix?.strongPairs) {
-        analytics.correlationMatrix.strongPairs.forEach((pair: any) => {
+        analytics.correlationMatrix.strongPairs.forEach((pair: {num1: number, num2: number, correlation: number}) => {
           if (pair.num1 === num || pair.num2 === num) {
             score += Math.abs(pair.correlation) * 0.3;
           }
@@ -265,7 +265,7 @@ export class PredictionOptimizer {
   private balancedOptimization(
     candidates: number[],
     results: DrawResult[],
-    analytics: any,
+    analytics: AdvancedAnalytics | null,
     config: OptimizationConfig
   ): number[] {
     // Stratégie équilibrée: combiner plusieurs facteurs et introduire des modèles mathématiques avancés
@@ -274,6 +274,22 @@ export class PredictionOptimizer {
     const momentum = this.calculateMomentum(candidates, results);
     const poissonScores = this.calculatePoissonScores(candidates, results);
     const markovScores = this.calculateMarkovTransitions(candidates, results);
+    
+    // Stratégie 3: Auto-ajustement par Volatilité (GARCH-like heuristique)
+    let recentRepetitions = 0;
+    if (results.length >= 10) {
+      for (let i = 0; i < 9; i++) {
+         const current = results[i].winning_numbers;
+         const previous = results[i+1].winning_numbers;
+         current.forEach(n => { if(previous.includes(n)) recentRepetitions++; });
+      }
+    }
+    const repetitionRate = results.length >= 10 ? recentRepetitions / (9 * 5) : 0.1;
+    
+    // Poids dynamiques: si volatilité faible (haute répétition), tendance (fréquence).
+    // Si volatilité forte (chaotique), retour à la moyenne (gap + poisson).
+    const dynamicFreqWeight = 0.1 + (repetitionRate * 0.8);
+    const dynamicGapWeight = 0.3 - (repetitionRate * 0.5);
     
     const scores: Record<number, number> = {};
     
@@ -286,9 +302,8 @@ export class PredictionOptimizer {
       
       let analyticsBonus = 0;
       
-      // Bonus des analytics
       if (analytics?.cyclicalPatterns) {
-        analytics.cyclicalPatterns.forEach((pattern: any) => {
+        analytics.cyclicalPatterns.forEach((pattern: CyclicalPattern) => {
           if (pattern.numbers.includes(num)) {
             analyticsBonus += pattern.strength * 0.2;
           }
@@ -296,39 +311,64 @@ export class PredictionOptimizer {
       }
       
       scores[num] = 
-        freqScore * 0.2 + 
+        freqScore * dynamicFreqWeight + 
         stabilityScore * config.stabilityWeight * 0.8 + 
         momentumScore * 0.15 + 
-        pScore * 0.15 + // Poisson (probabilité de sortie selon écart temporel)
-        mScore * 0.15 + // Markov (probabilité de transition du tirage N-1 à N)
+        pScore * dynamicGapWeight + 
+        mScore * 0.15 + 
         analyticsBonus;
     });
 
-    // Monte Carlo Convergence Step (simulated convergence weights)
-    // We boost numbers that appear together historically in winning subsets
-    candidates.forEach(num => {
+    // Monte Carlo Convergence Step
+    candidates.forEach(num => { 
        let mcs = 0;
-       // Quick 100-step lookback permutation score
        for (let i = 0; i < Math.min(results.length, 100); i++) {
           if (results[i].winning_numbers.includes(num)) {
-             mcs += 0.05 * (100 - i) / 100; // Time-decayed correlation
+             mcs += 0.05 * (100 - i) / 100;
           }
        }
        scores[num] += mcs;
     });
     
-    const sortedCandidates = Object.entries(scores)
+    // Stratégie 2: Fusion par Attracteurs Spatiaux (Clustering de densité)
+    // Lissage par noyau (Kernel smoothing) sur la grille: les numéros adjacents se boostent
+    const smoothedScores: Record<number, number> = {};
+    candidates.forEach(num => {
+      let neighborBonus = 0;
+      if (scores[num - 1]) neighborBonus += scores[num - 1] * 0.08;
+      if (scores[num + 1]) neighborBonus += scores[num + 1] * 0.08;
+      if (scores[num - 2]) neighborBonus += scores[num - 2] * 0.03;
+      if (scores[num + 2]) neighborBonus += scores[num + 2] * 0.03;
+      smoothedScores[num] = scores[num] + neighborBonus;
+    });
+    
+    const sortedCandidates = Object.entries(smoothedScores)
       .sort(([, a], [, b]) => b - a)
       .map(([num]) => parseInt(num));
-    
+      
     // Au lieu de prendre aveuglément les 5 premiers, nous utilisons un filtre combinatoire 
     // pour garantir la viabilité mathématique du ticket (Somme, parité, consécutifs).
-    return this.applyCombinatorialFilters(sortedCandidates.slice(0, 20), scores);
+    return this.applyCombinatorialFilters(sortedCandidates.slice(0, 20), scores, results);
   }
 
   // --- Filtres Combinatoires Intelligents (Réduction de Variance) ---
   
-  private applyCombinatorialFilters(pool: number[], scores: Record<number, number>): number[] {
+  private applyCombinatorialFilters(pool: number[], scores: Record<number, number>, results: DrawResult[]): number[] {
+    // Calcul de l'intervalle gaussien observé des sommes (Filtrage Adversarial)
+    let minSum = 130;
+    let maxSum = 320;
+    if (results && results.length > 0) {
+      const sums = results.map(r => r.winning_numbers.reduce((a, b) => a + b, 0));
+      const mean = sums.reduce((a, b) => a + b, 0) / sums.length;
+      const variance = sums.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / sums.length;
+      const stdDev = Math.sqrt(variance);
+      // Intervalle à ~85% (mean ± 1.5*stdDev) pour cibler le centre de la courbe de Gauss
+      minSum = Math.floor(mean - 1.5 * stdDev);
+      maxSum = Math.ceil(mean + 1.5 * stdDev);
+      if (minSum < 80) minSum = 80;
+      if (maxSum > 380) maxSum = 380;
+    }
+
     // Générer les meilleures combinaisons de 5 numéros parmi le top 20
     let bestCombination: number[] = [];
     let bestScore = -1;
@@ -339,8 +379,8 @@ export class PredictionOptimizer {
     // Fonction d'aide pour valider une combinaison
     const isValidCombination = (combo: number[]) => {
        const sum = combo.reduce((a, b) => a + b, 0);
-       // En 5/90, la somme moyenne est 227.5. Les sommes viables sont généralement entre 130 et 320.
-       if (sum < 130 || sum > 320) return false;
+       // Filtrage adversarial stochastique basé sur la distribution réelle
+       if (sum < minSum || sum > maxSum) return false;
 
        // Equilibre Pair / Impair (éviter 5 pairs ou 5 impairs)
        const evens = combo.filter(n => n % 2 === 0).length;
@@ -398,30 +438,30 @@ export class PredictionOptimizer {
     const totalDraws = results.length;
     if (totalDraws === 0) return scores;
 
-    // Calcul de la moyenne globale de sortie par numéro (Lambda, λ)
-    const lambda = (totalDraws * 5) / 90; 
+    // Constantes empiriques pour le loto 5/90
+    const expectedGap = 18; // En loto 5/90, un numéro sort en moyenne tous les 18 tirages
     
     candidates.forEach(num => {
       const lastSeenIdx = this.getLastSeenIndex(num, results);
-      // Écart actuel (nombre de tirages depuis la dernière sortie)
       const currentGap = lastSeenIdx === -1 ? totalDraws : lastSeenIdx;
       
-      // Loi de Poisson pour calculer la probabilité de l'écart
-      // P(X = k) = (e^-λ * λ^k) / k!
-      // En loto, si l'écart dépasse largement la moyenne espérée (90/5 = 18 tirages), 
-      // le score contrarien augmente (bien que la mémoire soit sans effet statistiquement,
-      // dans la vraie modélisation de loi forte des grands nombres, on cible les anomalies)
-      const expectedGap = 18; // En loto 5/90, un numéro sort en moyenne tous les 18 tirages
+      // Stratégie 1: Mean-Reversion avec Shrinkage
+      // Un numéro en retard est attractif jusqu'à un certain point (2.5x expectedGap).
+      // Au-delà, c'est un "numéro mort" (dead number), on réduit son score drastiquement (loi de l'oubli).
       
-      if (currentGap < expectedGap / 2) {
-         scores[num] = 0.8; // Chaud récent (momentum)
-      } else if (currentGap >= expectedGap && currentGap < expectedGap * 2) {
-         scores[num] = 1.0; // "Due" - en phase d'attraction
-      } else if (currentGap >= expectedGap * 2) {
-         // Froid extrême (anomalie, potentiel réveil de cycle)
-         scores[num] = 1.2;
+      if (currentGap === 0) {
+        scores[num] = 0.3; // Vient de sortir
+      } else if (currentGap < expectedGap / 2) {
+        scores[num] = 0.7 + (currentGap / expectedGap) * 0.3; // Momentum
+      } else if (currentGap < expectedGap * 2.5) {
+        // Phase d'attraction maximale (cloche de probabilité de Poisson inversée)
+        const peakAttraction = expectedGap * 1.5;
+        const distanceToPeak = Math.abs(currentGap - peakAttraction);
+        scores[num] = 1.0 + Math.max(0, 0.4 - (distanceToPeak / expectedGap) * 0.2);
       } else {
-         scores[num] = 0.5;
+        // Shrinkage stochastique : pénalité exponentielle pour les retards extrêmes
+        const excessGap = currentGap - (expectedGap * 2.5);
+        scores[num] = 0.8 * Math.exp(-0.05 * excessGap);
       }
     });
 
@@ -469,7 +509,7 @@ export class PredictionOptimizer {
   private calculateOptimizationMetrics(
     numbers: number[],
     results: DrawResult[],
-    analytics: any,
+    analytics: AdvancedAnalytics | null,
     config: OptimizationConfig
   ) {
     const diversityScore = this.calculateDiversityScore(numbers);
@@ -481,8 +521,8 @@ export class PredictionOptimizer {
       // Bonus si les numéros correspondent aux patterns détectés
       if (analytics.cyclicalPatterns) {
         analyticsBonus += analytics.cyclicalPatterns
-          .filter((p: any) => p.numbers.some((n: number) => numbers.includes(n)))
-          .reduce((sum: number, p: any) => sum + p.strength, 0) * 0.1;
+          .filter((p: CyclicalPattern) => p.numbers.some((n: number) => numbers.includes(n)))
+          .reduce((sum: number, p: CyclicalPattern) => sum + p.strength, 0) * 0.1;
       }
     }
     
@@ -553,7 +593,7 @@ export class PredictionOptimizer {
   private assessRisk(
     numbers: number[],
     results: DrawResult[],
-    analytics: any
+    analytics: AdvancedAnalytics
   ): RiskAssessment {
     const riskFactors: string[] = [];
     const mitigationSuggestions: string[] = [];
@@ -604,7 +644,7 @@ export class PredictionOptimizer {
 
   private calculateOptimizedConfidence(
     baseConfidence: number,
-    metrics: any,
+    metrics: AdvancedAnalytics,
     config: OptimizationConfig
   ): number {
     let optimizedConfidence = baseConfidence;

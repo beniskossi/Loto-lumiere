@@ -709,21 +709,27 @@ export function analyzeMarkovBiases(results: DrawResult[], lastDrawNumbers: numb
   const matrix: number[][] = Array.from({ length: size }, () => Array(size).fill(0));
   const rowSums = Array(size).fill(0);
   const alpha = 0.01; // Lissage de Laplace pour éviter les probabilités à zéro
+  const decayRate = 0.05; // Facteur d'amortissement exponentiel temporel
 
   // Trier les tirages par ordre chronologique
   const sortedDraws = [...results].sort((a, b) => new Date(a.draw_date).getTime() - new Date(b.draw_date).getTime());
+  const totalDraws = sortedDraws.length;
 
   // Remplir la matrice de transition d'état à état entre tirages successifs
-  for (let t = 0; t < sortedDraws.length - 1; t++) {
+  for (let t = 0; t < totalDraws - 1; t++) {
     const currentDraw = sortedDraws[t].winning_numbers;
     const nextDraw = sortedDraws[t + 1].winning_numbers;
+    
+    // Poids décroissant : les transitions récentes ont plus d'impact
+    const distanceToPresent = totalDraws - 2 - t; // t=totalDraws-2 est la transition la plus récente (distance 0)
+    const weight = Math.exp(-decayRate * distanceToPresent);
 
     for (const i of currentDraw) {
       if (i >= 1 && i <= size) {
         for (const j of nextDraw) {
           if (j >= 1 && j <= size) {
-            matrix[i - 1][j - 1]++;
-            rowSums[i - 1]++;
+            matrix[i - 1][j - 1] += weight;
+            rowSums[i - 1] += weight;
           }
         }
       }
