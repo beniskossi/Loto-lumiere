@@ -364,11 +364,11 @@ export const ForensicAuditPanel = () => {
             <TabsContent value="algorithms" className="space-y-4">
               <div className="grid gap-3">
                 {lastAuditResult.audit.algorithmPerformance.map((algo) => (
-                  <Card key={algo.algorithm} className="bg-slate-800/50 border-slate-700">
+                  <Card key={typeof algo.algorithm === 'object' ? JSON.stringify(algo.algorithm) : String(algo.algorithm)} className="bg-slate-800/50 border-slate-700">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{algo.algorithm}</span>
+                          <span className="font-medium">{typeof algo.algorithm === 'object' ? JSON.stringify(algo.algorithm) : String(algo.algorithm)}</span>
                           {getTrendIcon(algo.trend)}
                           {algo.overconfidence && (
                             <Badge variant="destructive" className="text-xs">Surconfiant</Badge>
@@ -426,10 +426,10 @@ export const ForensicAuditPanel = () => {
               ) : (
                 <div className="space-y-3">
                   {lastAuditResult.audit.calibrationAdjustments.map((adj) => (
-                    <Card key={adj.algorithm} className="bg-slate-800/50 border-slate-700">
+                    <Card key={typeof adj.algorithm === 'object' ? JSON.stringify(adj.algorithm) : String(adj.algorithm)} className="bg-slate-800/50 border-slate-700">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">{adj.algorithm}</span>
+                          <span className="font-medium">{typeof adj.algorithm === 'object' ? JSON.stringify(adj.algorithm) : String(adj.algorithm)}</span>
                           <Badge variant={adj.changePercent > 0 ? "default" : "destructive"}>
                             {adj.changePercent > 0 ? "+" : ""}{adj.changePercent.toFixed(1)}%
                           </Badge>
@@ -483,19 +483,19 @@ export const ForensicAuditPanel = () => {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{insight.title}</span>
+                          <span className="font-medium">{typeof insight.title === 'object' ? JSON.stringify(insight.title) : String(insight.title)}</span>
                           <Badge variant={getSeverityColor(insight.severity) as any}>
-                            {insight.severity}
+                            {typeof insight.severity === 'object' ? JSON.stringify(insight.severity) : String(insight.severity)}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{insight.description}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{typeof insight.description === 'object' ? JSON.stringify(insight.description) : String(insight.description)}</p>
                         {insight.suggestedAction && (
-                          <p className="text-sm text-primary">→ {insight.suggestedAction}</p>
+                          <p className="text-sm text-primary">→ {typeof insight.suggestedAction === 'object' ? JSON.stringify(insight.suggestedAction) : String(insight.suggestedAction)}</p>
                         )}
                         {insight.affectedAlgorithms.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {insight.affectedAlgorithms.map((algo) => (
-                              <Badge key={algo} variant="outline" className="text-xs">{algo}</Badge>
+                              <Badge key={typeof algo === 'object' ? JSON.stringify(algo) : String(algo)} variant="outline" className="text-xs">{typeof algo === 'object' ? JSON.stringify(algo) : String(algo)}</Badge>
                             ))}
                           </div>
                         )}
@@ -522,7 +522,7 @@ export const ForensicAuditPanel = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm">{lastAuditResult.geminiAnalysis.summary}</p>
+                    <p className="text-sm">{typeof lastAuditResult.geminiAnalysis.summary === 'object' ? JSON.stringify(lastAuditResult.geminiAnalysis.summary) : String(lastAuditResult.geminiAnalysis.summary)}</p>
                     
                     {lastAuditResult.geminiAnalysis.criticalIssues.length > 0 && (
                       <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
@@ -532,7 +532,7 @@ export const ForensicAuditPanel = () => {
                         </h4>
                         <ul className="space-y-1">
                           {lastAuditResult.geminiAnalysis.criticalIssues.map((issue, idx) => (
-                            <li key={idx} className="text-sm text-red-200">• {issue}</li>
+                            <li key={idx} className="text-sm text-red-200">• {typeof issue === 'object' ? JSON.stringify(issue) : String(issue)}</li>
                           ))}
                         </ul>
                       </div>
@@ -548,11 +548,11 @@ export const ForensicAuditPanel = () => {
                               rec.priority === "moyenne" ? "secondary" :
                               "outline"
                             } className="flex-shrink-0">
-                              {rec.priority}
+                              {typeof rec.priority === 'object' ? JSON.stringify(rec.priority) : String(rec.priority)}
                             </Badge>
                             <div className="text-sm">
-                              <p className="font-medium">{rec.action}</p>
-                              <p className="text-muted-foreground">{rec.impact}</p>
+                              <p className="font-medium">{typeof rec.action === 'object' ? JSON.stringify(rec.action) : String(rec.action)}</p>
+                              <p className="text-muted-foreground">{typeof rec.impact === 'object' ? JSON.stringify(rec.impact) : String(rec.impact)}</p>
                             </div>
                           </div>
                         ))}
@@ -564,8 +564,8 @@ export const ForensicAuditPanel = () => {
                         <h4 className="font-medium mb-3">Évaluation par Algorithme</h4>
                         <div className="grid gap-2">
                           {Object.entries(lastAuditResult.geminiAnalysis.algorithmAssessment).map(([algo, assessment]) => (
-                            <div key={algo} className="flex items-center justify-between p-2 rounded bg-slate-800/50">
-                              <span className="font-medium">{algo}</span>
+                            <div key={typeof algo === 'object' ? JSON.stringify(algo) : String(algo)} className="flex items-center justify-between p-2 rounded bg-slate-800/50">
+                              <span className="font-medium">{typeof algo === 'object' ? JSON.stringify(algo) : String(algo)}</span>
                               <div className="flex items-center gap-2">
                                 <Badge variant={
                                   assessment.status === "excellent" ? "default" :
@@ -573,7 +573,7 @@ export const ForensicAuditPanel = () => {
                                   assessment.status === "attention" ? "outline" :
                                   "destructive"
                                 }>
-                                  {assessment.status}
+                                  {typeof assessment.status === 'object' ? JSON.stringify(assessment.status) : String(assessment.status)}
                                 </Badge>
                               </div>
                             </div>
@@ -606,7 +606,7 @@ export const ForensicAuditPanel = () => {
                   {history.slice(0, 5).map((audit: any) => (
                     <div key={audit.id} className="flex items-center justify-between p-3 rounded bg-slate-700/50">
                       <div>
-                        <p className="font-medium">{audit.draw_name}</p>
+                        <p className="font-medium">{typeof audit.draw_name === 'object' ? JSON.stringify(audit.draw_name) : String(audit.draw_name)}</p>
                         <p className="text-sm text-muted-foreground">
                           {format(new Date(audit.created_at), "PPP 'à' HH:mm", { locale: fr })}
                         </p>
