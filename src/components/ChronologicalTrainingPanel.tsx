@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const ChronologicalTrainingPanel = () => {
   const [selectedDrawName, setSelectedDrawName] = useState<string>("");
   const [isTraining, setIsTraining] = useState(false);
-  const [trainingResults, setTrainingResults] = useState<Record<string, unknown>[] | null>(null);
+  const [trainingResults, setTrainingResults] = useState<any[] | null>(null);
   const { toast } = useToast();
 
   // Extract unique draw names from the schedule

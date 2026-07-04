@@ -7,11 +7,11 @@ export interface UserPreferences {
   has_completed_onboarding: boolean;
   preferred_draw_name: string | null;
   notification_enabled: boolean;
-  notification_time?: string;
+  
   preferred_algorithm: string;
   theme_primary_color: string;
   theme_accent_color: string;
-  custom_layout: Record<string, unknown>;
+  custom_layout: any;
   created_at: string;
   updated_at: string;
 }
@@ -24,7 +24,7 @@ export const useUserPreferences = (userId: string | undefined) => {
       
       const { data, error } = await supabase
         .from("user_preferences")
-        .select("id, user_id, has_completed_onboarding, preferred_draw_name, notification_enabled, notification_time, preferred_algorithm, theme_primary_color, theme_accent_color, custom_layout, created_at, updated_at")
+        .select("id, user_id, has_completed_onboarding, preferred_draw_name, notification_enabled, preferred_algorithm, theme_primary_color, theme_accent_color, custom_layout, created_at, updated_at")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -54,7 +54,7 @@ export const useUpdatePreferences = () => {
       if (existingData) {
         const { data, error } = await supabase
           .from("user_preferences")
-          .update(preferences)
+          .update(preferences as any)
           .eq("user_id", userId)
           .select()
           .single();
@@ -65,7 +65,7 @@ export const useUpdatePreferences = () => {
         // Insert if doesn't exist
         const { data, error } = await supabase
           .from("user_preferences")
-          .insert({ user_id: userId, ...preferences })
+          .insert({ user_id: userId, ...preferences } as any)
           .select()
           .single();
 

@@ -113,7 +113,7 @@ serve(async (req) => {
     const algorithms = [
       { name: "Optimiseur MCMC", fn: async (historicalResults) => {
         const { predictionOptimizer } = await import("../_shared/prediction-optimizer.ts");
-        const prediction = await predictionOptimizer.optimizePrediction(historicalResults);
+        const prediction = await predictionOptimizer.optimizePrediction(historicalResults, { useEnsemble: false, useAnalytics: false });
         return { numbers: prediction.numbers, confidence: prediction.confidence };
       }},
       { name: "Stacking Ensemble", fn: stackingEnsemble },
@@ -128,29 +128,28 @@ serve(async (req) => {
     let crossValidationResults = null;
 
     if (validationType === 'kfold') {
-      // K-Fold Cross Validation
-      const cvResults = await Promise.all(
-        algorithms.map(async algo => {
-          const result = await backtestWithCrossValidation(
-            algo.fn,
-            algo.name,
-            results as DrawResult[],
-            kFolds
-          );
-          return {
-            ...result.aggregated,
-            crossValidation: {
-              standardError: result.standardError,
-              confidenceInterval: result.confidenceInterval,
-              foldResults: result.folds.map(f => ({
-                accuracy: f.accuracy,
-                winRate: f.winRate,
-                sharpeRatio: f.sharpeRatio
-              }))
-            }
-          };
-        })
-      );
+      // K-Fold Cross Validation (sequential to prevent CPU/memory spikes)
+      const cvResults = [];
+      for (const algo of algorithms) {
+        const result = await backtestWithCrossValidation(
+          algo.fn,
+          algo.name,
+          results as DrawResult[],
+          kFolds
+        );
+        cvResults.push({
+          ...result.aggregated,
+          crossValidation: {
+            standardError: result.standardError,
+            confidenceInterval: result.confidenceInterval,
+            foldResults: result.folds.map(f => ({
+              accuracy: f.accuracy,
+              winRate: f.winRate,
+              sharpeRatio: f.sharpeRatio
+            }))
+          }
+        });
+      }
       evaluations = cvResults;
       crossValidationResults = cvResults.map(r => ({
         algorithm: r.algorithm,
@@ -158,53 +157,52 @@ serve(async (req) => {
         standardError: r.crossValidation?.standardError
       }));
     } else if (validationType === 'walkforward') {
-      // Walk-Forward Optimization
-      const wfResults = await Promise.all(
-        algorithms.map(async algo => {
-          const windowResults = await walkForwardOptimization(
-            algo.fn,
-            algo.name,
-            results as DrawResult[],
-            60,
-            15,
-            10
-          );
-          
-          // Aggregate walk-forward results
-          const avgAccuracy = windowResults.reduce((sum, r) => sum + r.accuracy, 0) / windowResults.length;
-          const avgWinRate = windowResults.reduce((sum, r) => sum + r.winRate, 0) / windowResults.length;
-          const avgSharpe = windowResults.reduce((sum, r) => sum + r.sharpeRatio, 0) / windowResults.length;
-          
-          return {
-            algorithm: algo.name,
-            accuracy: avgAccuracy,
-            avgMatches: avgAccuracy / 20,
-            bestMatch: Math.max(...windowResults.map(r => r.bestMatch)),
-            worstMatch: Math.min(...windowResults.map(r => r.worstMatch)),
-            consistency: Math.sqrt(windowResults.reduce((sum, r) => sum + Math.pow(r.accuracy - avgAccuracy, 2), 0) / windowResults.length),
-            totalTests: windowResults.reduce((sum, r) => sum + r.totalTests, 0),
-            sharpeRatio: avgSharpe,
-            maxDrawdown: Math.max(...windowResults.map(r => r.maxDrawdown)),
-            winRate: avgWinRate,
-            profitFactor: windowResults.reduce((sum, r) => sum + r.profitFactor, 0) / windowResults.length,
-            matchDistribution: windowResults.reduce((acc, r) => {
-              for (let i = 0; i <= 5; i++) {
-                acc[i] = (acc[i] || 0) + (r.matchDistribution[i] || 0);
-              }
-              return acc;
-            }, {} as Record<number, number>),
-            windowCount: windowResults.length
-          };
-        })
-      );
+      // Walk-Forward Optimization (sequential to prevent CPU/memory spikes)
+      const wfResults = [];
+      for (const algo of algorithms) {
+        const windowResults = await walkForwardOptimization(
+          algo.fn,
+          algo.name,
+          results as DrawResult[],
+          60,
+          15,
+          10
+        );
+        
+        // Aggregate walk-forward results
+        const avgAccuracy = windowResults.reduce((sum, r) => sum + r.accuracy, 0) / windowResults.length;
+        const avgWinRate = windowResults.reduce((sum, r) => sum + r.winRate, 0) / windowResults.length;
+        const avgSharpe = windowResults.reduce((sum, r) => sum + r.sharpeRatio, 0) / windowResults.length;
+        
+        wfResults.push({
+          algorithm: algo.name,
+          accuracy: avgAccuracy,
+          avgMatches: avgAccuracy / 20,
+          bestMatch: Math.max(...windowResults.map(r => r.bestMatch)),
+          worstMatch: Math.min(...windowResults.map(r => r.worstMatch)),
+          consistency: Math.sqrt(windowResults.reduce((sum, r) => sum + Math.pow(r.accuracy - avgAccuracy, 2), 0) / windowResults.length),
+          totalTests: windowResults.reduce((sum, r) => sum + r.totalTests, 0),
+          sharpeRatio: avgSharpe,
+          maxDrawdown: Math.max(...windowResults.map(r => r.maxDrawdown)),
+          winRate: avgWinRate,
+          profitFactor: windowResults.reduce((sum, r) => sum + r.profitFactor, 0) / windowResults.length,
+          matchDistribution: windowResults.reduce((acc, r) => {
+            for (let i = 0; i <= 5; i++) {
+              acc[i] = (acc[i] || 0) + (r.matchDistribution[i] || 0);
+            }
+            return acc;
+          }, {} as Record<number, number>),
+          windowCount: windowResults.length
+        });
+      }
       evaluations = wfResults;
     } else {
-      // Standard backtesting
-      evaluations = await Promise.all(
-        algorithms.map(algo => 
-          backtestAlgorithm(algo.fn, algo.name, results as DrawResult[], undefined, 50)
-        )
-      );
+      // Standard backtesting (sequential to prevent CPU/memory spikes)
+      evaluations = [];
+      for (const algo of algorithms) {
+        const result = await backtestAlgorithm(algo.fn, algo.name, results as DrawResult[], undefined, 50, 3);
+        evaluations.push(result);
+      }
     }
 
     console.log(`[evaluate-algorithms] Evaluations completed:`, evaluations.map(e => `${e.algorithm}: ${e.accuracy.toFixed(1)}%`));

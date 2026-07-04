@@ -241,7 +241,7 @@ export function lstmAlgorithm(results: DrawResult[]): PredictionResult {
 
   try {
     const sequenceLength = 3;
-    const hiddenSize = 4;
+    const hiddenSize = 8;
 
     // États LSTM
     let cellState = Array(hiddenSize).fill(0);

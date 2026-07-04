@@ -17,10 +17,17 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": [
-        "./*"
+        "./src/*"
       ]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "supabase/functions",
+    "node_modules"
+  ],
+  "include": [
+    "src"
+  ]
 }

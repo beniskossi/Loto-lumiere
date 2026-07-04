@@ -282,7 +282,7 @@ export const AdvancedStatsDashboard = ({ drawName }: AdvancedStatsDashboardProps
           </TabsList>
 
           <AnimatePresence mode="wait">
-            <TabsContent value="overview" className="mt-0">
+            <TabsContent key="overview" value="overview" className="mt-0">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -343,7 +343,7 @@ export const AdvancedStatsDashboard = ({ drawName }: AdvancedStatsDashboardProps
               </motion.div>
             </TabsContent>
 
-            <TabsContent value="distribution" className="mt-0">
+            <TabsContent key="distribution" value="distribution" className="mt-0">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -436,7 +436,7 @@ export const AdvancedStatsDashboard = ({ drawName }: AdvancedStatsDashboardProps
               </motion.div>
             </TabsContent>
 
-            <TabsContent value="momentum" className="mt-0">
+            <TabsContent key="momentum" value="momentum" className="mt-0">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -503,7 +503,7 @@ export const AdvancedStatsDashboard = ({ drawName }: AdvancedStatsDashboardProps
               </motion.div>
             </TabsContent>
 
-            <TabsContent value="insights" className="mt-0">
+            <TabsContent key="insights" value="insights" className="mt-0">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

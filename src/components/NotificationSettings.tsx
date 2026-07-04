@@ -22,7 +22,7 @@ export const NotificationSettings = () => {
     setPushSupported('serviceWorker' in navigator && 'PushManager' in window);
     if (preferences) {
       setNotificationsEnabled(preferences.notification_enabled);
-      setNotificationTime(preferences.notification_time || "18:00");
+      setNotificationTime("18:00");
     }
   }, [preferences]);
 
@@ -53,10 +53,7 @@ export const NotificationSettings = () => {
     if (user) {
       await updatePreferences.mutateAsync({
         userId: user.id,
-        preferences: { 
-          notification_enabled: enabled,
-          notification_time: notificationTime
-        }
+        preferences: { notification_enabled: enabled }
       });
     }
   };
@@ -67,7 +64,7 @@ export const NotificationSettings = () => {
     if (user) {
       await updatePreferences.mutateAsync({
         userId: user.id,
-        preferences: { notification_time: time }
+        preferences: {}
       });
     }
   };

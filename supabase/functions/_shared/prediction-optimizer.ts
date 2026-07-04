@@ -13,6 +13,7 @@ export interface OptimizationConfig {
   stabilityWeight: number;
   drawSpecificLessons?: string[];
   drawSpecificPatterns?: Record<string, unknown>;
+  generateAlternatives?: boolean;
 }
 
 export interface OptimizedPrediction extends PredictionResult {
@@ -75,7 +76,8 @@ export class PredictionOptimizer {
       );
       
       // Étape 5: Générer des alternatives
-      const alternatives = await this.generateAlternatives(results, finalConfig);
+      const alternatives = finalConfig.generateAlternatives !== false ? 
+        await this.generateAlternatives(results, finalConfig) : [];
       
       // Étape 6: Évaluer les risques
       const riskAssessment = this.assessRisk(optimizedNumbers, results, analytics);
@@ -449,20 +451,21 @@ export class PredictionOptimizer {
       // Un numéro en retard est attractif jusqu'à un certain point (2.5x expectedGap).
       // Au-delà, c'est un "numéro mort" (dead number), on réduit son score drastiquement (loi de l'oubli).
       
-      if (currentGap === 0) {
-        scores[num] = 0.3; // Vient de sortir
-      } else if (currentGap < expectedGap / 2) {
-        scores[num] = 0.7 + (currentGap / expectedGap) * 0.3; // Momentum
-      } else if (currentGap < expectedGap * 2.5) {
-        // Phase d'attraction maximale (cloche de probabilité de Poisson inversée)
-        const peakAttraction = expectedGap * 1.5;
-        const distanceToPeak = Math.abs(currentGap - peakAttraction);
-        scores[num] = 1.0 + Math.max(0, 0.4 - (distanceToPeak / expectedGap) * 0.2);
-      } else {
-        // Shrinkage stochastique : pénalité exponentielle pour les retards extrêmes
-        const excessGap = currentGap - (expectedGap * 2.5);
-        scores[num] = 0.8 * Math.exp(-0.05 * excessGap);
-      }
+      // Utilisation d'une fonction continue (combinaison de sigmoïdes et Gaussiennes) pour le scoring
+      const peakAttraction = expectedGap * 1.5;
+      
+      // 1. Momentum immédiat (très fort pour gap 0, décroît rapidement)
+      const momentumScore = 0.7 * Math.exp(-0.5 * currentGap);
+      
+      // 2. Attraction de Poisson (Gaussienne centrée sur peakAttraction)
+      const poissonAttraction = 1.4 * Math.exp(-Math.pow(currentGap - peakAttraction, 2) / (2 * Math.pow(expectedGap * 0.8, 2)));
+      
+      // 3. Pénalité de retard extrême (sigmoïde inversée qui s'active après 2.5x expectedGap)
+      const extremeDelayThreshold = expectedGap * 2.5;
+      const shrinkageFactor = 1 - (1 / (1 + Math.exp(-0.2 * (currentGap - extremeDelayThreshold))));
+      
+      // Score final combiné fluide et proportionnel
+      scores[num] = (0.3 + momentumScore + poissonAttraction) * shrinkageFactor;
     });
 
     return scores;
@@ -545,7 +548,7 @@ export class PredictionOptimizer {
     
     // Alternative 1: Stratégie conservatrice
     if (config.riskLevel !== "conservative") {
-      const conservativeConfig = { ...config, riskLevel: "conservative" as const };
+      const conservativeConfig = { ...config, riskLevel: "conservative" as const, generateAlternatives: false };
       const conservative = await this.optimizePrediction(results, conservativeConfig);
       alternatives.push({
         numbers: conservative.numbers,
@@ -559,7 +562,7 @@ export class PredictionOptimizer {
     
     // Alternative 2: Stratégie agressive
     if (config.riskLevel !== "aggressive") {
-      const aggressiveConfig = { ...config, riskLevel: "aggressive" as const };
+      const aggressiveConfig = { ...config, riskLevel: "aggressive" as const, generateAlternatives: false };
       const aggressive = await this.optimizePrediction(results, aggressiveConfig);
       alternatives.push({
         numbers: aggressive.numbers,

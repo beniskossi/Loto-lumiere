@@ -14,7 +14,7 @@ export const usePredictionOrchestrator = (drawName: string, options: { useSmartE
     queryFn: async () => {
       const { data, error } = await supabase
         .from("precalculated_predictions")
-        .select("selected_algorithm, accuracy_score, composite_score")
+        .select("selected_algorithm")
         .eq("draw_name", drawName)
         .order("created_at", { ascending: false })
         .limit(1)

@@ -453,7 +453,7 @@ export const ForensicAuditPanel = () => {
                           <div className="mt-2 p-2 rounded bg-slate-700/50 text-xs">
                             <span className="text-muted-foreground">Paramètres ajustés: </span>
                             {Object.entries(adj.newParams).map(([k, v]) => (
-                              <span key={k} className="mr-2">{k}: {typeof v === 'number' ? v.toFixed(4) : v}</span>
+                              <span key={k} className="mr-2">{k}: {typeof v === 'number' ? v.toFixed(4) : typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
                             ))}
                           </div>
                         )}

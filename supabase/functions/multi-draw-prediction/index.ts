@@ -107,7 +107,8 @@ serve(async (req) => {
           diversityWeight: 0.25,
           stabilityWeight: 0.35,
           drawSpecificLessons: lessons,
-          drawSpecificPatterns: patterns
+          drawSpecificPatterns: patterns,
+          generateAlternatives: false
         });
 
         // Analyser les corrélations avec d'autres tirages

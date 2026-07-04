@@ -13,6 +13,7 @@ import { NumberBall } from "@/components/NumberBall";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { BacktestingSummaryCard } from "../BacktestingSummaryCard";
 import { fr } from "date-fns/locale";
 
 interface AccueilTabProps {
@@ -385,7 +386,18 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
         )}
       </div>
 
-      {/* Week Schedule Summary */}
+      {/* Dashboard Summary Widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Backtesting Module Card */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <BacktestingSummaryCard drawName={selectedDayDraws && selectedDayDraws.length > 0 ? selectedDayDraws[0].name : "Etoile"} />
+        </motion.div>
+
+        {/* Week Schedule Summary */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -424,6 +436,7 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
           </CardContent>
         </Card>
       </motion.div>
+      </div>
     </div>
   );
 };

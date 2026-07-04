@@ -6,6 +6,9 @@ import { toast } from "sonner";
 export interface BacktestResult {
   algorithm: string;
   accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
   avgMatches: number;
   bestMatch: number;
   worstMatch: number;
