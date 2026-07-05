@@ -66,13 +66,25 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
     staleTime: 5 * 60 * 1000,
   });
 
-  // Transformer les données en format AlgorithmPerformance
-  const algorithmPerformance: AlgorithmPerformance[] = rankings?.map(r => ({
-    name: r.model_used || "Unknown",
-    accuracy: r.avg_accuracy ?? 0,
-    trend: (r.overall_score ?? 0) > 50 ? "up" : (r.overall_score ?? 0) > 30 ? "stable" : "down",
-    predictions: r.total_predictions ?? 0,
-  })) || [];
+  // Transformer les données en format AlgorithmPerformance et dédupliquer par nom
+  const algorithmPerformance: AlgorithmPerformance[] = (() => {
+    if (!rankings) return [];
+    const seen = new Set<string>();
+    const unique: AlgorithmPerformance[] = [];
+    rankings.forEach(r => {
+      const name = r.model_used || "Unknown";
+      if (!seen.has(name)) {
+        seen.add(name);
+        unique.push({
+          name,
+          accuracy: r.avg_accuracy ?? 0,
+          trend: (r.overall_score ?? 0) > 50 ? "up" : (r.overall_score ?? 0) > 30 ? "stable" : "down",
+          predictions: r.total_predictions ?? 0,
+        });
+      }
+    });
+    return unique;
+  })();
 
   const topPredictions = predictions.slice(0, 3);
 
@@ -194,8 +206,8 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
                       </div>
                       
                       <div className="flex gap-2 mb-3">
-                        {pred.numbers.map(num => (
-                          <NumberBall key={num} number={num} size="lg" />
+                        {pred.numbers.map((num, idx) => (
+                          <NumberBall key={`${num}-${idx}`} number={num} size="lg" />
                         ))}
                       </div>
                       
@@ -354,6 +366,7 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
               )}
             </CardContent>
           </Card>
+          <CustomGridAnalyzer drawName={drawName} formulasBreakdown={formulasBreakdown} />
         </TabsContent>
 
         <TabsContent value="tree">
@@ -383,10 +396,6 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-
-        <TabsContent value="custom" className="space-y-4">
-          <CustomGridAnalyzer drawName={drawName} formulasBreakdown={formulasBreakdown} />
         </TabsContent>
 
         <TabsContent value="local-engine" className="space-y-4">

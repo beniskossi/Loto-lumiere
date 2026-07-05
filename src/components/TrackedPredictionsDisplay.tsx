@@ -109,8 +109,8 @@ export const TrackedPredictionsDisplay = () => {
             </div>
             
             <div className="flex flex-wrap gap-2 mt-2">
-              {tracked.predictions.predicted_numbers.map((num: number) => (
-                <NumberBall key={num} number={num} />
+              {tracked.predictions.predicted_numbers.map((num: number, idx: number) => (
+                <NumberBall key={`${num}-${idx}`} number={num} />
               ))}
             </div>
 

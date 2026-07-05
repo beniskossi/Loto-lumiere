@@ -154,8 +154,8 @@ export const AIPredictionAnalyzer = ({ predictions, drawName }: AIPredictionAnal
                 </div>
               </div>
               <div className="flex gap-3 justify-center flex-wrap">
-                {aiResult.recommendedNumbers.map((num: number) => (
-                  <NumberBall key={num} number={num} size="lg" />
+                {aiResult.recommendedNumbers.map((num: number, idx: number) => (
+                  <NumberBall key={`${num}-${idx}`} number={num} size="lg" />
                 ))}
               </div>
             </div>

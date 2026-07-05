@@ -182,9 +182,9 @@ export const SmartRecommendations = ({ drawName, onSelectNumber }: SmartRecommen
             
             <div className="flex items-center justify-between">
               <div className="flex gap-1.5">
-                {rec.numbers.map((num) => (
+                {rec.numbers.map((num, idx) => (
                   <NumberBall 
-                    key={num} 
+                    key={`${num}-${idx}`} 
                     number={num} 
                     size="sm"
                     className="w-8 h-8 text-xs cursor-pointer hover:scale-110 transition-transform"

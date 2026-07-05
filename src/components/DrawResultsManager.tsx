@@ -222,25 +222,25 @@ export const DrawResultsManager = () => {
 
   return (
     <>
-      <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 animate-fade-in shadow-sm">
+      <Card className="bg-card border-border/50 animate-fade-in shadow-sm hover:shadow-glow transition-all duration-300 h-full flex flex-col">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-full">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <div className="p-2 bg-primary/10 rounded-lg">
               <Edit2 className="w-5 h-5 text-primary" />
             </div>
             Gérer les Résultats
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base">
             Modifier ou supprimer les résultats des tirages
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 flex-1 flex flex-col">
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={selectedDrawName} onValueChange={handleDrawFilterChange}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[200px] h-11">
                   <SelectValue placeholder="Filtrer par tirage" />
                 </SelectTrigger>
                 <SelectContent>
@@ -254,14 +254,14 @@ export const DrawResultsManager = () => {
               </Select>
             </div>
             
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm font-medium text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
               {totalCount} résultat{totalCount > 1 ? 's' : ''}
               {selectedDrawName !== "all" && ` pour ${selectedDrawName}`}
             </div>
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border/50 bg-background flex-1">
             <Table>
               <TableHeader>
                 <TableRow>

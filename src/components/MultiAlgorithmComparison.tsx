@@ -57,8 +57,8 @@ export const MultiAlgorithmComparison = ({ drawName }: MultiAlgorithmComparisonP
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {data.topAlgorithms.map((algo) => (
-            <div key={algo.algorithm} className="p-4 bg-background/50 rounded-lg border border-border/50 space-y-3">
+          {data.topAlgorithms.map((algo, idx) => (
+            <div key={`${algo.algorithm}-${idx}`} className="p-4 bg-background/50 rounded-lg border border-border/50 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {algo.rank === 1 && <Trophy className="w-5 h-5 text-yellow-500" />}

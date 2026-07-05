@@ -61,8 +61,8 @@ export const PatternDetectionPanel = ({ patterns }: PatternDetectionPanelProps) 
               </Badge>
             </div>
             <div className="flex items-center gap-2 mb-2">
-              {pattern.numbers.map(num => (
-                <NumberBall key={num} number={num} size="sm" />
+              {pattern.numbers.map((num, idx) => (
+                <NumberBall key={`${num}-${idx}`} number={num} size="sm" />
               ))}
             </div>
             <div className="flex gap-3 text-xs text-muted-foreground">

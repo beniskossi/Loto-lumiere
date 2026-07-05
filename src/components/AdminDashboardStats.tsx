@@ -121,18 +121,20 @@ export const AdminDashboardStats = () => {
       {statCards.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <Card key={index} className="bg-gradient-to-br from-card to-muted/20 border-border/50 hover:shadow-glow transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground/80">
+          <Card key={index} className="bg-card border-border/50 hover:shadow-glow transition-all duration-300 relative overflow-hidden group">
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-current to-transparent opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-500 rounded-bl-full pointer-events-none ${stat.color}`} />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 z-10 relative">
+              <CardTitle className="text-sm font-semibold text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className={`p-2 rounded-full bg-background/50 border border-border/50 shadow-sm ${stat.color}`}>
+              <div className={`p-2.5 rounded-xl bg-background/50 border border-border/50 shadow-sm transition-transform duration-300 group-hover:scale-110 ${stat.color}`}>
                 <Icon className="h-4 w-4" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">
+            <CardContent className="z-10 relative">
+              <div className="text-3xl font-bold tracking-tight mb-1">{stat.value}</div>
+              <p className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full ${stat.color.replace('text-', 'bg-')}`}></span>
                 {stat.description}
               </p>
             </CardContent>

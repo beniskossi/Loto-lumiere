@@ -80,17 +80,17 @@ export const DiagnosticPanel = () => {
   const isMobile = systemInfo?.viewport?.width < 768;
 
   return (
-    <Card className="w-full bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm animate-fade-in">
+    <Card className="w-full bg-card border-border/50 shadow-sm animate-fade-in hover:shadow-glow transition-all duration-300">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <div className="p-2 bg-primary/10 rounded-full">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <div className="p-2 bg-primary/10 rounded-lg">
                 <Monitor className="w-5 h-5 text-primary" />
               </div>
               Diagnostic de l'Application
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base mt-1">
               Vérification de l'état des composants et fonctionnalités
             </CardDescription>
           </div>

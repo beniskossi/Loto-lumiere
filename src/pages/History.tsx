@@ -209,8 +209,8 @@ const History = () => {
                             <div>
                               <p className="text-xs font-medium text-muted-foreground mb-1">Numéros Gagnants</p>
                               <div className="flex gap-2 flex-wrap">
-                                {result.winning_numbers.map((num) => (
-                                  <NumberBall key={num} number={num} size="sm" />
+                                {result.winning_numbers.map((num, idx) => (
+                                  <NumberBall key={`${num}-${idx}`} number={num} size="sm" />
                                 ))}
                               </div>
                             </div>

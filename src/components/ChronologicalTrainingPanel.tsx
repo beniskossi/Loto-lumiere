@@ -72,16 +72,16 @@ export const ChronologicalTrainingPanel = () => {
   };
 
   return (
-    <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm overflow-hidden">
-      <div className="absolute top-0 right-0 p-32 bg-primary/5 blur-3xl -z-10 rounded-full pointer-events-none" />
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <div className="p-2 bg-primary/10 rounded-full">
+    <Card className="bg-card border-border/50 shadow-sm overflow-hidden animate-fade-in hover:shadow-glow transition-all duration-300 relative">
+      <div className="absolute top-0 right-0 p-32 bg-primary/5 blur-3xl -z-10 rounded-full pointer-events-none transition-opacity duration-500 opacity-50 hover:opacity-100" />
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <div className="p-2 bg-primary/10 rounded-lg">
             <History className="w-5 h-5 text-primary" />
           </div>
           Entraînement Chronologique
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-base mt-1">
           Analysez l'historique d'un tirage spécifique pour appliquer des corrections et optimiser les algorithmes selon ses patterns uniques.
         </CardDescription>
       </CardHeader>

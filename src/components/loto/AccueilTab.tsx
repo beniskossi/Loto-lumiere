@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { BacktestingSummaryCard } from "../BacktestingSummaryCard";
+import { PredictedVsActualChart } from "./PredictedVsActualChart";
 import { fr } from "date-fns/locale";
 
 interface AccueilTabProps {
@@ -437,6 +438,15 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
         </Card>
       </motion.div>
       </div>
+
+      {/* Trend Chart */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+      >
+        <PredictedVsActualChart drawName={selectedDayDraws && selectedDayDraws.length > 0 ? selectedDayDraws[0].name : "all"} />
+      </motion.div>
     </div>
   );
 };

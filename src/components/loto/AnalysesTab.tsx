@@ -219,7 +219,7 @@ const NumbersDisplay = ({
       <AnimatePresence mode="popLayout">
         {displayNumbers.map((num, index) => (
           <motion.div
-            key={num}
+            key={`${num}-${index}`}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
@@ -279,9 +279,9 @@ const PairsDisplay = ({
           className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors"
         >
           <div className="flex gap-1">
-            {item.numbers.map((num) => (
+            {item.numbers.map((num, idx) => (
               <NumberBall 
-                key={num} 
+                key={`${num}-${idx}`} 
                 number={num} 
                 size="sm"
                 className="w-8 h-8 text-xs"
@@ -411,14 +411,16 @@ function calculateAnalytics(results: any[]) {
 
   // Calculate average frequency
   const freqValues = Object.values(frequency);
-  const avgFreq = freqValues.reduce((a, b) => a + b, 0) / freqValues.length;
-  const stdDev = Math.sqrt(
-    freqValues.reduce((sum, f) => sum + Math.pow(f - avgFreq, 2), 0) / freqValues.length
-  );
+  const avgFreq = freqValues.length > 0 ? freqValues.reduce((a, b) => a + b, 0) / freqValues.length : 0;
+  const variance = freqValues.length > 0 ? freqValues.reduce((sum, f) => sum + Math.pow(f - avgFreq, 2), 0) / freqValues.length : 0;
+  const stdDev = variance > 0 ? Math.sqrt(variance) : 1;
 
-  // Hot numbers (z-score > 1.8)
+  // Hot numbers (z-score > 1.2)
   const hotNumbers = Object.entries(frequency)
-    .filter(([_, f]) => (f - avgFreq) / stdDev > 1.2)
+    .filter(([_, f]) => {
+      const z = (f - avgFreq) / stdDev;
+      return !isNaN(z) && isFinite(z) && z > 1.2;
+    })
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10)
     .map(([num]) => parseInt(num));

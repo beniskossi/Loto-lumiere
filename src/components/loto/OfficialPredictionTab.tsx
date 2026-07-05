@@ -165,7 +165,7 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
                   <div className="flex flex-wrap gap-3 justify-center">
                     {historicalResult.winningNumbers.map((num, index) => (
                       <motion.div
-                        key={num}
+                        key={`${num}-${index}`}
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: index * 0.1 }}
@@ -311,7 +311,7 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
                 <div className="flex flex-wrap gap-3 sm:gap-4 justify-center py-4">
                   {officialPrediction.numbers.map((num, index) => (
                     <motion.div
-                      key={num}
+                      key={`${num}-${index}`}
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ 

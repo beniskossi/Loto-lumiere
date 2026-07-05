@@ -270,15 +270,15 @@ Etoile,2024-01-15,8,15,27,56,78,,,,,`;
   };
 
   return (
-    <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 animate-fade-in shadow-sm">
+    <Card className="bg-card border-border/50 animate-fade-in shadow-sm hover:shadow-glow transition-all duration-300">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2">
-          <div className="p-2 bg-primary/10 rounded-full">
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <div className="p-2 bg-primary/10 rounded-lg">
             <Upload className="w-5 h-5 text-primary" />
           </div>
           Import Facilité
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-base mt-1">
           Importez plusieurs résultats en une fois via CSV ou copier-coller
         </CardDescription>
       </CardHeader>

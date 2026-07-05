@@ -38,8 +38,14 @@ export const useConfetti = () => {
       colors: ["#FFD700", "#FFA500", "#FF6347", "#4ade80", "#60a5fa"],
     };
 
+    let seed = 12345;
+    function deterministicRandom() {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    }
+
     function randomInRange(min: number, max: number) {
-      return Math.random() * (max - min) + min;
+      return deterministicRandom() * (max - min) + min;
     }
 
     const interval = setInterval(() => {
@@ -54,12 +60,12 @@ export const useConfetti = () => {
       confetti({
         ...defaults,
         particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        origin: { x: randomInRange(0.1, 0.3), y: deterministicRandom() - 0.2 },
       });
       confetti({
         ...defaults,
         particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        origin: { x: randomInRange(0.7, 0.9), y: deterministicRandom() - 0.2 },
       });
     }, 250);
   }, []);

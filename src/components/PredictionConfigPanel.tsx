@@ -72,22 +72,22 @@ export const PredictionConfigPanel = () => {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm">
+    <Card className="bg-card border-border/50 shadow-sm animate-fade-in hover:shadow-glow transition-all duration-300">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-full">
+            <div className="p-2 bg-primary/10 rounded-lg">
               <Settings2 className="h-5 w-5 text-primary" />
             </div>
-            <CardTitle className="text-lg">Configuration des Prédictions</CardTitle>
+            <CardTitle className="text-xl">Configuration des Prédictions</CardTitle>
           </div>
           {hasChanges && (
-            <Badge variant="secondary" className="animate-pulse">
+            <Badge variant="secondary" className="animate-pulse bg-amber-500/10 text-amber-600 dark:text-amber-400">
               Non sauvegardé
             </Badge>
           )}
         </div>
-        <CardDescription>
+        <CardDescription className="text-base mt-1">
           Ajustez les paramètres de l'algorithme de prédiction
         </CardDescription>
       </CardHeader>

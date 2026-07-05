@@ -45,8 +45,8 @@ const DRAW_OPTIONS = [
   ...DAYS_ORDER.flatMap(day => (DRAW_SCHEDULE[day] || []).map(d => d.name))
 ];
 
-export const ForensicAuditPanel = () => {
-  const [selectedDraw, setSelectedDraw] = useState<string>("all");
+export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
+  const [selectedDraw, setSelectedDraw] = useState<string>(drawName || "all");
   const [days, setDays] = useState(30);
   const [applyAdjustments, setApplyAdjustments] = useState(false);
   const [runGeminiAnalysis, setRunGeminiAnalysis] = useState(true);

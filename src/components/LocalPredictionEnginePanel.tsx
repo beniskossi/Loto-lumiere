@@ -230,9 +230,9 @@ export const LocalPredictionEnginePanel = ({ drawName }: LocalPredictionEnginePa
                       Combinaison Recommandée (5 numéros)
                     </span>
                     <div className="flex flex-wrap gap-3 justify-center py-4 bg-background/50 rounded-xl border border-border/40">
-                      {recommendations.map((num) => (
+                      {recommendations.map((num, idx) => (
                         <motion.div
-                          key={num}
+                          key={`${num}-${idx}`}
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: "spring", stiffness: 100 }}

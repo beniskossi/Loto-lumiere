@@ -9,6 +9,7 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy-loaded pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -43,24 +44,25 @@ const PageFallback = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <PWAInstallPrompt />
-      <OfflineIndicator />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Suspense fallback={<PageFallback />}>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              }
-            />
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <PWAInstallPrompt />
+        <OfflineIndicator />
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
             <Route
               path="/tirage/:drawName"
               element={
@@ -118,6 +120,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

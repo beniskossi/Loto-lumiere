@@ -61,15 +61,15 @@ export const AdaptiveOrchestrationPanel = () => {
   return (
     <div className="space-y-6">
       {/* Contrôles et Déclenchement */}
-      <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm">
+      <Card className="bg-card border-border/50 shadow-sm animate-fade-in hover:shadow-glow transition-all duration-300">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-full">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <div className="p-2 bg-primary/10 rounded-lg">
               <History className="h-5 w-5 text-primary" />
             </div>
             Orchestration Adaptative des Algorithmes
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base mt-1">
             Ajustement automatique des poids d'algorithmes basé sur les performances récentes
           </CardDescription>
         </CardHeader>
@@ -77,7 +77,7 @@ export const AdaptiveOrchestrationPanel = () => {
           <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
             <div className="flex-1 max-w-[320px]">
               <Select value={selectedDraw} onValueChange={setSelectedDraw}>
-                <SelectTrigger className="bg-secondary/20 border-border/40">
+                <SelectTrigger className="h-11 bg-secondary/20 border-border/40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -93,7 +93,8 @@ export const AdaptiveOrchestrationPanel = () => {
             <Button 
               onClick={handleTrigger}
               disabled={triggerOrchestration.isPending}
-              className="bg-primary hover:bg-primary/95 text-primary-foreground gap-2 cursor-pointer shadow-md"
+              size="lg"
+              className="bg-primary hover:bg-primary/95 text-primary-foreground gap-2 cursor-pointer shadow-md h-11"
             >
               {triggerOrchestration.isPending ? (
                 <>

@@ -481,7 +481,7 @@ export const PredictionVsResultsComparison = () => {
                               comparison.winning_numbers?.includes(num) || false;
                             return (
                               <motion.div 
-                                key={num} 
+                                key={`${num}-${idx}`} 
                                 className="relative"
                                 initial={{ scale: 0, rotate: -180 }}
                                 animate={{ scale: 1, rotate: 0 }}
@@ -532,7 +532,7 @@ export const PredictionVsResultsComparison = () => {
                             <div className="flex gap-2 flex-wrap">
                               {comparison.winning_numbers.map((num, idx) => (
                                 <motion.div
-                                  key={num}
+                                  key={`${num}-${idx}`}
                                   initial={{ scale: 0, rotate: 180 }}
                                   animate={{ scale: 1, rotate: 0 }}
                                   transition={{ 

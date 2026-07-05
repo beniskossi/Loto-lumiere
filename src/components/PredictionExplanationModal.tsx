@@ -226,8 +226,8 @@ export const PredictionExplanationModal = ({
                   Numéros Suggérés
                 </span>
                 <div className="flex gap-2 justify-center items-center py-2">
-                  {prediction.numbers.map((num) => (
-                    <NumberBall key={num} number={num} size="md" />
+                  {prediction.numbers.map((num, idx) => (
+                    <NumberBall key={`${num}-${idx}`} number={num} size="md" />
                   ))}
                 </div>
                 <div className="text-xs text-center text-muted-foreground bg-muted/30 p-2 rounded-lg">

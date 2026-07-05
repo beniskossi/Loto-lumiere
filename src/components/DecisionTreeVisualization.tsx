@@ -194,8 +194,8 @@ export const DecisionTreeVisualization = ({ drawName }: DecisionTreeVisualizatio
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                       <div className="flex flex-wrap gap-1">
                         {Array.isArray(node.yesPath) ? (
-                          node.yesPath.map(n => (
-                            <NumberBall key={n} number={n} size="sm" />
+                          node.yesPath.map((n, i) => (
+                            <NumberBall key={`yes-${n}-${i}`} number={n} size="sm" />
                           ))
                         ) : (
                           <span className="text-xs">→ {node.yesPath}</span>
@@ -206,8 +206,8 @@ export const DecisionTreeVisualization = ({ drawName }: DecisionTreeVisualizatio
                       <XCircle className="w-4 h-4 text-red-500" />
                       <div className="flex flex-wrap gap-1">
                         {Array.isArray(node.noPath) ? (
-                          node.noPath.map(n => (
-                            <NumberBall key={n} number={n} size="sm" />
+                          node.noPath.map((n, i) => (
+                            <NumberBall key={`no-${n}-${i}`} number={n} size="sm" />
                           ))
                         ) : (
                           <span className="text-xs">→ {node.noPath}</span>
@@ -227,8 +227,8 @@ export const DecisionTreeVisualization = ({ drawName }: DecisionTreeVisualizatio
               <h4 className="font-medium">Recommandation Finale</h4>
             </div>
             <div className="flex gap-2 justify-center">
-              {treeData.finalRecommendation.map(num => (
-                <NumberBall key={num} number={num} size="lg" />
+              {treeData.finalRecommendation.map((num, idx) => (
+                <NumberBall key={`${num}-${idx}`} number={num} size="lg" />
               ))}
             </div>
             <p className="text-xs text-center text-muted-foreground mt-2">

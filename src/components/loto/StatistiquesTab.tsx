@@ -400,9 +400,9 @@ export const StatistiquesTab = ({ drawName }: StatistiquesTabProps) => {
                     )}
                   >
                     <div className="flex gap-1">
-                      {pair.numbers.map((num) => (
+                      {pair.numbers.map((num, idx) => (
                         <NumberBall 
-                          key={num} 
+                          key={`${num}-${idx}`} 
                           number={num} 
                           size="sm"
                           className="w-7 h-7 text-xs"

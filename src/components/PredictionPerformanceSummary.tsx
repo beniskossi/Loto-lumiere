@@ -250,7 +250,7 @@ export const PredictionPerformanceSummary = ({ drawName }: PredictionPerformance
             <div className="space-y-1.5">
               {stats.algorithms.slice(0, 3).map((algo, idx) => (
                 <div 
-                  key={algo.name}
+                  key={`${algo.name}-${idx}`}
                   className="flex items-center justify-between p-2 rounded bg-secondary/30"
                 >
                   <div className="flex items-center gap-2">

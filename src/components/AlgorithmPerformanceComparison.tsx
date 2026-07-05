@@ -128,22 +128,22 @@ export const AlgorithmPerformanceComparison = () => {
   return (
     <div className="space-y-6">
       {/* En-tête avec filtre */}
-      <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm">
+      <Card className="bg-card border-border/50 shadow-sm animate-fade-in hover:shadow-glow transition-all duration-300">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-2 bg-primary/10 rounded-full">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <div className="p-2 bg-primary/10 rounded-lg">
                   <Award className="w-5 h-5 text-primary" />
                 </div>
                 Comparaison des Performances des Algorithmes
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base mt-1">
                 Analyse comparative complète avec tendances et métriques avancées
               </CardDescription>
             </div>
             <Select value={selectedDraw} onValueChange={setSelectedDraw}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[200px] h-11">
                 <SelectValue placeholder="Tous les tirages" />
               </SelectTrigger>
               <SelectContent>
@@ -160,43 +160,43 @@ export const AlgorithmPerformanceComparison = () => {
       </Card>
 
       {/* Meilleur algorithme mis en avant */}
-      <Card className="bg-gradient-primary text-white border-primary/50">
+      <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-border/50 shadow-md">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-xl">
             <Crown className="w-6 h-6 text-yellow-300" />
             Meilleur Algorithme
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-4 gap-6">
             <div>
-              <p className="text-sm opacity-80">Algorithme</p>
-              <p className="text-2xl font-bold">{bestAlgorithm.model_used}</p>
+              <p className="text-sm font-medium opacity-80">Algorithme</p>
+              <p className="text-3xl font-bold mt-1 tracking-tight">{bestAlgorithm.model_used}</p>
               {selectedDraw !== "all" && (
-                <p className="text-sm opacity-80 mt-1">{bestAlgorithm.draw_name}</p>
+                <p className="text-sm font-medium opacity-80 mt-1">{bestAlgorithm.draw_name}</p>
               )}
             </div>
             <div>
-              <p className="text-sm opacity-80">Précision Moyenne</p>
-              <p className="text-3xl font-bold">{bestAlgorithm.avg_accuracy}%</p>
+              <p className="text-sm font-medium opacity-80">Précision Moyenne</p>
+              <p className="text-3xl font-bold mt-1 tracking-tight">{bestAlgorithm.avg_accuracy}%</p>
             </div>
             <div>
-              <p className="text-sm opacity-80">Matches Moyens</p>
-              <p className="text-3xl font-bold">{bestAlgorithm.avg_matches}/5</p>
+              <p className="text-sm font-medium opacity-80">Matches Moyens</p>
+              <p className="text-3xl font-bold mt-1 tracking-tight">{bestAlgorithm.avg_matches}/5</p>
             </div>
             <div>
-              <p className="text-sm opacity-80">Score de Consistance</p>
-              <p className="text-3xl font-bold">{bestAlgorithm.consistency_score}%</p>
+              <p className="text-sm font-medium opacity-80">Score de Consistance</p>
+              <p className="text-3xl font-bold mt-1 tracking-tight">{bestAlgorithm.consistency_score}%</p>
             </div>
           </div>
-          <div className="mt-4 flex gap-4">
-            <Badge variant="secondary" className="bg-white/20 text-white">
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground border-transparent hover:bg-primary-foreground/30 px-3 py-1">
               {bestAlgorithm.perfect_predictions} parfaites (5/5)
             </Badge>
-            <Badge variant="secondary" className="bg-white/20 text-white">
+            <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground border-transparent hover:bg-primary-foreground/30 px-3 py-1">
               {bestAlgorithm.excellent_predictions} excellentes (4/5)
             </Badge>
-            <Badge variant="secondary" className="bg-white/20 text-white">
+            <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground border-transparent hover:bg-primary-foreground/30 px-3 py-1">
               {bestAlgorithm.good_predictions} bonnes (3/5)
             </Badge>
           </div>
@@ -204,15 +204,15 @@ export const AlgorithmPerformanceComparison = () => {
       </Card>
 
       {/* Graphique de tendances temporelles */}
-      <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm">
+      <Card className="bg-card border-border/50 shadow-sm hover:shadow-glow transition-all duration-300">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-full">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <div className="p-2 bg-primary/10 rounded-lg">
               <Activity className="w-5 h-5 text-primary" />
             </div>
             Tendances de Précision dans le Temps
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base mt-1">
             Évolution de la précision de chaque algorithme sur les dernières prédictions
           </CardDescription>
         </CardHeader>

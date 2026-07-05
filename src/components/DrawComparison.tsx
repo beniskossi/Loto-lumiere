@@ -156,9 +156,9 @@ export const DrawComparison = ({ initialDraw1 = "Cash", initialDraw2 = "Solution
                       <Flame className="w-3 h-3 text-orange-500" /> Numéros chauds
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {comparison.draw1.hotNumbers.slice(0, 6).map(num => (
+                      {comparison.draw1.hotNumbers.slice(0, 6).map((num, idx) => (
                         <NumberBall 
-                          key={num} 
+                          key={`${num}-${idx}`} 
                           number={num} 
                           size="sm" 
                           className={cn(
@@ -178,8 +178,8 @@ export const DrawComparison = ({ initialDraw1 = "Cash", initialDraw2 = "Solution
                       {comparison.draw1.topPairs.slice(0, 3).map((pair, i) => (
                         <div key={i} className="flex items-center justify-between p-2 rounded bg-secondary/30">
                           <div className="flex gap-1">
-                            {pair.numbers.map(n => (
-                              <NumberBall key={n} number={n} size="sm" className="w-6 h-6 text-[10px]" />
+                            {pair.numbers.map((n, idx) => (
+                              <NumberBall key={`${n}-${idx}`} number={n} size="sm" className="w-6 h-6 text-[10px]" />
                             ))}
                           </div>
                           <Badge variant="secondary" className="text-xs">{pair.count}x</Badge>
@@ -226,9 +226,9 @@ export const DrawComparison = ({ initialDraw1 = "Cash", initialDraw2 = "Solution
                       <Flame className="w-3 h-3 text-orange-500" /> Numéros chauds
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {comparison.draw2.hotNumbers.slice(0, 6).map(num => (
+                      {comparison.draw2.hotNumbers.slice(0, 6).map((num, idx) => (
                         <NumberBall 
-                          key={num} 
+                          key={`${num}-${idx}`} 
                           number={num} 
                           size="sm" 
                           className={cn(
@@ -248,8 +248,8 @@ export const DrawComparison = ({ initialDraw1 = "Cash", initialDraw2 = "Solution
                       {comparison.draw2.topPairs.slice(0, 3).map((pair, i) => (
                         <div key={i} className="flex items-center justify-between p-2 rounded bg-secondary/30">
                           <div className="flex gap-1">
-                            {pair.numbers.map(n => (
-                              <NumberBall key={n} number={n} size="sm" className="w-6 h-6 text-[10px]" />
+                            {pair.numbers.map((n, idx) => (
+                              <NumberBall key={`${n}-${idx}`} number={n} size="sm" className="w-6 h-6 text-[10px]" />
                             ))}
                           </div>
                           <Badge variant="secondary" className="text-xs">{pair.count}x</Badge>
@@ -288,9 +288,9 @@ export const DrawComparison = ({ initialDraw1 = "Cash", initialDraw2 = "Solution
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {comparison.commonHotNumbers.length > 0 ? (
-                      comparison.commonHotNumbers.map(num => (
+                      comparison.commonHotNumbers.map((num, idx) => (
                         <motion.div
-                          key={num}
+                          key={`${num}-${idx}`}
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           className="relative"
@@ -312,9 +312,9 @@ export const DrawComparison = ({ initialDraw1 = "Cash", initialDraw2 = "Solution
                       Unique à <span className="font-medium text-foreground">{draw1}</span>
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {comparison.uniqueToFirst.slice(0, 5).map(num => (
+                      {comparison.uniqueToFirst.slice(0, 5).map((num, idx) => (
                         <NumberBall 
-                          key={num} 
+                          key={`${num}-${idx}`} 
                           number={num} 
                           size="sm" 
                           className="w-8 h-8 text-xs opacity-80"
@@ -327,9 +327,9 @@ export const DrawComparison = ({ initialDraw1 = "Cash", initialDraw2 = "Solution
                       Unique à <span className="font-medium text-foreground">{draw2}</span>
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {comparison.uniqueToSecond.slice(0, 5).map(num => (
+                      {comparison.uniqueToSecond.slice(0, 5).map((num, idx) => (
                         <NumberBall 
-                          key={num} 
+                          key={`${num}-${idx}`} 
                           number={num} 
                           size="sm" 
                           className="w-8 h-8 text-xs opacity-80"

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Settings, Heart, BarChart3, History as HistoryIcon } from "lucide-react";
+import { Settings, Heart, BarChart3, History as HistoryIcon, Home, LayoutDashboard, FileSearch } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminRole } from "@/hooks/useAdminRole";
 
@@ -23,26 +23,39 @@ export const Footer = () => {
             <h3 className="font-bold text-foreground mb-3">Liens Rapides</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
+                  <Home className="w-4 h-4" />
                   Accueil
                 </Link>
               </li>
               <li>
-                <Link to="/statistiques" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
-                  <BarChart3 className="w-3 h-3" />
+                <Link to="/dashboard" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link to="/statistiques" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
                   Statistiques
                 </Link>
               </li>
               <li>
-                <Link to="/historique" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
-                  <HistoryIcon className="w-3 h-3" />
+                <Link to="/consulter" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
+                  <FileSearch className="w-4 h-4" />
+                  Consulter
+                </Link>
+              </li>
+              <li>
+                <Link to="/historique" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
+                  <HistoryIcon className="w-4 h-4" />
                   Historique
                 </Link>
               </li>
               {isAdmin && (
                 <li>
-                  <Link to="/admin" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
-                    <Settings className="w-3 h-3" />
+                  <Link to="/admin" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
                     Administration
                   </Link>
                 </li>
