@@ -30,11 +30,24 @@ export const CustomGridAnalyzer = ({ drawName, formulasBreakdown }: CustomGridAn
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
 
-  // Quick Pick IA
+  // Quick Pick IA (100% Déterministe via LCG)
   const handleQuickPick = () => {
+    // Calculer un seed stable basé sur le nom du tirage
+    let seed = 123456789;
+    if (drawName) {
+      seed = Array.from(drawName).reduce((acc, char, idx) => acc + char.charCodeAt(0) * (idx + 1), 0);
+    }
+    
+    // Simple LCG interne déterministe
+    let state = Math.abs(seed) >>> 0;
+    const lcgNext = () => {
+      state = (1664525 * state + 1013904223) >>> 0;
+      return state / 4294967296;
+    };
+    
     const nums: number[] = [];
     while (nums.length < 5) {
-      const rand = Math.floor(Math.random() * 90) + 1;
+      const rand = Math.floor(lcgNext() * 90) + 1;
       if (!nums.includes(rand)) {
         nums.push(rand);
       }

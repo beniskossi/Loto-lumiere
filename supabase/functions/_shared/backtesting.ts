@@ -3,6 +3,7 @@
  * Validation croisée K-Fold et métriques avancées
  */
 import type { DrawResult, PredictionResult } from "./types.ts";
+import { DeterministicLCG, deriveSeedFromDraws } from "./utils.ts";
 
 export interface BacktestResult {
   algorithm: string;
@@ -315,14 +316,16 @@ export function monteCarloSimulation(
   iterations: number = 1000
 ): { meanAccuracy: number; stdDev: number; percentiles: Record<number, number> } {
   const accuracies: number[] = [];
+  const baseSeed = deriveSeedFromDraws(historicalData);
+  const lcg = new DeterministicLCG(baseSeed);
   
   for (let i = 0; i < iterations; i++) {
     // Bootstrap sample
-    const sample = bootstrapSample(historicalData);
+    const sample = bootstrapSample(historicalData, lcg);
     const prediction = algorithm(sample);
     
     // Test against random historical result
-    const testIdx = Math.floor(Math.random() * historicalData.length);
+    const testIdx = Math.floor(lcg.next() * historicalData.length);
     const matches = prediction.numbers.filter(n =>
       historicalData[testIdx].winning_numbers.includes(n)
     ).length;
@@ -348,10 +351,11 @@ export function monteCarloSimulation(
   };
 }
 
-function bootstrapSample<T>(data: T[]): T[] {
+function bootstrapSample<T>(data: T[], lcg?: DeterministicLCG): T[] {
   const sample: T[] = [];
+  const activeLcg = lcg || new DeterministicLCG(data.length * 42);
   for (let i = 0; i < data.length; i++) {
-    const idx = Math.floor(Math.random() * data.length);
+    const idx = Math.floor(activeLcg.next() * data.length);
     sample.push(data[idx]);
   }
   return sample;

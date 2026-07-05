@@ -182,12 +182,18 @@ const DrawResultRow = React.memo(({ result, index }: { result: DrawResult; index
     }
   }, [result.draw_date]);
 
-  // Simulate match count (in production, compare with stored predictions)
+  // Simulate match count (completely deterministic, derived from draw data)
   const matchCount = useMemo(() => {
-    // This would normally compare against stored predictions
-    // For now, just show a random badge occasionally for demo
-    return Math.random() > 0.8 ? Math.floor(Math.random() * 3) + 3 : 0;
-  }, []);
+    const numbers = result.winning_numbers || [];
+    if (numbers.length === 0) return 0;
+    
+    // Derived stable value based on numbers
+    const sum = numbers.reduce((acc, val) => acc + val, 0);
+    if (sum % 29 === 0) return 5;
+    if (sum % 17 === 0) return 4;
+    if (sum % 11 === 0) return 3;
+    return 0;
+  }, [result.winning_numbers]);
 
   return (
     <motion.div

@@ -30,6 +30,10 @@ export const MonteCarloOracle: React.FC<MonteCarloOracleProps> = ({ drawName, in
     setFinalNumbers(null);
     setSimulationData([]);
 
+    // Dériver un seed stable basé sur le nom du tirage et les prédictions initiales
+    const seed = (drawName ? Array.from(drawName).reduce((sum, char) => sum + char.charCodeAt(0), 0) : 123) 
+      + initialPredictions.reduce((sum, val) => sum + val, 0);
+
     let currentIter = 0;
     const batchSize = targetIterations / 50; // 50 steps
     const interval = setInterval(() => {
@@ -39,40 +43,44 @@ export const MonteCarloOracle: React.FC<MonteCarloOracleProps> = ({ drawName, in
       setProgress(currentProgress);
       setIterations(Math.min(currentIter, targetIterations));
 
-      // Add noise to convergence to make graph look authentic
+      // Bruit déterministe continu par superposition d'ondes trigonométriques pour le graphique de convergence
       const baseConvergence = 50 + (currentProgress * 0.45); // Climbs from 50 to 95
-      const noise = (Math.random() - 0.5) * (100 - currentProgress) * 0.2; // Less noise as progress increases
+      const deterministicNoise = (Math.sin(currentIter * 0.005) + Math.cos(currentIter * 0.013)) * 0.5 * (100 - currentProgress) * 0.1;
       
       setSimulationData(prev => [...prev, {
         step: currentIter,
-        convergence: Math.min(Math.max(baseConvergence + noise, 0), 99.9)
+        convergence: Math.min(Math.max(baseConvergence + deterministicNoise, 0), 99.9)
       }]);
 
       if (currentIter >= targetIterations) {
         clearInterval(interval);
         setIsSimulating(false);
         
-        // Slightly tweak initial predictions to represent "optimization"
+        // Optimisation déterministe
         const optimized = [...initialPredictions];
         if (optimized.length === 5) {
-          // 20% chance to mutate one number to show the simulation "found" a better path
-          if (Math.random() > 0.8) {
-            const indexToMutate = Math.floor(Math.random() * 5);
-            let newNum;
-            do {
-              newNum = Math.floor(Math.random() * 90) + 1;
-            } while (optimized.includes(newNum));
+          // Décision déterministe de mutation basée sur le seed (par exemple 60% de chances)
+          const shouldMutate = (seed % 5) >= 2;
+          if (shouldMutate) {
+            const indexToMutate = (seed + 13) % 5;
+            let newNum = ((seed * 17) % 90) + 1;
+            while (optimized.includes(newNum)) {
+              newNum = (newNum % 90) + 1;
+            }
             optimized[indexToMutate] = newNum;
           }
           setFinalNumbers(optimized.sort((a, b) => a - b));
         } else {
-           // fallback
-           const fallback = [];
-           while(fallback.length < 5) {
-             const r = Math.floor(Math.random() * 90) + 1;
-             if (!fallback.includes(r)) fallback.push(r);
-           }
-           setFinalNumbers(fallback.sort((a, b) => a - b));
+          // Fallback déterministe
+          const fallback: number[] = [];
+          let currentVal = ((seed * 31) % 90) + 1;
+          while (fallback.length < 5) {
+            if (!fallback.includes(currentVal)) {
+              fallback.push(currentVal);
+            }
+            currentVal = (currentVal % 90) + 1;
+          }
+          setFinalNumbers(fallback.sort((a, b) => a - b));
         }
         
         toast.success("Simulation Monte Carlo terminée avec succès !");
@@ -80,7 +88,7 @@ export const MonteCarloOracle: React.FC<MonteCarloOracleProps> = ({ drawName, in
     }, 60);
 
     return () => clearInterval(interval);
-  }, [initialPredictions]);
+  }, [initialPredictions, drawName]);
 
   const formattedIterations = new Intl.NumberFormat('fr-FR').format(iterations);
 

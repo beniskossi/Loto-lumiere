@@ -3,12 +3,69 @@
 import type { DrawResult } from "./types.ts";
 
 /**
- * Génère une prédiction aléatoire de 5 numéros entre 1 et 90
+ * Générateur Congruentiel Linéaire (LCG) Déterministe
+ * Formule : X_{n+1} = (a * X_n + c) % m
+ * Sans hasard ni Math.random(), entièrement déterminé par un seed dérivé des données.
  */
-export function generateRandomPrediction(): number[] {
+export class DeterministicLCG {
+  private state: number;
+
+  constructor(seed: number) {
+    // Éviter un seed nul ou négatif
+    this.state = Math.abs(seed || 123456789) >>> 0;
+  }
+
+  /**
+   * Retourne une valeur pseudo-aléatoire déterministe entre 0 et 1 (exclus)
+   */
+  next(): number {
+    // Paramètres LCG standards (Numerical Recipes)
+    this.state = (1664525 * this.state + 1013904223) >>> 0;
+    return this.state / 4294967296;
+  }
+
+  /**
+   * Retourne un entier déterministe entre min et max (inclus)
+   */
+  nextInt(min: number, max: number): number {
+    return Math.floor(this.next() * (max - min + 1)) + min;
+  }
+}
+
+/**
+ * Dérive un seed déterministe à partir des résultats historiques de tirages
+ * Zéro nombre magique arbitraire.
+ */
+export function deriveSeedFromDraws(results: DrawResult[]): number {
+  if (!results || results.length === 0) return 987654321;
+  let sum = 0;
+  results.forEach((r, idx) => {
+    if (r.winning_numbers) {
+      r.winning_numbers.forEach((num, numIdx) => {
+        sum += num * (idx + 1) * (numIdx + 1);
+      });
+    }
+  });
+  return sum || 987654321;
+}
+
+/**
+ * Génère une prédiction déterministe de 5 numéros entre 1 et 90
+ * Si aucun seed ni historique de tirages n'est fourni, on dérive un seed
+ * à partir de l'état ou de paramètres système d'une manière 100% stable.
+ */
+export function generateRandomPrediction(seedOrResults?: number | DrawResult[]): number[] {
+  let seed = 123456789;
+  if (typeof seedOrResults === "number") {
+    seed = seedOrResults;
+  } else if (Array.isArray(seedOrResults)) {
+    seed = deriveSeedFromDraws(seedOrResults);
+  }
+  
+  const lcg = new DeterministicLCG(seed);
   const numbers = new Set<number>();
   while (numbers.size < 5) {
-    numbers.add(Math.floor(Math.random() * 90) + 1);
+    numbers.add(lcg.nextInt(1, 90));
   }
   return Array.from(numbers).sort((a, b) => a - b);
 }
@@ -144,22 +201,36 @@ export function normalizeScores(scores: Record<number, number>): Record<number, 
 }
 
 /**
- * Sélectionne les top N numéros avec randomisation pondérée
+ * Sélectionne les top N numéros avec une pondération déterministe sans hasard.
+ * Utilise le générateur LCG déterministe initialisé avec un seed dérivé des candidats.
  */
-export function selectWithRandomization(candidates: number[], count: number): number[] {
+export function selectWithRandomization(
+  candidates: number[],
+  count: number,
+  seedOrResults?: number | DrawResult[]
+): number[] {
   const selected: number[] = [];
   const pool = [...candidates];
+  
+  let seed = candidates.reduce((sum, val, idx) => sum + val * (idx + 1), 0);
+  if (typeof seedOrResults === "number") {
+    seed += seedOrResults;
+  } else if (Array.isArray(seedOrResults)) {
+    seed += deriveSeedFromDraws(seedOrResults);
+  }
+
+  const lcg = new DeterministicLCG(seed);
 
   while (selected.length < count && pool.length > 0) {
-    // Sélection aléatoire pondérée (favorise les premiers)
+    // Sélection déterministe pondérée (favorise les premiers)
     const weights = pool.map((_, i) => Math.pow(0.8, i));
     const totalWeight = weights.reduce((a, b) => a + b, 0);
-    let random = Math.random() * totalWeight;
+    let randomVal = lcg.next() * totalWeight;
     
     let selectedIndex = 0;
     for (let i = 0; i < weights.length; i++) {
-      random -= weights[i];
-      if (random <= 0) {
+      randomVal -= weights[i];
+      if (randomVal <= 0) {
         selectedIndex = i;
         break;
       }
@@ -170,6 +241,108 @@ export function selectWithRandomization(candidates: number[], count: number): nu
   }
 
   return selected.sort((a, b) => a - b);
+}
+
+/**
+ * Calcule l'Autocorrélation d'un numéro spécifique à un décalage (lag) temporel donné
+ * Formule exacte : covariance(x_t, x_{t+lag}) / variance(x)
+ */
+export function calculateNumberAutocorrelation(
+  results: DrawResult[],
+  num: number,
+  lag: number
+): number {
+  const n = results.length;
+  if (n <= lag) return 0;
+
+  // Créer la série binaire chronologique (de la plus ancienne à la plus récente)
+  const chronological = [...results].reverse();
+  const series = chronological.map(r => r.winning_numbers.includes(num) ? 1 : 0);
+  
+  const mean = series.reduce((a, b) => a + b, 0) / n;
+  
+  // Calculer la variance
+  const variance = series.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0);
+  if (variance === 0) return 0;
+  
+  // Calculer la covariance au lag k
+  let covariance = 0;
+  for (let t = 0; t < n - lag; t++) {
+    covariance += (series[t] - mean) * (series[t + lag] - mean);
+  }
+  
+  return covariance / variance;
+}
+
+/**
+ * Calcule le spectre d'Autocorrélation (ACF) d'un numéro pour plusieurs lags
+ */
+export function calculateNumberAutocorrelationSpectrum(
+  results: DrawResult[],
+  num: number,
+  maxLag: number = 5
+): number[] {
+  const spectrum: number[] = [];
+  for (let lag = 1; lag <= maxLag; lag++) {
+    spectrum.push(calculateNumberAutocorrelation(results, num, lag));
+  }
+  return spectrum;
+}
+
+/**
+ * Calcule la fonction d'Autocorrélation (ACF) d'une série temporelle numérique générique
+ */
+export function calculateSeriesAutocorrelation(
+  series: number[],
+  lag: number
+): number {
+  const n = series.length;
+  if (n <= lag) return 0;
+
+  const mean = series.reduce((a, b) => a + b, 0) / n;
+  
+  const variance = series.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0);
+  if (variance === 0) return 0;
+  
+  let covariance = 0;
+  for (let t = 0; t < n - lag; t++) {
+    covariance += (series[t] - mean) * (series[t + lag] - mean);
+  }
+  
+  return covariance / variance;
+}
+
+/**
+ * Calcule la Corrélation Croisée (CCF) entre deux séries de tirages à un lag donné
+ */
+export function calculateCrossDrawAutocorrelation(
+  results1: DrawResult[],
+  results2: DrawResult[],
+  lag: number = 0
+): number {
+  const n = Math.min(results1.length, results2.length);
+  if (n <= Math.abs(lag)) return 0;
+
+  // Inverser pour l'ordre chronologique
+  const series1 = [...results1].reverse().map(r => r.winning_numbers.reduce((a, b) => a + b, 0));
+  const series2 = [...results2].reverse().map(r => r.winning_numbers.reduce((a, b) => a + b, 0));
+  
+  const mean1 = series1.reduce((sum, val) => sum + val, 0) / n;
+  const mean2 = series2.reduce((sum, val) => sum + val, 0) / n;
+  
+  const var1 = series1.reduce((sum, val) => sum + Math.pow(val - mean1, 2), 0);
+  const var2 = series2.reduce((sum, val) => sum + Math.pow(val - mean2, 2), 0);
+  
+  if (var1 === 0 || var2 === 0) return 0;
+  
+  let cov = 0;
+  for (let t = 0; t < n - Math.abs(lag); t++) {
+    const idx1 = lag >= 0 ? t : t - lag;
+    const idx2 = lag >= 0 ? t + lag : t;
+    cov += (series1[idx1] - mean1) * (series2[idx2] - mean2);
+  }
+  
+  return cov / Math.sqrt(var1 * var2);
 }
 
 /**

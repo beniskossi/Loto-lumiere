@@ -4,7 +4,7 @@ import { RateLimiter, getClientIdentifier, createRateLimitResponse } from "../_s
 import { multiDrawPredictionRequestSchema, validateRequest } from "../_shared/validation.ts";
 import { predictionOptimizer } from "../_shared/prediction-optimizer.ts";
 import { analyzeCrossDrawCorrelation, predictFromCrossDrawAnalysis } from "../_shared/cross-draw-analysis.ts";
-import { log } from "../_shared/utils.ts";
+import { log, calculateSeriesAutocorrelation } from "../_shared/utils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -98,11 +98,11 @@ serve(async (req) => {
           lessons = Array.from(new Set(lessons)).slice(0, 5); // Unique lessons
         }
 
-        // Utiliser l'optimiseur de prédictions
+        // Utiliser l'optimiseur de prédictions (useEnsemble: false pour éviter l'épuisement des ressources CPU/mémoire en multi-tirage)
         const optimizedPrediction = await predictionOptimizer.optimizePrediction(results, {
           riskLevel: "balanced",
           targetConfidence: 0.75,
-          useEnsemble: true,
+          useEnsemble: false,
           useAnalytics: true,
           diversityWeight: 0.25,
           stabilityWeight: 0.35,
@@ -132,6 +132,12 @@ serve(async (req) => {
           }
         }
 
+        // Calculer l'Autocorrélation (ACF) déterministe de la somme du tirage pour lags 1 à 5
+        const sumSeries = results.map(r => r.winning_numbers.reduce((a, b) => a + b, 0));
+        const autocorrelationSpectrum = [1, 2, 3, 4, 5].map(lag => 
+          calculateSeriesAutocorrelation(sumSeries, lag)
+        );
+
         // Calculer le prochain horaire de tirage
         const nextDrawTime = calculateNextDrawTime(drawName);
 
@@ -142,7 +148,8 @@ serve(async (req) => {
           confidence: optimizedPrediction.confidence,
           strategy: determineStrategy(optimizedPrediction.confidence, optimizedPrediction.riskAssessment),
           correlations,
-          riskAssessment: optimizedPrediction.riskAssessment
+          riskAssessment: optimizedPrediction.riskAssessment,
+          autocorrelationSpectrum
         });
       } catch (error) {
         log("error", `Error processing ${drawName}`, { error });

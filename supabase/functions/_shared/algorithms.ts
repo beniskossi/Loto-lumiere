@@ -4,7 +4,7 @@
 // =====================================================
 
 import type { DrawResult, PredictionResult, AlgorithmCategory } from "./types.ts";
-import { generateRandomPrediction, selectBalancedNumbers, log } from "./utils.ts";
+import { generateRandomPrediction, selectBalancedNumbers, log, DeterministicLCG } from "./utils.ts";
 
 // Réexporter les algorithmes avancés
 export { transformerAlgorithm } from "./transformer.ts";
@@ -183,15 +183,34 @@ function bootstrapSampling<T>(data: T[]): T[] {
   const sample: T[] = [];
   const usedIndices = new Set<number>();
   
+  // Dériver un seed stable à partir de la longueur et des caractéristiques des données
+  let seed = data.length * 17;
+  if (data.length > 0) {
+    const firstItem = data[0] as any;
+    if (firstItem && Array.isArray(firstItem.winning_numbers)) {
+      seed = data.reduce((sum, item: any) => {
+        const nums = item.winning_numbers || [];
+        return sum + nums.reduce((a: number, b: number) => a + b, 0);
+      }, 0) || seed;
+    }
+  }
+
+  const lcg = new DeterministicLCG(seed);
+  
   while (sample.length < data.length) {
-    const idx = Math.floor(Math.random() * data.length);
+    const idx = Math.floor(lcg.next() * data.length);
     sample.push(data[idx]);
     usedIndices.add(idx);
   }
   
-  // Assurer une diversité minimale
+  // Garantir une diversité minimale de 50% de manière déterministe si nécessaire
   if (usedIndices.size < data.length * 0.5) {
-    return bootstrapSampling(data);
+    for (let i = 0; i < data.length && usedIndices.size < data.length * 0.5; i++) {
+      if (!usedIndices.has(i)) {
+        sample[usedIndices.size] = data[i];
+        usedIndices.add(i);
+      }
+    }
   }
   
   return sample;
