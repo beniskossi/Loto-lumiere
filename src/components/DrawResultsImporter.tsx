@@ -495,11 +495,20 @@ export const DrawResultsImporter = ({
       }
       
       const uniqueDrawNames = Array.from(new Set(validResults.map(r => r.draw_name)));
-      
-      const { data: existingResults, error } = await supabase
+      const dates = validResults.map(r => r.draw_date).filter(Boolean);
+      const minDate = dates.length > 0 ? dates.reduce((min, d) => d < min ? d : min, dates[0]) : null;
+      const maxDate = dates.length > 0 ? dates.reduce((max, d) => d > max ? d : max, dates[0]) : null;
+
+      let query = supabase
         .from("draw_results")
         .select("draw_name, draw_date")
         .in("draw_name", uniqueDrawNames);
+
+      if (minDate && maxDate) {
+        query = query.gte("draw_date", minDate).lte("draw_date", maxDate);
+      }
+      
+      const { data: existingResults, error } = await query;
         
       if (error) throw error;
       
@@ -666,12 +675,22 @@ export const DrawResultsImporter = ({
     // Re-check duplicates for this specific updated set
     setIsLoading(true);
     try {
-      const uniqueDrawNames = Array.from(new Set(updated.filter(r => r.isValid).map(r => r.draw_name)));
-      
-      const { data: existingResults, error } = await supabase
+      const validUpdated = updated.filter(r => r.isValid);
+      const uniqueDrawNames = Array.from(new Set(validUpdated.map(r => r.draw_name)));
+      const dates = validUpdated.map(r => r.draw_date).filter(Boolean);
+      const minDate = dates.length > 0 ? dates.reduce((min, d) => d < min ? d : min, dates[0]) : null;
+      const maxDate = dates.length > 0 ? dates.reduce((max, d) => d > max ? d : max, dates[0]) : null;
+
+      let query = supabase
         .from("draw_results")
         .select("draw_name, draw_date")
         .in("draw_name", uniqueDrawNames);
+
+      if (minDate && maxDate) {
+        query = query.gte("draw_date", minDate).lte("draw_date", maxDate);
+      }
+      
+      const { data: existingResults, error } = await query;
         
       if (error) throw error;
       
@@ -756,13 +775,16 @@ export const DrawResultsImporter = ({
         draw_time: r.draw_time,
       }));
 
-      const { error } = await supabase.from("draw_results").insert(payload);
+      // We use upsert with onConflict to handle conflicts gracefully (overwriting or skipping instead of throwing)
+      const { error } = await supabase
+        .from("draw_results")
+        .upsert(payload, { onConflict: "draw_name,draw_date" });
 
       if (error) throw error;
 
       toast({
         title: "✓ Importation réussie",
-        description: `${selectedResults.length} tirage(s) ont été importés avec succès !`,
+        description: `${selectedResults.length} tirage(s) ont été importés ou mis à jour avec succès !`,
       });
 
       // Reset
@@ -775,11 +797,12 @@ export const DrawResultsImporter = ({
       if (onImportComplete) {
         onImportComplete();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Batch import error:", error);
+      const errorMessage = error?.message || error?.details || (error && typeof error === "object" ? JSON.stringify(error) : String(error));
       toast({
         title: "Erreur d'importation",
-        description: error instanceof Error ? error.message : "Échec de l'insertion en base.",
+        description: errorMessage || "Échec de l'insertion en base.",
         variant: "destructive",
       });
     } finally {

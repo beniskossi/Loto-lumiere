@@ -254,18 +254,20 @@ const Admin = () => {
         throw new Error("Format JSON invalide");
       }
 
-      // Insérer les données
-      const { error } = await supabase.from("draw_results").insert(data);
+      // Insérer les données avec upsert pour éviter les plantages sur doublons
+      const { error } = await supabase.from("draw_results").upsert(data, { onConflict: "draw_name,draw_date" });
       if (error) throw error;
 
       toast({
         title: "✓ Import réussi",
-        description: `${data.length} résultat(s) importé(s)`,
+        description: `${data.length} résultat(s) importé(s) ou mis à jour`,
       });
-    } catch (error: unknown) {
+    } catch (error: any) {
+      console.error("JSON import error:", error);
+      const errorMessage = error?.message || error?.details || (error && typeof error === "object" ? JSON.stringify(error) : String(error));
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Échec de l'import",
+        description: errorMessage || "Échec de l'import",
         variant: "destructive",
       });
     } finally {
