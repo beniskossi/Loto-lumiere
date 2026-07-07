@@ -52,9 +52,24 @@ import {
 } from "@/components/ui/table";
 import { DRAW_SCHEDULE } from "@/types/lottery";
 
-export const DrawResultsManager = () => {
+export const DrawResultsManager = ({
+  activeDrawName,
+  onActiveDrawNameChange
+}: {
+  activeDrawName?: string;
+  onActiveDrawNameChange?: (name: string) => void;
+}) => {
   const { toast } = useToast();
-  const [selectedDrawName, setSelectedDrawName] = useState<string>("all");
+  const [localSelectedDrawName, setLocalSelectedDrawName] = useState<string>("all");
+  
+  const selectedDrawName = activeDrawName !== undefined ? activeDrawName : localSelectedDrawName;
+  const setSelectedDrawName = (value: string) => {
+    if (onActiveDrawNameChange) {
+      onActiveDrawNameChange(value);
+    } else {
+      setLocalSelectedDrawName(value);
+    }
+  };
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 20;
   

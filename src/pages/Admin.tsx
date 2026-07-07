@@ -59,6 +59,9 @@ const Admin = () => {
   const [machineNumbers, setMachineNumbers] = useState(["", "", "", "", ""]);
   const [showMachineNumbers, setShowMachineNumbers] = useState(false);
 
+  // Active / Selected draw name for the whole Données tab
+  const [activeDrawName, setActiveDrawName] = useState<string>("all");
+
   // Export
   const [exportDrawName, setExportDrawName] = useState("all");
 
@@ -71,6 +74,14 @@ const Admin = () => {
 
   // Récupérer tous les tirages pour le select
   const allDraws = Object.values(DRAW_SCHEDULE).flat();
+
+  useEffect(() => {
+    if (activeDrawName !== "all") {
+      setDrawName(activeDrawName);
+    } else {
+      setDrawName("");
+    }
+  }, [activeDrawName]);
 
   useEffect(() => {
     if (user && isAdmin) {
@@ -589,7 +600,40 @@ const Admin = () => {
               </Suspense>
             </TabsContent>
 
-            <TabsContent value="results" className="space-y-6 mt-0">
+            <TabsContent value="results" className="space-y-6 mt-0 animate-fade-in">
+              {/* Card de Sélection du Tirage de Gestion Actif */}
+              <Card className="bg-card border-border/50 shadow-sm animate-fade-in">
+                <CardContent className="p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold tracking-tight text-foreground flex items-center gap-2">
+                      <Database className="w-5 h-5 text-primary" />
+                      Sélection du Tirage de Gestion
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Déterminez le tirage actif. Toutes les modifications, ajouts manuels, filtrages et importations de fichiers (CSV/JSON) seront attribués à ce tirage.
+                    </p>
+                  </div>
+                  <div className="w-full md:w-auto shrink-0 flex items-center gap-3">
+                    <Label htmlFor="active-draw-select" className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      Tirage Actif :
+                    </Label>
+                    <Select value={activeDrawName} onValueChange={setActiveDrawName}>
+                      <SelectTrigger id="active-draw-select" className="w-full md:w-[260px] h-11 border-primary/20 bg-background/50 font-semibold focus:ring-primary">
+                        <SelectValue placeholder="Tous les tirages" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all" className="font-semibold text-primary">Tous les tirages (Aucun filtre forcé)</SelectItem>
+                        {allDraws.map((draw) => (
+                          <SelectItem key={draw.name} value={draw.name}>
+                            {draw.name} ({draw.day} {draw.time})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="grid xl:grid-cols-2 gap-8">
                 <div className="space-y-8">
                   <Card className="bg-card border-border/50 shadow-sm animate-slide-up hover:shadow-glow transition-all duration-300">
@@ -783,14 +827,14 @@ const Admin = () => {
                 
                 {/* Import facilité */}
                 <Suspense fallback={<PanelFallback />}>
-                  <DrawResultsImporter onImportComplete={loadStats} />
+                  <DrawResultsImporter onImportComplete={loadStats} activeDrawName={activeDrawName} />
                 </Suspense>
               </div>
 
               {/* Gestion des résultats - Takes up right column or full width if not enough space */}
               <div className="h-full">
                 <Suspense fallback={<PanelFallback />}>
-                  <DrawResultsManager />
+                  <DrawResultsManager activeDrawName={activeDrawName} onActiveDrawNameChange={setActiveDrawName} />
                 </Suspense>
               </div>
             </div>
