@@ -93,12 +93,12 @@ export const TrackedPredictionsDisplay = () => {
               <div>
                 <Badge variant="outline">{tracked.predictions.draw_name}</Badge>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Prédiction du {new Date(tracked.predictions.prediction_date).toLocaleDateString()}
+                  Prédiction du {new Date(tracked.predictions.prediction_date).toLocaleDateString("fr-FR")}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">
-                  Sauvegardé le {new Date(tracked.marked_at).toLocaleDateString()}
+                  Sauvegardé le {new Date(tracked.marked_at).toLocaleDateString("fr-FR")}
                 </p>
                 {tracked.predictions.confidence_score && (
                   <Badge variant="secondary" className="mt-1">

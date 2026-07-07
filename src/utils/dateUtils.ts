@@ -58,3 +58,35 @@ export const isSameDay = (date1: Date, date2: Date): boolean => {
 export const formatDateForQuery = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
+
+export const formatToFrenchDate = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return "";
+  const trimmed = dateStr.trim();
+  // If it's already DD/MM/YYYY, return it
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+    return trimmed;
+  }
+  // Try YYYY-MM-DD
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+  // Try ISO date with time or T...
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})[T ]/);
+  if (isoMatch) {
+    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  }
+  // Otherwise, use basic JS Date
+  try {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  } catch (e) {
+    // Ignore and fallback
+  }
+  return dateStr;
+};

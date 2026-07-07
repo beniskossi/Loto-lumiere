@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NumberBall } from "@/components/NumberBall";
 import { DRAW_SCHEDULE } from "@/types/lottery";
+import { formatToFrenchDate } from "@/utils/dateUtils";
 
 interface ParsedResult {
   id: string;
@@ -124,8 +125,8 @@ export const DrawResultsImporter = ({
 
     // 1. Detect and extract ISO or French Date
     let detectedDate = "";
-    const dateIsoRegex = /\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/;
-    const dateFrRegex = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/;
+    const dateIsoRegex = /\b(\d{4})[-/. ](\d{1,2})[-/. ](\d{1,2})\b/;
+    const dateFrRegex = /\b(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})\b/;
 
     const matchIso = remaining.match(dateIsoRegex);
     const matchFr = remaining.match(dateFrRegex);
@@ -245,8 +246,8 @@ export const DrawResultsImporter = ({
         // Standardize date
         const detectedDate = String(rawDrawDate).trim();
         let formattedDate = "";
-        const dateIsoRegex = /\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/;
-        const dateFrRegex = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/;
+        const dateIsoRegex = /\b(\d{4})[-/. ](\d{1,2})[-/. ](\d{1,2})\b/;
+        const dateFrRegex = /\b(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})\b/;
 
         const matchIso = detectedDate.match(dateIsoRegex);
         const matchFr = detectedDate.match(dateFrRegex);
@@ -362,8 +363,8 @@ export const DrawResultsImporter = ({
     winningIdxs.sort((a, b) => a - b);
     machineIdxs.sort((a, b) => a - b);
     
-    const dateIsoRegex = /\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/;
-    const dateFrRegex = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/;
+    const dateIsoRegex = /\b(\d{4})[-/. ](\d{1,2})[-/. ](\d{1,2})\b/;
+    const dateFrRegex = /\b(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})\b/;
 
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -1184,7 +1185,7 @@ Lucky Tuesday,2026-07-07,8,19,45,63,77,,,,,`;
                               </div>
                             </TableCell>
                             <TableCell className="font-mono text-xs font-semibold text-muted-foreground">
-                              {result.draw_date}
+                              {formatToFrenchDate(result.draw_date)}
                             </TableCell>
                             <TableCell>
                               {result.isValid && result.winning_numbers.length === 5 ? (

@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { DrawResult } from "@/hooks/useDrawResults";
+import { formatToFrenchDate } from "@/utils/dateUtils";
 
 interface DonneesTabProps {
   drawName: string;
@@ -32,7 +33,7 @@ const ResultRow = React.memo(({ result }: { result: DrawResult }) => {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="w-3.5 h-3.5" />
-          <span className="font-medium">{result.draw_date}</span>
+          <span className="font-medium">{formatToFrenchDate(result.draw_date)}</span>
           <Badge variant="secondary" className="text-xs">
             {result.draw_time}
           </Badge>
@@ -173,7 +174,7 @@ export const DonneesTab = ({ drawName }: DonneesTabProps) => {
             <CardContent className="p-4 text-center">
               <CheckCircle2 className="w-5 h-5 mx-auto mb-2 text-green-500" />
               <p className="text-sm font-medium truncate">
-                {latestResult?.draw_date || "N/A"}
+                {latestResult ? formatToFrenchDate(latestResult.draw_date) : "N/A"}
               </p>
               <p className="text-xs text-muted-foreground">Plus récent</p>
             </CardContent>
@@ -189,7 +190,7 @@ export const DonneesTab = ({ drawName }: DonneesTabProps) => {
             <CardContent className="p-4 text-center">
               <Calendar className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm font-medium truncate">
-                {oldestResult?.draw_date || "N/A"}
+                {oldestResult ? formatToFrenchDate(oldestResult.draw_date) : "N/A"}
               </p>
               <p className="text-xs text-muted-foreground">Plus ancien</p>
             </CardContent>
@@ -212,7 +213,7 @@ export const DonneesTab = ({ drawName }: DonneesTabProps) => {
                   <span className="text-sm font-medium">Dernier Résultat</span>
                 </div>
                 <Badge variant="outline" className="text-xs">
-                  {latestResult.draw_date} - {latestResult.draw_time}
+                  {formatToFrenchDate(latestResult.draw_date)} - {latestResult.draw_time}
                 </Badge>
               </div>
               <div className="flex flex-col md:flex-row items-center justify-center gap-6">

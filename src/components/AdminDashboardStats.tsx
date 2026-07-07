@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Database, TrendingUp, Users, Activity, Calendar, Award } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatToFrenchDate } from "@/utils/dateUtils";
 
 interface AdminStats {
   totalDraws: number;
@@ -76,7 +77,7 @@ export const AdminDashboardStats = () => {
       title: "Tirages Total",
       value: stats.totalDraws,
       icon: Database,
-      description: `Dernier: ${stats.lastDrawDate}`,
+      description: `Dernier: ${formatToFrenchDate(stats.lastDrawDate)}`,
       color: "text-blue-600",
     },
     {

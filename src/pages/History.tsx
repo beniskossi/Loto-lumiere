@@ -16,6 +16,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { MainNav } from "@/components/MainNav";
 import { HistorySummaryStats } from "@/components/HistorySummaryStats";
 import { PredictionVsResultsComparison } from "@/components/PredictionVsResultsComparison";
+import { DataExporter } from "@/components/DataExporter";
 import {
   Table,
   TableBody,
@@ -146,21 +147,30 @@ const History = () => {
 
         <Card className="bg-gradient-card border-border/50 animate-slide-up">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <span>Résultats ({filteredResults.length})</span>
-              {(searchDate || filterDraw !== "all") && (
-                <Button
+              <div className="flex items-center gap-2">
+                {(searchDate || filterDraw !== "all") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchDate("");
+                      setFilterDraw("all");
+                      setCurrentPage(1);
+                    }}
+                    className="h-9"
+                  >
+                    Réinitialiser
+                  </Button>
+                )}
+                <DataExporter
+                  data={filteredResults}
+                  defaultFileName="loto-lumiere-historique"
+                  buttonText="Exporter ces résultats"
                   variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSearchDate("");
-                    setFilterDraw("all");
-                    setCurrentPage(1);
-                  }}
-                >
-                  Réinitialiser
-                </Button>
-              )}
+                />
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
