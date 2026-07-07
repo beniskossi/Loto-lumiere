@@ -103,6 +103,14 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
     return null;
   };
 
+  const getDayOfWeekFr = (dateStr: string): string => {
+    // dateStr is "YYYY-MM-DD"
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    const days = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+    return days[date.getDay()];
+  };
+
   // Robust line parser for unstructured spaces/dashes/brackets/commas format
   const parseLine = (line: string): Omit<ParsedResult, "id"> => {
     const trimmed = line.trim();
@@ -154,17 +162,21 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
       .trim();
 
     const match = findBestDrawMatch(cleanedDrawName);
-    if (!match) {
-      return {
-        draw_name: cleanedDrawName || "Inconnu",
-        draw_date: detectedDate,
-        winning_numbers: [],
-        draw_day: "",
-        draw_time: "",
-        isValid: false,
-        validationError: `Tirage inconnu : "${cleanedDrawName || 'nom introuvable'}"`,
-        rawLine: line
-      };
+    
+    let drawName = match?.name || cleanedDrawName || "Inconnu";
+    let drawDay = match?.day || "";
+    let drawTime = match?.time || "";
+
+    if (!match && detectedDate) {
+      const dayFr = getDayOfWeekFr(detectedDate);
+      const dayDraws = DRAW_SCHEDULE[dayFr];
+      if (dayDraws && dayDraws.length > 0) {
+        // Default to the last (major) draw of that day
+        const defaultDraw = dayDraws[dayDraws.length - 1];
+        drawName = defaultDraw.name;
+        drawDay = defaultDraw.day;
+        drawTime = defaultDraw.time;
+      }
     }
 
     // Validate numbers range (1 - 90)
@@ -172,11 +184,11 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
 
     if (validDrawNumbers.length < 5) {
       return {
-        draw_name: match.name,
+        draw_name: drawName,
         draw_date: detectedDate,
         winning_numbers: validDrawNumbers,
-        draw_day: match.day,
-        draw_time: match.time,
+        draw_day: drawDay,
+        draw_time: drawTime,
         isValid: false,
         validationError: `Numéros insuffisants (trouvé: ${validDrawNumbers.length}, attendu: 5 minimum entre 1-90)`,
         rawLine: line
@@ -187,13 +199,14 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
     const machineNumbers = validDrawNumbers.length >= 10 ? validDrawNumbers.slice(5, 10) : undefined;
 
     return {
-      draw_name: match.name,
+      draw_name: drawName,
       draw_date: detectedDate,
       winning_numbers: winningNumbers,
       machine_numbers: machineNumbers,
-      draw_day: match.day,
-      draw_time: match.time,
-      isValid: true,
+      draw_day: drawDay,
+      draw_time: drawTime,
+      isValid: drawName !== "Inconnu" && !!detectedDate,
+      validationError: drawName === "Inconnu" ? "Tirage non reconnu" : undefined,
       rawLine: line
     };
   };
@@ -238,28 +251,49 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
           formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
         }
 
-        const match = findBestDrawMatch(String(rawDrawName));
-        const winningNumbers = (Array.isArray(rawWinning) ? rawWinning : [])
+        // If the numbers array actually holds 10 numbers, separate them!
+        let winningNumbers = (Array.isArray(rawWinning) ? rawWinning : [])
           .map(n => typeof n === "number" ? n : parseInt(String(n)))
           .filter(n => !isNaN(n) && n >= 1 && n <= 90);
         
-        const machineNumbers = (Array.isArray(rawMachine) ? rawMachine : [])
+        let machineNumbers = (Array.isArray(rawMachine) ? rawMachine : [])
           .map(n => typeof n === "number" ? n : parseInt(String(n)))
           .filter(n => !isNaN(n) && n >= 1 && n <= 90);
 
+        if (winningNumbers.length >= 10 && machineNumbers.length === 0) {
+          machineNumbers = winningNumbers.slice(5, 10);
+          winningNumbers = winningNumbers.slice(0, 5);
+        }
+
+        const match = findBestDrawMatch(String(rawDrawName));
+        let drawName = match?.name || String(rawDrawName) || "Inconnu";
+        let drawDay = match?.day || "";
+        let drawTime = match?.time || "";
+
+        if (!match && formattedDate) {
+          const dayFr = getDayOfWeekFr(formattedDate);
+          const dayDraws = DRAW_SCHEDULE[dayFr];
+          if (dayDraws && dayDraws.length > 0) {
+            const defaultDraw = dayDraws[dayDraws.length - 1];
+            drawName = defaultDraw.name;
+            drawDay = defaultDraw.day;
+            drawTime = defaultDraw.time;
+          }
+        }
+
         const errors: string[] = [];
-        if (!match) errors.push(`Tirage non reconnu: "${rawDrawName}"`);
+        if (drawName === "Inconnu") errors.push(`Tirage non reconnu: "${rawDrawName}"`);
         if (!formattedDate) errors.push(`Date absente/invalide: "${rawDrawDate}"`);
         if (winningNumbers.length < 5) errors.push(`Numéros gagnants invalides (attendu: 5, reçu: ${winningNumbers.length})`);
 
         results.push({
           id: `json-${idx}-${Date.now()}`,
-          draw_name: match?.name || String(rawDrawName) || "Inconnu",
+          draw_name: drawName,
           draw_date: formattedDate || detectedDate,
           winning_numbers: winningNumbers.slice(0, 5),
           machine_numbers: machineNumbers.length >= 5 ? machineNumbers.slice(0, 5) : undefined,
-          draw_day: match?.day || "",
-          draw_time: match?.time || "",
+          draw_day: drawDay,
+          draw_time: drawTime,
           isValid: errors.length === 0,
           validationError: errors.join(" | "),
           rawLine: JSON.stringify(item)
@@ -284,6 +318,9 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
       startIndex = 1;
     }
     
+    const dateIsoRegex = /\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/;
+    const dateFrRegex = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/;
+
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
@@ -291,25 +328,34 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
       const parts = line.split(/[,;\t]/).map(p => p.trim());
       
       if (parts.length < 2) continue;
+
+      const isDateFirst = parts[0] && (parts[0].match(dateIsoRegex) || parts[0].match(dateFrRegex));
       
-      const inputDrawName = parts[0] || "";
-      const drawDate = parts[1] || "";
+      let inputDrawName = "";
+      let drawDate = "";
+      let numbers: number[] = [];
+      let machineNumbers: number[] | undefined = undefined;
+
+      if (isDateFirst) {
+        drawDate = parts[0] || "";
+        inputDrawName = "";
+        numbers = parts.slice(1, 6).map(n => parseInt(n)).filter(n => !isNaN(n));
+        machineNumbers = parts.length >= 11
+          ? parts.slice(6, 11).map(n => parseInt(n)).filter(n => !isNaN(n))
+          : undefined;
+      } else {
+        inputDrawName = parts[0] || "";
+        drawDate = parts[1] || "";
+        numbers = parts.slice(2, 7).map(n => parseInt(n)).filter(n => !isNaN(n));
+        machineNumbers = parts.length >= 12 
+          ? parts.slice(7, 12).map(n => parseInt(n)).filter(n => !isNaN(n))
+          : undefined;
+      }
       
-      // Numbers: index 2 to 6
-      const numbers = parts.slice(2, 7).map(n => parseInt(n)).filter(n => !isNaN(n));
-      
-      // Machine numbers: index 7 to 11
-      const machineNumbers = parts.length >= 12 
-        ? parts.slice(7, 12).map(n => parseInt(n)).filter(n => !isNaN(n))
-        : undefined;
-        
       const validWinning = numbers.filter(n => n >= 1 && n <= 90);
       const validMachine = machineNumbers ? machineNumbers.filter(n => n >= 1 && n <= 90) : undefined;
       
       let formattedDate = "";
-      const dateIsoRegex = /\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/;
-      const dateFrRegex = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/;
-
       const matchIso = drawDate.match(dateIsoRegex);
       const matchFr = drawDate.match(dateFrRegex);
 
@@ -323,19 +369,34 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
       
       const match = findBestDrawMatch(inputDrawName);
       
+      let drawName = match?.name || inputDrawName || "Inconnu";
+      let drawDay = match?.day || "";
+      let drawTime = match?.time || "";
+
+      if (!match && formattedDate) {
+        const dayFr = getDayOfWeekFr(formattedDate);
+        const dayDraws = DRAW_SCHEDULE[dayFr];
+        if (dayDraws && dayDraws.length > 0) {
+          const defaultDraw = dayDraws[dayDraws.length - 1];
+          drawName = defaultDraw.name;
+          drawDay = defaultDraw.day;
+          drawTime = defaultDraw.time;
+        }
+      }
+
       const errors: string[] = [];
-      if (!match) errors.push(`Tirage inconnu: "${inputDrawName}"`);
+      if (drawName === "Inconnu") errors.push(`Tirage inconnu: "${inputDrawName || 'nom introuvable'}"`);
       if (!formattedDate) errors.push(`Date invalide: "${drawDate}"`);
       if (validWinning.length < 5) errors.push(`Numéros gagnants invalides (attendu: 5, reçu: ${validWinning.length})`);
       
       results.push({
         id: `csv-${i}-${Date.now()}`,
-        draw_name: match?.name || inputDrawName || "Inconnu",
+        draw_name: drawName,
         draw_date: formattedDate || drawDate,
         winning_numbers: validWinning.slice(0, 5),
         machine_numbers: validMachine && validMachine.length >= 5 ? validMachine.slice(0, 5) : undefined,
-        draw_day: match?.day || "",
-        draw_time: match?.time || "",
+        draw_day: drawDay,
+        draw_time: drawTime,
         isValid: errors.length === 0,
         validationError: errors.join(" | "),
         rawLine: line
@@ -502,6 +563,70 @@ export const DrawResultsImporter = ({ onImportComplete }: { onImportComplete?: (
         description: "Échec du chargement du fichier.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateDrawName = async (resultId: string, newDrawName: string) => {
+    // Find the draw details in DRAW_SCHEDULE
+    const drawDetails = allDraws.find(d => d.name === newDrawName);
+    if (!drawDetails) return;
+
+    // Update the item in previewResults
+    const updated = previewResults.map(r => {
+      if (r.id !== resultId) return r;
+      return {
+        ...r,
+        draw_name: drawDetails.name,
+        draw_day: drawDetails.day,
+        draw_time: drawDetails.time,
+        isValid: true,
+        validationError: undefined
+      };
+    });
+
+    // Re-check duplicates for this specific updated set
+    setIsLoading(true);
+    try {
+      const uniqueDrawNames = Array.from(new Set(updated.filter(r => r.isValid).map(r => r.draw_name)));
+      
+      const { data: existingResults, error } = await supabase
+        .from("draw_results")
+        .select("draw_name, draw_date")
+        .in("draw_name", uniqueDrawNames);
+        
+      if (error) throw error;
+      
+      const existingSet = new Set(
+        (existingResults || []).map(r => `${r.draw_name}_${r.draw_date}`)
+      );
+      
+      const enriched = updated.map(r => {
+        if (!r.isValid) return r;
+        const key = `${r.draw_name}_${r.draw_date}`;
+        return {
+          ...r,
+          alreadyExists: existingSet.has(key)
+        };
+      });
+
+      setPreviewResults(enriched);
+      
+      // Update selected status based on whether it is now valid and not duplicate
+      const nextSelected = new Set(selectedIds);
+      const targetItem = enriched.find(item => item.id === resultId);
+      if (targetItem) {
+        if (targetItem.isValid && !targetItem.alreadyExists) {
+          nextSelected.add(resultId);
+        } else {
+          nextSelected.delete(resultId);
+        }
+      }
+      setSelectedIds(nextSelected);
+    } catch (e) {
+      console.error("Error re-checking duplicates:", e);
+      setPreviewResults(updated);
     } finally {
       setIsLoading(false);
     }
@@ -935,10 +1060,28 @@ Lucky Tuesday,2026-07-07,8,19,45,63,77,,,,,`;
                               )}
                             </TableCell>
                             <TableCell className="font-semibold text-foreground">
-                              {result.draw_name}
-                              <span className="text-[10px] text-muted-foreground block font-normal opacity-80">
-                                {result.draw_day || "Jour inconnu"} {result.draw_time}
-                              </span>
+                              <div className="space-y-1">
+                                <select
+                                  id={`select-draw-name-${result.id}`}
+                                  value={result.draw_name}
+                                  onChange={(e) => handleUpdateDrawName(result.id, e.target.value)}
+                                  className="bg-background text-foreground border border-border/60 rounded px-1.5 py-0.5 text-xs focus:ring-1 focus:ring-primary w-full max-w-[150px] font-semibold"
+                                >
+                                  <option value="" disabled>Choisir un tirage</option>
+                                  {Object.entries(DRAW_SCHEDULE).map(([day, draws]) => (
+                                    <optgroup key={day} label={day} className="text-muted-foreground font-normal">
+                                      {draws.map(d => (
+                                        <option key={d.name} value={d.name} className="text-foreground font-medium">
+                                          {d.name} ({d.time})
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  ))}
+                                </select>
+                                <span className="text-[10px] text-muted-foreground block font-normal opacity-80 pl-1">
+                                  {result.draw_day || "Jour inconnu"} {result.draw_time}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell className="font-mono text-xs font-semibold text-muted-foreground">
                               {result.draw_date}
