@@ -1,8 +1,57 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useEnhancedPrediction } from "./useEnhancedPrediction";
-import { ALGORITHMS, getAlgorithm } from "@/lib/algorithms/registry";
+import { getAlgorithm } from "@/lib/algorithms/registry";
+
+interface CustomPredictionResponse {
+  selectedAlgorithm?: string;
+  predictions?: Array<{
+    numbers: number[];
+    confidence: number;
+    algorithm: string;
+    factors: string[];
+    score: number;
+    category: string;
+  }>;
+  algorithmReason?: string;
+  explanations?: {
+    summary: string;
+    strengths: string[];
+    weaknesses: string[];
+    recommendation: string;
+  };
+  formulasBreakdown?: {
+    frequency: number;
+    pairs: number;
+    gap: number;
+    equilibrium: number;
+    echo: number;
+    composite: number;
+  };
+  enhancedPrediction?: {
+    breakdown: {
+      frequency: number;
+      pairs: number;
+      gap: number;
+      equilibrium: number;
+      echo: number;
+      composite: number;
+    };
+    narratives: string[];
+    topPairs: Array<{
+      numbers: [number, number];
+      score: number;
+      count: number;
+      lastGap: number;
+    }>;
+  };
+  dataMetrics?: {
+    quality: number;
+    freshness: number;
+    historicalCount: number;
+  };
+  executionTime?: number;
+}
 
 export const usePredictionOrchestrator = (drawName: string, options: { useSmartEnsemble?: boolean } = {}) => {
   // Use useEnhancedPrediction as the single source of truth for edge function
@@ -37,13 +86,14 @@ export const usePredictionOrchestrator = (drawName: string, options: { useSmartE
   const rawSelectedAlgorithm = data?.selectedAlgorithm || precalculatedData?.selected_algorithm || "FrequencyPro";
   
   // Standardize the algorithm name
-  const selectedAlgorithmInfo = getAlgorithm(rawSelectedAlgorithm as any);
+  const selectedAlgorithmInfo = getAlgorithm(rawSelectedAlgorithm);
   const selectedAlgorithm = selectedAlgorithmInfo?.name || "FrequencyPro";
 
   const predictions = data?.predictions || [];
   
   // Construct explanations if not provided by backend
-  const explanations = (data as any)?.explanations || {
+  const customData = data as CustomPredictionResponse | undefined;
+  const explanations = customData?.explanations || {
     summary: `Prédictions basées sur ${selectedAlgorithmInfo?.displayName || selectedAlgorithm}`,
     strengths: selectedAlgorithmInfo?.description ? [selectedAlgorithmInfo.description] : [],
     weaknesses: [],

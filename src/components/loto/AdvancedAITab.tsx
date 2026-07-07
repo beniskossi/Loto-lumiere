@@ -567,7 +567,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
         </div>
       )}
 
-      {/* Advanced Options */}
+      {/* Execution Options */}
       <div>
         <Button
           variant="ghost"
@@ -576,7 +576,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
         >
           <div className="flex items-center gap-2">
             <Settings2 className="w-4 h-4" />
-            <span>Options avancées</span>
+            <span>Paramètres d'Exécution & Métriques</span>
           </div>
           {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </Button>
@@ -642,7 +642,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
           className="w-full h-12 gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
         >
           <Sparkles className="w-4 h-4" />
-          Appliquer comme prédiction favorite
+          Verrouiller comme Vecteur de Base
         </Button>
       )}
     </div>

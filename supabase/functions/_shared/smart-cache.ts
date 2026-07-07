@@ -12,7 +12,7 @@ interface CacheMetadata {
   dependencies?: string[];
 }
 
-export class SmartCache<T = any> {
+export class SmartCache<T = unknown> {
   private cache = new Map<string, CacheEntry<T>>();
   private maxSize = 1000;
   private maxMemory = 50 * 1024 * 1024; // 50MB

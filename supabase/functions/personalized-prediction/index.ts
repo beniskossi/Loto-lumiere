@@ -212,7 +212,7 @@ function personalizeNumbers(baseNumbers: number[], favoriteNumbers: number[]): n
  * Détermine le profil de risque de manière simple
  * Basé uniquement sur les 6 algorithmes valides
  */
-function determineSimpleRiskProfile(userPreferences: any): "conservative" | "balanced" | "aggressive" {
+function determineSimpleRiskProfile(userPreferences: Record<string, unknown> | null): "conservative" | "balanced" | "aggressive" {
   if (!userPreferences) return "balanced";
 
   const prefAlgo = userPreferences.preferred_algorithm?.toLowerCase() || "";
@@ -280,7 +280,7 @@ function generateQuickRecommendations(prediction: number[], favoriteNumbers: num
  * Tâche en arrière-plan: Logger l'utilisation (NON-BLOQUANT)
  */
 async function logUserPredictionUsage(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   userId: string,
   drawName: string,
   numbers: number[]

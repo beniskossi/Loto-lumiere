@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumberBall } from "@/components/NumberBall";
 import { usePredictions } from "@/hooks/usePredictions";
@@ -17,6 +17,22 @@ interface PredictionComparisonProps {
   drawName: string;
 }
 
+interface PredictionItem {
+  id: string;
+  prediction_date: string;
+  model_used: string;
+  predicted_numbers: number[];
+  confidence_score?: number;
+}
+
+interface DrawResultItem {
+  id: string;
+  draw_date: string;
+  winning_numbers: number[];
+  machine_numbers?: number[];
+  draw_name: string;
+}
+
 export const PredictionComparison = ({ drawName }: PredictionComparisonProps) => {
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date");
@@ -25,11 +41,11 @@ export const PredictionComparison = ({ drawName }: PredictionComparisonProps) =>
   const { data: predictions, isLoading: predictionsLoading } = usePredictions(drawName, 50);
   const { data: results, isLoading: resultsLoading } = useDrawResults(drawName, 50);
 
-  const comparePredictionWithResult = (prediction: any, predictionDate: string) => {
+  const comparePredictionWithResult = useCallback((prediction: { predicted_numbers: number[] }, predictionDate: string) => {
     if (!results) return null;
 
     // Find the next draw after the prediction date
-    const nextDraw = results.find(
+    const nextDraw = (results as DrawResultItem[]).find(
       (result) => new Date(result.draw_date) > new Date(predictionDate)
     );
 
@@ -45,7 +61,7 @@ export const PredictionComparison = ({ drawName }: PredictionComparisonProps) =>
       accuracy: (matches.length / prediction.predicted_numbers.length) * 100,
       matchedNumbers: matches,
     };
-  };
+  }, [results]);
 
   // Get unique algorithms - MUST be before early returns
   const algorithms = useMemo(() => {
@@ -64,10 +80,13 @@ export const PredictionComparison = ({ drawName }: PredictionComparisonProps) =>
   // Calculate overall statistics with sorting - MUST be before early returns
   const validComparisons = useMemo(() => {
     const comparisons = filteredPredictions
-      ?.map(p => ({
-        ...comparePredictionWithResult(p, p.prediction_date),
-        prediction: p
-      }))
+      ?.map(p => {
+        const cmp = comparePredictionWithResult(p, p.prediction_date);
+        return {
+          ...cmp,
+          prediction: p
+        };
+      })
       .filter(c => c.result) || [];
 
     // Sort comparisons
@@ -80,7 +99,7 @@ export const PredictionComparison = ({ drawName }: PredictionComparisonProps) =>
     return comparisons.sort((a, b) => 
       new Date(b.prediction.prediction_date).getTime() - new Date(a.prediction.prediction_date).getTime()
     );
-  }, [filteredPredictions, sortBy, results]);
+  }, [filteredPredictions, sortBy, comparePredictionWithResult]);
 
   const totalAccuracy = useMemo(() => 
     validComparisons.length > 0 
@@ -135,7 +154,7 @@ export const PredictionComparison = ({ drawName }: PredictionComparisonProps) =>
 
   // Export function
   const handleExport = () => {
-    const escapeCSV = (value: any): string => {
+    const escapeCSV = (value: unknown): string => {
       const str = String(value).substring(0, 1000);
       return `"${str.replace(/"/g, '""')}"`;
     };

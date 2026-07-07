@@ -182,7 +182,7 @@ async function validateService(
   service: {
     name: string;
     endpoint: string;
-    payload: any;
+    payload: Record<string, unknown>;
     expectedFields: string[];
     timeout: number;
   },
@@ -307,18 +307,18 @@ async function validateService(
   }
 }
 
-function validateServiceSpecific(serviceName: string, responseData: any): { details: string; errors: string[] } {
+function validateServiceSpecific(serviceName: string, responseData: Record<string, unknown>): { details: string; errors: string[] } {
   const errors: string[] = [];
   let details = "Specific validation passed";
 
   switch (serviceName) {
-    case "advanced-ai-prediction-v2":
+    case "advanced-ai-prediction-v2": {
       if (responseData.predictions && Array.isArray(responseData.predictions)) {
         if (responseData.predictions.length === 0) {
           errors.push("No predictions returned");
         } else {
           // Vérifier la structure des prédictions
-          responseData.predictions.forEach((pred: any, index: number) => {
+          responseData.predictions.forEach((pred: Record<string, unknown>, index: number) => {
             if (!pred.numbers || !Array.isArray(pred.numbers) || pred.numbers.length !== 5) {
               errors.push(`Prediction ${index}: Invalid numbers array`);
             }
@@ -329,22 +329,24 @@ function validateServiceSpecific(serviceName: string, responseData: any): { deta
         }
       }
       
-      if (responseData.optimizedPrediction) {
-        if (!responseData.optimizedPrediction.numbers || responseData.optimizedPrediction.numbers.length !== 5) {
+      const optimizedPrediction = responseData.optimizedPrediction as Record<string, unknown> | undefined;
+      if (optimizedPrediction) {
+        if (!optimizedPrediction.numbers || (optimizedPrediction.numbers as number[]).length !== 5) {
           errors.push("Optimized prediction: Invalid numbers");
         }
-        if (!responseData.optimizedPrediction.optimizationMetrics) {
+        if (!optimizedPrediction.optimizationMetrics) {
           errors.push("Optimized prediction: Missing optimization metrics");
         }
       }
       break;
+    }
 
-    case "multi-draw-prediction":
+    case "multi-draw-prediction": {
       if (responseData.predictions && Array.isArray(responseData.predictions)) {
         if (responseData.predictions.length === 0) {
           errors.push("No multi-draw predictions returned");
         }
-        responseData.predictions.forEach((pred: any, index: number) => {
+        responseData.predictions.forEach((pred: Record<string, unknown>, index: number) => {
           if (!pred.drawName || !pred.numbers || !pred.strategy) {
             errors.push(`Multi-draw prediction ${index}: Missing required fields`);
           }
@@ -355,10 +357,12 @@ function validateServiceSpecific(serviceName: string, responseData: any): { deta
         errors.push("Invalid total budget");
       }
       break;
+    }
 
-    case "personalized-prediction":
-      if (responseData.prediction) {
-        if (!responseData.prediction.numbers || responseData.prediction.numbers.length !== 5) {
+    case "personalized-prediction": {
+      const personalizedPrediction = responseData.prediction as Record<string, unknown> | undefined;
+      if (personalizedPrediction) {
+        if (!personalizedPrediction.numbers || (personalizedPrediction.numbers as number[]).length !== 5) {
           errors.push("Personalized prediction: Invalid numbers");
         }
         if (responseData.isPersonalized === undefined) {
@@ -366,19 +370,21 @@ function validateServiceSpecific(serviceName: string, responseData: any): { deta
         }
       }
       break;
+    }
 
-    case "evaluate-algorithms":
+    case "evaluate-algorithms": {
       if (responseData.evaluations && Array.isArray(responseData.evaluations)) {
         if (responseData.evaluations.length === 0) {
           errors.push("No algorithm evaluations returned");
         }
-        responseData.evaluations.forEach((evaluation: any, index: number) => {
+        responseData.evaluations.forEach((evaluation: Record<string, unknown>, index: number) => {
           if (typeof evaluation.accuracy !== 'number') {
             errors.push(`Evaluation ${index}: Invalid accuracy`);
           }
         });
       }
       break;
+    }
 
     case "select-best-algorithm":
       if (responseData.recommendation) {
@@ -476,7 +482,7 @@ function generateRecommendations(results: ValidationResult[], avgResponseTime: n
   return recommendations;
 }
 
-async function saveValidationReport(supabase: any, report: ValidationReport, userId: string): Promise<void> {
+async function saveValidationReport(supabase: ReturnType<typeof createClient>, report: ValidationReport, userId: string): Promise<void> {
   try {
     // Sauvegarder le rapport principal
     const { data: reportData, error: reportError } = await supabase

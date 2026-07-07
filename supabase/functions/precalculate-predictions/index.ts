@@ -90,12 +90,12 @@ serve(async (req) => {
       throw new Error(`Error fetching draw names: ${drawNamesError.message}`);
     }
 
-    const DRAW_NAMES = [...new Set((drawNamesData || []).map((d: any) => d.draw_name))];
+    const DRAW_NAMES = [...new Set((drawNamesData || []).map((d: Record<string, unknown>) => d.draw_name as string))];
     log("info", `Found ${DRAW_NAMES.length} unique draws in database`);
 
     let successCount = 0;
     let errorCount = 0;
-    const results: Record<string, any> = {};
+    const results: Record<string, Record<string, unknown>> = {};
 
     // Process each draw
     for (const drawName of DRAW_NAMES) {

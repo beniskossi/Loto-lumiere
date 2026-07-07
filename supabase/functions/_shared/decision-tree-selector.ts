@@ -24,7 +24,7 @@ export function selectBestAlgorithm(
 ): AlgorithmSelection {
   const historicalCount = results.length;
   const hasMachineNumbers = results.some(r => 
-    (r as any).machine_numbers && (r as any).machine_numbers.length > 0
+    (r as { machine_numbers?: number[] }).machine_numbers && ((r as { machine_numbers?: number[] }).machine_numbers?.length ?? 0) > 0
   );
   const isUltraPrecise = context.isUltraPrecise || false;
   const useAdaptiveEnsemble = context.useAdaptiveEnsemble || false;

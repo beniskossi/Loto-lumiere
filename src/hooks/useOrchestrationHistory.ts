@@ -20,7 +20,7 @@ export interface OrchestrationHistory {
     consistency: number;
   }>;
   weight_adjustments: Record<string, { previous: number; new: number }>;
-  parameter_adjustments: Record<string, any>;
+  parameter_adjustments: Record<string, unknown>;
   expected_improvement: number | null;
   adjustment_strategy: string;
   notes: string | null;

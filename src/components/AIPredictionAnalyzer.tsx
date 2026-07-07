@@ -73,14 +73,14 @@ export const AIPredictionAnalyzer = ({ predictions, drawName }: AIPredictionAnal
             </div>
             <div>
               <CardTitle className="text-xl flex items-center gap-2 flex-wrap">
-                Analyse Gemini IA
+                Analyse IA Deep Research
                 <Badge variant="outline" className="bg-primary/10 text-xs">
                   <Brain className="w-3 h-3 mr-1" />
-                  Gemini 2.5 Pro
+                  Gemini Flash 2.5
                 </Badge>
               </CardTitle>
               <CardDescription>
-                Intelligence artificielle avancée pour optimiser vos choix
+                Réseau de neurones multimodal pour la fusion algorithmique
               </CardDescription>
             </div>
           </div>
@@ -123,8 +123,8 @@ export const AIPredictionAnalyzer = ({ predictions, drawName }: AIPredictionAnal
           <Alert className="bg-primary/5 border-primary/20">
             <Info className="w-4 h-4" />
             <AlertDescription>
-              Cliquez sur <strong>"Analyse Complète"</strong> pour une analyse IA approfondie avec Gemini Pro, 
-              ou <strong>"Analyse Rapide"</strong> pour une synthèse algorithmique instantanée.
+              Cliquez sur <strong>"Analyse Complète"</strong> pour une exécution des poids via Deep Research (Gemini), 
+              ou <strong>"Analyse Rapide"</strong> pour une synthèse locale instantanée.
             </AlertDescription>
           </Alert>
         )}
@@ -136,11 +136,11 @@ export const AIPredictionAnalyzer = ({ predictions, drawName }: AIPredictionAnal
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Brain className="w-5 h-5 text-primary" />
-                  Numéros Recommandés
+                  Vecteur Suggéré (Optimisé)
                 </h3>
                 <div className="flex items-center gap-3">
                   <Badge variant="secondary" className="text-xs">
-                    {aiResult.mode === 'ai' ? 'Gemini Pro' : 'Analyse Rapide'}
+                    {aiResult.mode === 'ai' ? 'Deep Research' : 'Local'}
                   </Badge>
                   <div className="flex items-center gap-2">
                     <span className={`text-lg font-bold ${getConfidenceColor(aiResult.confidenceScore)}`}>
@@ -165,7 +165,7 @@ export const AIPredictionAnalyzer = ({ predictions, drawName }: AIPredictionAnal
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-primary" />
-                  Patterns Détectés ({aiResult.patterns.length})
+                  Motifs Statistiques Identifiés ({aiResult.patterns.length})
                 </h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {aiResult.patterns.map((pattern, idx) => (

@@ -56,8 +56,8 @@ export class SimpleCache<T> {
 }
 
 // Instance globale partagée
-export const predictionCache = new SimpleCache<any>(30);
-export const dataCache = new SimpleCache<any>(20);
+export const predictionCache = new SimpleCache<unknown>(30);
+export const dataCache = new SimpleCache<unknown>(20);
 
 // Nettoyer le cache périodiquement (toutes les 10 minutes)
 setInterval(() => {

@@ -212,7 +212,7 @@ serve(async (req) => {
                 .slice(0, 5);
             } else if (Array.isArray(draw.winningNumbers)) {
               winningNumbers = draw.winningNumbers
-                .map((n: any) => typeof n === 'number' ? n : parseInt(String(n)))
+                .map((n: unknown) => typeof n === 'number' ? n : parseInt(String(n)))
                 .filter((n: number) => !isNaN(n) && n >= 1 && n <= 90)
                 .slice(0, 5);
             }

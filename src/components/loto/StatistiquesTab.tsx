@@ -106,17 +106,17 @@ export const StatistiquesTab = ({ drawName }: StatistiquesTabProps) => {
 
   return (
     <div className="space-y-6 pb-24">
-      {/* Header */}
+      {/* Data Visualization / Matrices */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8"
       >
         <h2 className="text-2xl font-bold bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent">
-          Centre de Commande
+          Base de Données et Visualisations
         </h2>
         <p className="text-muted-foreground text-sm mt-2">
-          Statistiques complètes sur {computedStats.totalDraws} tirages
+          Données brutes, fréquences et cartographies d'écarts
         </p>
       </motion.div>
 
@@ -134,7 +134,7 @@ export const StatistiquesTab = ({ drawName }: StatistiquesTabProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-9 sm:grid-cols-10 gap-1">
+            <div className="grid grid-cols-10 gap-1">
               {computedStats.frequencyGrid.map((item) => {
                 const intensity = item.frequency / item.maxFreq;
                 return (

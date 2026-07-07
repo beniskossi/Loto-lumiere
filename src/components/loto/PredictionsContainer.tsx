@@ -65,21 +65,21 @@ export const PredictionsContainer = ({
             className="flex-1 min-w-[150px] gap-2 py-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs sm:text-sm font-medium whitespace-nowrap"
           >
             <Target className="w-4 h-4 text-primary" />
-            Officielle
+            Modèle Officiel
           </TabsTrigger>
           <TabsTrigger
             value="montecarlo"
             className="flex-1 min-w-[150px] gap-2 py-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs sm:text-sm font-medium whitespace-nowrap"
           >
             <Cpu className="w-4 h-4 text-emerald-500" />
-            Labo Monte Carlo
+            Laboratoire Monte Carlo
           </TabsTrigger>
           <TabsTrigger
             value="advanced"
             className="flex-1 min-w-[150px] gap-2 py-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs sm:text-sm font-medium whitespace-nowrap"
           >
             <Brain className="w-4 h-4 text-accent" />
-            Analyse IA (Détails)
+            Architecture IA Avancée
           </TabsTrigger>
         </TabsList>
 

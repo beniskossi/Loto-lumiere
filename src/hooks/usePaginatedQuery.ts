@@ -20,7 +20,7 @@ export const usePaginatedQuery = <T>(
   table: string,
   queryKey: string[],
   options: PaginationOptions = {},
-  filters?: Record<string, any>
+  filters?: Record<string, unknown>
 ) => {
   const { page = 1, pageSize = 20, orderBy = "created_at", ascending = false } = options;
 
@@ -31,7 +31,7 @@ export const usePaginatedQuery = <T>(
       const to = from + pageSize - 1;
 
       let query = supabase
-        .from(table as any)
+        .from(table)
         .select("*", { count: "exact" })
         .order(orderBy, { ascending })
         .range(from, to);
@@ -40,7 +40,7 @@ export const usePaginatedQuery = <T>(
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            query = query.eq(key, value) as any;
+            query = query.eq(key, value);
           }
         });
       }

@@ -89,7 +89,7 @@ function generateReasoning(
 function identifyTopFactors(
   prediction: PredictionResult,
   results: DrawResult[],
-  features: any
+  features: Record<string, any>
 ): Factor[] {
   const factors: Factor[] = [];
 
@@ -186,7 +186,7 @@ function generateAlternatives(
 function calculateSHAPLike(
   prediction: PredictionResult,
   results: DrawResult[],
-  features: any
+  features: Record<string, any>
 ): SHAPValue[] {
   const shapValues: SHAPValue[] = [];
 

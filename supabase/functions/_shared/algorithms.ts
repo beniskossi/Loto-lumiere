@@ -186,12 +186,18 @@ function bootstrapSampling<T>(data: T[]): T[] {
   // Dériver un seed stable à partir de la longueur et des caractéristiques des données
   let seed = data.length * 17;
   if (data.length > 0) {
-    const firstItem = data[0] as any;
-    if (firstItem && Array.isArray(firstItem.winning_numbers)) {
-      seed = data.reduce((sum, item: any) => {
-        const nums = item.winning_numbers || [];
-        return sum + nums.reduce((a: number, b: number) => a + b, 0);
-      }, 0) || seed;
+    const firstItem = data[0] as unknown;
+    if (firstItem && typeof firstItem === 'object' && 'winning_numbers' in firstItem) {
+      const firstItemWithNumbers = firstItem as { winning_numbers: number[] };
+      if (Array.isArray(firstItemWithNumbers.winning_numbers)) {
+        seed = data.reduce((sum, item: unknown) => {
+          if (item && typeof item === 'object' && 'winning_numbers' in item) {
+             const nums = (item as { winning_numbers: number[] }).winning_numbers || [];
+             return sum + nums.reduce((a: number, b: number) => a + b, 0);
+          }
+          return sum;
+        }, 0) || seed;
+      }
     }
   }
 

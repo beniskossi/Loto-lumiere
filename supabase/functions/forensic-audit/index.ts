@@ -91,10 +91,13 @@ serve(async (req) => {
     const currentWeights = new Map<string, number>();
     const currentParams = new Map<string, Record<string, number>>();
 
-    (algorithmConfigs || []).forEach((config: any) => {
-      currentWeights.set(config.algorithm_name, config.weight);
+    (algorithmConfigs || []).forEach((config: Record<string, unknown>) => {
+      const algoName = config.algorithm_name as string;
+      const weight = config.weight as number;
+      
+      currentWeights.set(algoName, weight);
       if (config.parameters) {
-        currentParams.set(config.algorithm_name, config.parameters as Record<string, number>);
+        currentParams.set(algoName, config.parameters as Record<string, number>);
       }
     });
 
@@ -120,7 +123,7 @@ serve(async (req) => {
 
       for (const adjustment of auditResult.calibrationAdjustments) {
         // Mettre à jour le poids et les paramètres
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
           weight: adjustment.newWeight,
           updated_at: new Date().toISOString(),
         };
@@ -260,7 +263,7 @@ serve(async (req) => {
 /**
  * Analyse Gemini des résultats forensic
  */
-async function runGeminiForensicAnalysis(auditResult: ForensicAuditResult): Promise<any> {
+async function runGeminiForensicAnalysis(auditResult: ForensicAuditResult): Promise<Record<string, unknown>> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
   if (!LOVABLE_API_KEY) {

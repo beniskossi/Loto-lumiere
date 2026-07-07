@@ -19,7 +19,7 @@ const Consult = () => {
   const [searchResults, setSearchResults] = useState<Record<string, unknown> | null>(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
-  const handleSearch = (filters: any) => {
+  const handleSearch = (filters: Record<string, unknown>) => {
     setSearchResults(filters);
   };
 

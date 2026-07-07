@@ -18,6 +18,14 @@ export type AlgorithmName =
   | 'XGBoost'
   | 'Stacking Ensemble';
 
+export interface ParameterSchema {
+  type: 'number' | 'string' | 'boolean';
+  default: number | string | boolean;
+  min?: number;
+  max?: number;
+  options?: (string | number)[];
+}
+
 export interface AlgorithmDefinition {
   name: AlgorithmName;
   displayName: string;
@@ -25,7 +33,7 @@ export interface AlgorithmDefinition {
   category: 'statistical' | 'ensemble' | 'deep-learning' | 'hybrid';
   defaultWeight: number;
   color: string; // HSL pour les charts
-  parametersSchema: Record<string, any>; // Pour future UI de configuration
+  parametersSchema: Record<string, ParameterSchema>; // Pour future UI de configuration
   strengths: string[];
   bestFor: string;
 }

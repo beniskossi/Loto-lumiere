@@ -5,10 +5,15 @@ import { Button } from "@/components/ui/button";
 import { WifiOff, Wifi, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
 
+interface OfflineDataStructure {
+  lastUpdate: string;
+  note: string;
+}
+
 export const OfflineIndicator = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showOfflineMessage, setShowOfflineMessage] = useState(false);
-  const [offlineData, setOfflineData] = useState<any>(null);
+  const [offlineData, setOfflineData] = useState<OfflineDataStructure | null>(null);
 
   useEffect(() => {
     const handleOnline = () => {

@@ -134,7 +134,7 @@ const Admin = () => {
     setIsLoading(true);
     try {
       const draw = allDraws.find(d => d.name === drawName);
-      const insertData: any = {
+      const insertData: Record<string, unknown> = {
         draw_name: validation.data.draw_name,
         draw_day: draw?.day || "",
         draw_time: draw?.time || "",
@@ -164,10 +164,10 @@ const Admin = () => {
       
       // Reload stats
       loadStats();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'ajouter le résultat",
+        description: error instanceof Error ? error.message : "Impossible d'ajouter le résultat",
         variant: "destructive",
       });
     } finally {
@@ -183,10 +183,10 @@ const Admin = () => {
         title: "✓ Scraping terminé",
         description: "Les résultats ont été mis à jour",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Échec du scraping",
+        description: error instanceof Error ? error.message : "Échec du scraping",
         variant: "destructive",
       });
     } finally {
@@ -221,10 +221,10 @@ const Admin = () => {
         title: "✓ Export réussi",
         description: `${data?.length || 0} résultats exportés`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Échec de l'export",
+        description: error instanceof Error ? error.message : "Échec de l'export",
         variant: "destructive",
       });
     }
@@ -251,10 +251,10 @@ const Admin = () => {
         title: "✓ Import réussi",
         description: `${data.length} résultat(s) importé(s)`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Échec de l'import",
+        description: error instanceof Error ? error.message : "Échec de l'import",
         variant: "destructive",
       });
     } finally {
@@ -285,10 +285,10 @@ const Admin = () => {
         title: "✓ Nettoyage effectué",
         description: "Les anciens résultats ont été supprimés",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Échec de la suppression",
+        description: error instanceof Error ? error.message : "Échec de la suppression",
         variant: "destructive",
       });
     } finally {
@@ -324,10 +324,10 @@ const Admin = () => {
         title: "✓ Connexion réussie",
         description: "Bienvenue dans l'interface d'administration",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur de connexion",
-        description: error.message || "Email ou mot de passe incorrect",
+        description: error instanceof Error ? error.message : "Email ou mot de passe incorrect",
         variant: "destructive",
       });
     } finally {

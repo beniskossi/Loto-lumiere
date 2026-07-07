@@ -66,7 +66,7 @@ export const LotoLumiereLayout = () => {
     setSelectedDraw(drawName);
     setSelectedDate(date);
     setActiveTab("analyses");
-  }, [triggerHaptic]);
+  }, []);
 
   const handleTabChange = useCallback((tab: TabId) => {
     triggerHaptic("light");

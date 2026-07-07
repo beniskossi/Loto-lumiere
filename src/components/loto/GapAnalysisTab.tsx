@@ -270,7 +270,7 @@ export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-9 sm:grid-cols-10 gap-1">
+            <div className="grid grid-cols-10 gap-1">
               {heatmapData.map((item) => {
                 const heatIntensity = item.gap / maxGapInHeatmap;
                 const category = GAP_CATEGORIES.find(c => item.gap >= c.min && item.gap <= c.max);

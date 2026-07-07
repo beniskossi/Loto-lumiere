@@ -20,8 +20,8 @@ interface DrawPrediction {
   numbers: number[];
   confidence: number;
   strategy: string;
-  correlations?: any[];
-  riskAssessment?: any;
+  correlations?: Record<string, unknown>[];
+  riskAssessment?: Record<string, unknown>;
 }
 
 interface MultiDrawStrategy {
@@ -85,7 +85,7 @@ serve(async (req) => {
       try {
         const { data: configs } = await supabase.from('algorithm_config').select('parameters').limit(10);
         let lessons: string[] = [];
-        let patterns: any = null;
+        let patterns: Record<string, unknown> | null = null;
         if (configs) {
           for (const conf of configs) {
             if (conf.parameters?.draw_specific?.[drawName]?.lessons) {
@@ -269,7 +269,7 @@ function calculateNextDrawTime(drawName: string): string {
   });
 }
 
-function determineStrategy(confidence: number, riskAssessment: any): string {
+function determineStrategy(confidence: number, riskAssessment: Record<string, unknown> | undefined): string {
   const riskLevel = riskAssessment?.overallRisk || "medium";
   
   if (confidence > 0.8 && riskLevel === "low") {
@@ -342,7 +342,7 @@ function generateSmartRecommendation(
   }
 }
 
-async function generateFallbackPrediction(drawName: string, results: any[]): Promise<DrawPrediction> {
+async function generateFallbackPrediction(drawName: string, results: Record<string, unknown>[]): Promise<DrawPrediction> {
   // Méthode de fallback simple
   const frequency: Record<number, number> = {};
   for (let i = 1; i <= 90; i++) {
@@ -351,7 +351,8 @@ async function generateFallbackPrediction(drawName: string, results: any[]): Pro
   
   results.forEach((r, idx) => {
     const weight = Math.exp(-idx * 0.1);
-    r.winning_numbers?.forEach((num: number) => {
+    const winningNumbers = r.winning_numbers as number[] | undefined;
+    winningNumbers?.forEach((num: number) => {
       frequency[num] += weight;
     });
   });

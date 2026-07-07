@@ -401,19 +401,19 @@ export function calculateVariance(data: DrawResult[]): number {
 /**
  * Logger amélioré pour les edge functions
  */
-export function log(level: "info" | "warn" | "error", message: string, data?: any) {
+export function log(level: "info" | "warn" | "error", message: string, data?: unknown) {
   const timestamp = new Date().toISOString();
   const safeData = data ? sanitizeLogData(data) : null;
   const logData = safeData ? ` | ${JSON.stringify(safeData)}` : "";
   console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}${logData}`);
 }
 
-function sanitizeLogData(data: any): any {
+function sanitizeLogData(data: unknown): unknown {
   if (typeof data === 'string') {
     return data.replace(/[\r\n\t]/g, ' ').substring(0, 200);
   }
   if (typeof data === 'object' && data !== null) {
-    const sanitized: any = {};
+    const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       if (typeof value === 'string') {
         sanitized[key] = value.replace(/[\r\n\t]/g, ' ').substring(0, 100);

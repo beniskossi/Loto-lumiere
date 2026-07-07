@@ -178,7 +178,7 @@ serve(async (req) => {
   }
 });
 
-async function generateSystemHealth(supabase: any): Promise<SystemHealth> {
+async function generateSystemHealth(supabase: Record<string, unknown> | ReturnType<typeof createClient>): Promise<SystemHealth> {
   try {
     // Métriques système 100% déterministes par superposition d'ondes temporelles (Lois harmoniques)
     const now = Date.now();
@@ -193,7 +193,8 @@ async function generateSystemHealth(supabase: any): Promise<SystemHealth> {
     const responseTime = 70 + getWaveValue(600000, 240000) * 110; // 70-180ms (cycle 10m)
 
     // Vérifier la connectivité à la base de données
-    const { error: dbError } = await supabase
+    const client = supabase as ReturnType<typeof createClient>;
+    const { error: dbError } = await client
       .from('draw_results')
       .select('id')
       .limit(1);
@@ -226,7 +227,7 @@ async function generateSystemHealth(supabase: any): Promise<SystemHealth> {
   }
 }
 
-async function generateAlgorithmPerformanceReport(supabase: any): Promise<AlgorithmPerformanceReport> {
+async function generateAlgorithmPerformanceReport(supabase: ReturnType<typeof createClient>): Promise<AlgorithmPerformanceReport> {
   try {
     // Récupérer les performances récentes des algorithmes
     const { data: performances } = await supabase
@@ -236,25 +237,25 @@ async function generateAlgorithmPerformanceReport(supabase: any): Promise<Algori
 
     const topPerformers = (performances || [])
       .slice(0, 5)
-      .map((p: any) => {
-        const nameStr = p.model_used || "";
+      .map((p: Record<string, unknown>) => {
+        const nameStr = (p.model_used as string) || "";
         const hash = Array.from(nameStr).reduce((sum: number, char: string) => sum + char.charCodeAt(0), 0);
         const dayIndex = Math.floor(Date.now() / (24 * 3600 * 1000));
         const trendVal = (hash + dayIndex) % 3;
         const trend = trendVal === 0 ? "up" : trendVal === 1 ? "down" : "stable";
         return {
-          algorithm: p.model_used,
-          score: p.avg_accuracy || 0,
+          algorithm: (p.model_used as string),
+          score: (p.avg_accuracy as number) || 0,
           trend
         };
       });
 
     const underPerformers = (performances || [])
-      .filter((p: any) => (p.avg_accuracy || 0) < 50)
-      .map((p: any) => ({
-        algorithm: p.model_used,
-        score: p.avg_accuracy || 0,
-        issues: generateIssues(p.avg_accuracy || 0)
+      .filter((p: Record<string, unknown>) => ((p.avg_accuracy as number) || 0) < 50)
+      .map((p: Record<string, unknown>) => ({
+        algorithm: (p.model_used as string),
+        score: (p.avg_accuracy as number) || 0,
+        issues: generateIssues((p.avg_accuracy as number) || 0)
       }));
 
     // Obtenir les métriques de l'ensemble intelligent
@@ -291,7 +292,7 @@ async function generateAlgorithmPerformanceReport(supabase: any): Promise<Algori
   }
 }
 
-async function generateDataQualityReport(supabase: any): Promise<DataQualityReport> {
+async function generateDataQualityReport(supabase: ReturnType<typeof createClient>): Promise<DataQualityReport> {
   try {
     // Analyser la qualité des données
     const { data: recentResults } = await supabase
@@ -311,18 +312,18 @@ async function generateDataQualityReport(supabase: any): Promise<DataQualityRepo
     }
 
     // Calculer la complétude
-    const completeResults = recentResults.filter((r: any) => 
-      r.winning_numbers && r.winning_numbers.length === 5
+    const completeResults = recentResults.filter((r: Record<string, unknown>) => 
+      Array.isArray(r.winning_numbers) && r.winning_numbers.length === 5
     );
     const completeness = (completeResults.length / recentResults.length) * 100;
 
     // Calculer la fraîcheur
-    const newestDate = new Date(recentResults[0].draw_date);
+    const newestDate = new Date((recentResults[0] as Record<string, unknown>).draw_date as string);
     const daysSinceNewest = (Date.now() - newestDate.getTime()) / (1000 * 60 * 60 * 24);
     const freshness = Math.max(0, 100 - daysSinceNewest * 10);
 
     // Analyser la consistance
-    const drawNames = new Set(recentResults.map((r: any) => r.draw_name));
+    const drawNames = new Set(recentResults.map((r: Record<string, unknown>) => r.draw_name as string));
     const expectedDrawsPerDay = 4; // Estimation
     const actualDrawsPerDay = recentResults.length / 30; // Sur 30 jours
     const consistency = Math.min(100, (actualDrawsPerDay / expectedDrawsPerDay) * 100);
@@ -330,7 +331,7 @@ async function generateDataQualityReport(supabase: any): Promise<DataQualityRepo
     // Détecter les anomalies avec l'analyseur avancé
     let anomalies = 0;
     try {
-      const analytics = advancedAnalytics.analyzeDrawResults(recentResults);
+      const analytics = advancedAnalytics.analyzeDrawResults(recentResults as unknown as DrawResult[]);
       anomalies = analytics.anomalyDetection.length;
     } catch {
       anomalies = 0;
@@ -360,7 +361,7 @@ async function generateDataQualityReport(supabase: any): Promise<DataQualityRepo
   }
 }
 
-async function generateAccuracyReport(supabase: any): Promise<AccuracyReport> {
+async function generateAccuracyReport(supabase: ReturnType<typeof createClient>): Promise<AccuracyReport> {
   try {
     // Récupérer les performances récentes
     const { data: performances } = await supabase
@@ -379,22 +380,23 @@ async function generateAccuracyReport(supabase: any): Promise<AccuracyReport> {
     }
 
     // Calculer la précision globale
-    const overall = performances.reduce((sum: number, p: any) => 
-      sum + (p.accuracy_score || 0), 0) / performances.length;
+    const overall = performances.reduce((sum: number, p: Record<string, unknown>) => 
+      sum + ((p.accuracy_score as number) || 0), 0) / performances.length;
 
     // Calculer par algorithme
     const byAlgorithm: Record<string, number> = {};
-    const algorithmGroups: Record<string, any[]> = {};
+    const algorithmGroups: Record<string, Record<string, unknown>[]> = {};
 
-    performances.forEach((p: any) => {
-      if (!algorithmGroups[p.model_used]) {
-        algorithmGroups[p.model_used] = [];
+    performances.forEach((p: Record<string, unknown>) => {
+      const model = p.model_used as string;
+      if (!algorithmGroups[model]) {
+        algorithmGroups[model] = [];
       }
-      algorithmGroups[p.model_used].push(p);
+      algorithmGroups[model].push(p);
     });
 
     Object.entries(algorithmGroups).forEach(([algo, perfs]) => {
-      byAlgorithm[algo] = perfs.reduce((sum, p) => sum + (p.accuracy_score || 0), 0) / perfs.length;
+      byAlgorithm[algo] = perfs.reduce((sum, p) => sum + ((p.accuracy_score as number) || 0), 0) / perfs.length;
     });
 
     // Calculer les tendances par semaine
@@ -403,14 +405,14 @@ async function generateAccuracyReport(supabase: any): Promise<AccuracyReport> {
       const weekStart = new Date(Date.now() - (week + 1) * 7 * 24 * 60 * 60 * 1000);
       const weekEnd = new Date(Date.now() - week * 7 * 24 * 60 * 60 * 1000);
       
-      const weekPerfs = performances.filter((p: any) => {
-        const date = new Date(p.created_at);
+      const weekPerfs = performances.filter((p: Record<string, unknown>) => {
+        const date = new Date(p.created_at as string);
         return date >= weekStart && date < weekEnd;
       });
 
       if (weekPerfs.length > 0) {
-        const weekAccuracy = weekPerfs.reduce((sum: number, p: any) => 
-          sum + (p.accuracy_score || 0), 0) / weekPerfs.length;
+        const weekAccuracy = weekPerfs.reduce((sum: number, p: Record<string, unknown>) => 
+          sum + ((p.accuracy_score as number) || 0), 0) / weekPerfs.length;
         
         trends.unshift({
           period: `Semaine ${4 - week}`,
@@ -420,7 +422,7 @@ async function generateAccuracyReport(supabase: any): Promise<AccuracyReport> {
     }
 
     // Calculer la confiance basée sur la variance
-    const accuracies = performances.map((p: any) => p.accuracy_score || 0);
+    const accuracies = performances.map((p: Record<string, unknown>) => (p.accuracy_score as number) || 0);
     const variance = accuracies.reduce((sum: number, acc: number) => 
       sum + Math.pow(acc - overall, 2), 0) / accuracies.length;
     const confidence = Math.max(0, 100 - Math.sqrt(variance) * 10);

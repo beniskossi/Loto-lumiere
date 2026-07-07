@@ -41,8 +41,8 @@ export function generatePersonalizedPrediction(
 }
 
 export function analyzeUserPatterns(
-  favorites: any[],
-  tracked: any[]
+  favorites: { favorite_numbers?: number[] }[],
+  tracked: { predictions?: { predicted_numbers?: number[] } }[]
 ): UserPreferences {
   const favoriteNumbers = favorites.flatMap(f => f.favorite_numbers || []);
   const trackedPatterns = tracked.map(t => t.predictions?.predicted_numbers || []);

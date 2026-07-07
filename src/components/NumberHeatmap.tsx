@@ -80,7 +80,7 @@ export const NumberHeatmap = ({ results }: NumberHeatmapProps) => {
           <Badge className="bg-blue-200 text-gray-700">🧊 Gelé</Badge>
         </div>
         
-        <div className="grid grid-cols-9 sm:grid-cols-10 gap-1">
+        <div className="grid grid-cols-10 gap-1">
           {heatData.map((heat) => (
             <button
               key={heat.number}

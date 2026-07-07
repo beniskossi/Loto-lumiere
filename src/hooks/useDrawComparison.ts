@@ -25,7 +25,7 @@ export interface ComparisonResult {
   correlationScore: number;
 }
 
-function calculateDrawStats(results: any[], drawName: string): DrawComparisonStats | null {
+function calculateDrawStats(results: { winning_numbers?: number[] }[], drawName: string): DrawComparisonStats | null {
   if (!results || results.length === 0) return null;
 
   const frequency: Record<number, number> = {};

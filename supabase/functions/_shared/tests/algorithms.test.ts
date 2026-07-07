@@ -7,6 +7,13 @@ function generateMockDrawResults(count: number): DrawResult[] {
   const results: DrawResult[] = [];
   const baseDate = new Date("2024-01-01");
   
+  // LCG for deterministic test data
+  let seed = 987654321;
+  const lcg = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+
   for (let i = 0; i < count; i++) {
     const date = new Date(baseDate);
     date.setDate(date.getDate() + i);
@@ -15,11 +22,11 @@ function generateMockDrawResults(count: number): DrawResult[] {
       draw_name: "Test Draw",
       draw_date: date.toISOString().split('T')[0],
       winning_numbers: [
-        Math.floor(Math.random() * 90) + 1,
-        Math.floor(Math.random() * 90) + 1,
-        Math.floor(Math.random() * 90) + 1,
-        Math.floor(Math.random() * 90) + 1,
-        Math.floor(Math.random() * 90) + 1,
+        Math.floor(lcg() * 90) + 1,
+        Math.floor(lcg() * 90) + 1,
+        Math.floor(lcg() * 90) + 1,
+        Math.floor(lcg() * 90) + 1,
+        Math.floor(lcg() * 90) + 1,
       ].sort((a, b) => a - b),
     });
   }

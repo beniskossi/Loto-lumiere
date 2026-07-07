@@ -252,4 +252,4 @@ export const ALGORITHM_NAMES = {
 } as const;
 
 // Compatibilité legacy
-export type Database = any;
+export type Database = Record<string, unknown>;

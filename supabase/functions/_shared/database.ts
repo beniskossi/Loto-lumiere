@@ -65,7 +65,7 @@ export class DatabaseHelper {
     predicted_numbers: number[];
     confidence_score: number;
     model_used: string;
-    model_metadata: any;
+    model_metadata: Record<string, unknown>;
   }) {
     const { data, error } = await this.supabase
       .from('predictions')
@@ -117,7 +117,7 @@ export class DatabaseHelper {
   // Mettre à jour la configuration d'un algorithme
   async updateAlgorithmConfiguration(
     algorithmName: string, 
-    updates: { weight?: number; parameters?: any; is_enabled?: boolean }
+    updates: { weight?: number; parameters?: Record<string, unknown>; is_enabled?: boolean }
   ) {
     const { data, error } = await this.supabase
       .from('algorithm_configurations')
@@ -146,7 +146,7 @@ export class DatabaseHelper {
   }
 
   // Calculer les métriques d'un algorithme
-  calculateAlgorithmMetrics(performances: any[]) {
+  calculateAlgorithmMetrics(performances: { accuracy_score: number; matches_count: number }[]) {
     if (!performances.length) return null;
 
     const totalPredictions = performances.length;
@@ -166,7 +166,7 @@ export class DatabaseHelper {
     };
   }
 
-  private calculateConsistency(performances: any[]) {
+  private calculateConsistency(performances: { accuracy_score: number }[]) {
     if (performances.length < 2) return 100;
     
     const accuracies = performances.map(p => p.accuracy_score);

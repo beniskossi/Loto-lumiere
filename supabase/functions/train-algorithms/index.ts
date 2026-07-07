@@ -10,7 +10,7 @@ interface AlgorithmConfig {
   id: string;
   algorithm_name: string;
   weight: number;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 interface AlgorithmPerformance {
@@ -26,8 +26,8 @@ interface TrainingHistoryEntry {
   algorithm_name: string;
   previous_weight: number;
   new_weight: number;
-  previous_parameters: Record<string, any>;
-  new_parameters: Record<string, any>;
+  previous_parameters: Record<string, unknown>;
+  new_parameters: Record<string, unknown>;
   performance_improvement: number;
   training_metrics: {
     avg_performance: number;
@@ -141,7 +141,7 @@ serve(async (req) => {
 
     // Pour chaque algorithme, ajuster le poids
     for (const config of configs as AlgorithmConfig[]) {
-      const performances = rankings.filter((r: any) => r.model_used === config.algorithm_name) as AlgorithmPerformance[];
+      const performances = rankings.filter((r: Record<string, unknown>) => r.model_used === config.algorithm_name) as AlgorithmPerformance[];
 
       const validPerformances = performances.filter(validatePerformance);
       if (validPerformances.length !== performances.length) {
@@ -239,7 +239,7 @@ function validatePerformance(perf: AlgorithmPerformance): boolean {
 function adjustAlgorithmConfig(
   config: AlgorithmConfig,
   performances: AlgorithmPerformance[]
-): { newWeight: number; newParams: Record<string, any>; improvement: number } | null {
+): { newWeight: number; newParams: Record<string, unknown>; improvement: number } | null {
   if (performances.length === 0) return null;
 
   // Vérifier qu'on a assez d'évaluations pour un entraînement fiable
@@ -282,7 +282,7 @@ function adjustAlgorithmConfig(
   const finalWeight = Math.min(2, Math.max(0.05, newWeight));
   const improvement = ((finalWeight - config.weight) / config.weight) * 100;
 
-  const newParams = { ...config.parameters };
+  const newParams = { ...config.parameters } as Record<string, number | undefined>;
   
   // Auto-ajustement intelligent des hyperparamètres avec des fonctions sigmoïdes continues
   // sigmoid mapping: transforms compositeScore to [-1, 1] smooth curve
@@ -293,17 +293,17 @@ function adjustAlgorithmConfig(
   // netAdjustment > 0 means increase capacity, < 0 means decrease capacity
   const netAdjustment = capacityAdjustment - variancePenalty;
 
-  if (newParams.learningRate) {
+  if (typeof newParams.learningRate === 'number') {
     const lrMultiplier = Math.exp(netAdjustment * Math.log(LR_INCREASE_FACTOR));
     newParams.learningRate = Math.max(0.001, Math.min(0.1, newParams.learningRate * lrMultiplier));
   }
   
-  if (newParams.numEstimators) {
+  if (typeof newParams.numEstimators === 'number') {
     const estimatorsMultiplier = Math.exp(netAdjustment * Math.log(1.1)); // ~10% variation
     newParams.numEstimators = Math.max(10, Math.min(150, Math.round(newParams.numEstimators * estimatorsMultiplier)));
   }
   
-  if (newParams.maxDepth) {
+  if (typeof newParams.maxDepth === 'number') {
     const depthChange = netAdjustment * 2; // up to +/- 2 depth per training
     newParams.maxDepth = Math.max(3, Math.min(20, Math.round(newParams.maxDepth + depthChange)));
   }
@@ -312,7 +312,7 @@ function adjustAlgorithmConfig(
   // Mapping sigmoid de la variance sur un ajustement [-1, 1] de régularisation
   const regAdjustment = (2 / (1 + Math.exp(-50 * (accuracyVariance - 0.02)))) - 1; 
   
-  if (newParams.regularization === undefined) {
+  if (typeof newParams.regularization !== 'number') {
       // Régularisation de base si absente, proportionnelle au besoin
       newParams.regularization = 0.01 * (1 + Math.max(0, regAdjustment));
   } else {
@@ -323,5 +323,5 @@ function adjustAlgorithmConfig(
       newParams.regularization = Math.max(0.001, Math.min(0.2, newParams.regularization * regMultiplier));
   }
 
-  return { newWeight: finalWeight, newParams, improvement };
+  return { newWeight: finalWeight, newParams: newParams as Record<string, unknown>, improvement };
 }

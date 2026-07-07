@@ -64,35 +64,35 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
             className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
           >
             <Database className="w-4 h-4 text-pink-500" />
-            Historique des Tirages
+            Matrice Historique
           </TabsTrigger>
           <TabsTrigger
             value="patterns"
             className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
           >
             <FlaskConical className="w-4 h-4 text-purple-500" />
-            Laboratoire Patterns
+            Détection de Motifs
           </TabsTrigger>
           <TabsTrigger
             value="gaps"
             className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
           >
             <Timer className="w-4 h-4 text-orange-500" />
-            Analyse des Écarts
+            Analyse des Gaps
           </TabsTrigger>
           <TabsTrigger
             value="stats"
             className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
           >
             <BarChart3 className="w-4 h-4 text-emerald-500" />
-            Statistiques & Fréquences
+            Analyse Fréquentielle
           </TabsTrigger>
           <TabsTrigger
             value="search"
             className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
           >
             <Search className="w-4 h-4 text-blue-500" />
-            Consulter un Numéro
+            Audit Numérique
           </TabsTrigger>
         </TabsList>
 

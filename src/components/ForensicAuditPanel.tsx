@@ -87,7 +87,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
     }
   };
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: string): "destructive" | "secondary" | "outline" | "default" => {
     switch (severity) {
       case "critical": return "destructive";
       case "high": return "destructive";
@@ -111,9 +111,9 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
               <Search className="h-5 w-5 text-purple-400" />
             </div>
             <div>
-              <CardTitle className="text-lg">Audit Forensic & Auto-Calibration</CardTitle>
+              <CardTitle className="text-lg">Audit Forensic & Calibrage Stochastique</CardTitle>
               <CardDescription>
-                Analyse les prédictions vs résultats réels pour ajuster automatiquement les algorithmes
+                Analyse rétroactive des divergences prédictives et ajustement déterministe des poids.
               </CardDescription>
             </div>
           </div>
@@ -164,7 +164,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
               />
               <Label htmlFor="gemini" className="flex items-center gap-1">
                 <Sparkles className="h-4 w-4 text-purple-400" />
-                Analyse IA
+                Deep Research
               </Label>
             </div>
 
@@ -204,7 +204,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
               <CardContent className="p-4 flex items-center gap-3">
                 <BarChart3 className="h-8 w-8 text-blue-400" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Prédictions</p>
+                  <p className="text-sm text-muted-foreground">Vecteurs Produits</p>
                   <p className="text-2xl font-bold">{metrics.totalPredictions}</p>
                 </div>
               </CardContent>
@@ -231,7 +231,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
               <CardContent className="p-4 flex items-center gap-3">
                 <Scale className="h-8 w-8 text-purple-400" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Algorithmes</p>
+                  <p className="text-sm text-muted-foreground">Matrice Modulaire</p>
                   <p className="text-2xl font-bold">{Object.keys(metrics.byAlgorithm).length}</p>
                 </div>
               </CardContent>
@@ -250,7 +250,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
               {lastAuditResult.geminiAnalysis && (
                 <TabsTrigger value="gemini">
                   <Sparkles className="h-4 w-4 mr-1" />
-                  Analyse IA
+                  Deep Research
                 </TabsTrigger>
               )}
             </TabsList>
@@ -263,7 +263,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Scale className="h-4 w-4 text-blue-400" />
-                      Calibration de Confiance
+                      Erreur Quadratique (Calibration)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -484,7 +484,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium">{typeof insight.title === 'object' ? JSON.stringify(insight.title) : String(insight.title)}</span>
-                          <Badge variant={getSeverityColor(insight.severity) as any}>
+                          <Badge variant={getSeverityColor(insight.severity)}>
                             {typeof insight.severity === 'object' ? JSON.stringify(insight.severity) : String(insight.severity)}
                           </Badge>
                         </div>
@@ -514,7 +514,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
                         <Brain className="h-5 w-5 text-purple-400" />
-                        Analyse Gemini AI
+                        Audit Deep Research
                       </CardTitle>
                       <div className={`text-3xl font-bold ${getHealthColor(lastAuditResult.geminiAnalysis.healthScore)}`}>
                         {lastAuditResult.geminiAnalysis.healthScore}/100
@@ -603,19 +603,22 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
                 </div>
               ) : history && history.length > 0 ? (
                 <div className="space-y-2">
-                  {history.slice(0, 5).map((audit: any) => (
-                    <div key={audit.id} className="flex items-center justify-between p-3 rounded bg-slate-700/50">
-                      <div>
-                        <p className="font-medium">{typeof audit.draw_name === 'object' ? JSON.stringify(audit.draw_name) : String(audit.draw_name)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(audit.created_at), "PPP 'à' HH:mm", { locale: fr })}
-                        </p>
+                  {history.slice(0, 5).map((audit) => {
+                    const weightAdjustments = audit.weight_adjustments as Array<unknown> | null;
+                    return (
+                      <div key={audit.id} className="flex items-center justify-between p-3 rounded bg-slate-700/50">
+                        <div>
+                          <p className="font-medium">{typeof audit.draw_name === 'object' ? JSON.stringify(audit.draw_name) : String(audit.draw_name)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(audit.created_at), "PPP 'à' HH:mm", { locale: fr })}
+                          </p>
+                        </div>
+                        <Badge>
+                          {weightAdjustments?.length || 0} ajustements
+                        </Badge>
                       </div>
-                      <Badge>
-                        {(audit.weight_adjustments as any[])?.length || 0} ajustements
-                      </Badge>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground py-4">

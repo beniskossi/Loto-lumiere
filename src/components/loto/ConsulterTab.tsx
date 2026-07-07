@@ -117,13 +117,13 @@ export const ConsulterTab = ({ drawName }: ConsulterTabProps) => {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="grid grid-cols-9 sm:grid-cols-10 gap-1">
+              <div className="grid grid-cols-10 gap-1">
                 {[...Array(90)].map((_, i) => (
                   <div key={i} className="aspect-square rounded-md bg-secondary/50 animate-pulse" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-9 sm:grid-cols-10 gap-1">
+              <div className="grid grid-cols-10 gap-1 font-sans">
                 {numberGrid.map((item) => {
                   const intensity = item.frequency / maxFrequency;
                   const isSelected = selectedNumber === item.number;

@@ -165,10 +165,10 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
           </Badge>
         </div>
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3">
-          {isToday ? "Tirages du jour" : "Tirages passés"}
+          {isToday ? "Synthèse Globale du Jour" : "Matrice Historique"}
         </h2>
         <p className="text-sm font-medium text-muted-foreground/80">
-          {selectedDayDraws.length} tirages • {isToday ? `Il est ${currentTime}` : format(selectedDate, "d MMMM yyyy", { locale: fr })}
+          {selectedDayDraws.length} itérations programmées • {isToday ? `Synchronisation : ${currentTime}` : format(selectedDate, "d MMMM yyyy", { locale: fr })}
         </p>
       </motion.div>
 
@@ -190,19 +190,19 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
                   <div>
                     <p className="text-[11px] font-semibold text-primary uppercase tracking-widest flex items-center gap-1.5 mb-2">
                       <Timer className="w-3.5 h-3.5" />
-                      Prochain tirage
+                      Prochaine Itération
                     </p>
                     <h3 className="text-2xl font-bold tracking-tight text-foreground mb-1">{nextDraw.name}</h3>
                     <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
                       <Clock className="w-4 h-4" />
-                      {nextDraw.time}
+                      T0 : {nextDraw.time}
                     </p>
                   </div>
                   <button
                     onClick={() => onSelectDraw(nextDraw.name)}
                     className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-sm font-semibold transition-all active:scale-[0.98] shadow-sm hover:shadow-md"
                   >
-                    Voir prédiction
+                    Exécuter Modèle
                   </button>
                 </div>
               </CardContent>
@@ -225,9 +225,9 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
                   <History className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground tracking-tight">Analyse historique</h3>
+                  <h3 className="font-semibold text-foreground tracking-tight">Audit Historique</h3>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Consultez les résultats passés et vérifiez la précision des prédictions.
+                    Analyse comparative des jeux de données passés et précision prédictive.
                   </p>
                 </div>
               </div>
@@ -241,7 +241,7 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
         <div className="flex items-center gap-2 mb-2">
           <CalendarDays className="w-4 h-4 text-muted-foreground" />
           <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-            {isToday ? `Tous les tirages de ${selectedDay}` : `Tirages du ${format(selectedDate, "d MMMM yyyy", { locale: fr })}`}
+            {isToday ? `Séquence du ${selectedDay}` : `Séquence du ${format(selectedDate, "d MMMM yyyy", { locale: fr })}`}
           </h3>
         </div>
         
@@ -292,7 +292,7 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
                             </h4>
                             {isUpcoming && (
                               <Badge variant="outline" className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
-                                Bientôt
+                                Planifié
                               </Badge>
                             )}
                             {!isToday && hasResult && (
@@ -302,7 +302,7 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
                             )}
                             {isToday && isPassed && !hasResult && (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
-                                Passé
+                                Conclu
                               </Badge>
                             )}
                           </div>
@@ -321,7 +321,7 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
                               <div>
                                 <p className="text-[10px] text-muted-foreground mb-1 flex items-center gap-1">
                                   <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                  Numéros gagnants
+                                  Vecteur Gagnant
                                 </p>
                                 <div className="flex gap-1">
                                   {result.slice(0, 5).map((num, idx) => (
@@ -339,7 +339,7 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
                                 <div>
                                   <p className="text-[10px] text-muted-foreground mb-1 flex items-center gap-1">
                                     <Sparkles className="w-3 h-3 text-blue-500" />
-                                    Numéros machine
+                                    Vecteur Machine
                                   </p>
                                   <div className="flex gap-1">
                                     {machineNumbers.slice(0, 5).map((num, idx) => (
@@ -360,7 +360,7 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
                           {!isToday && !hasResult && (
                             <div className="mt-2 pt-2 border-t border-border/50">
                               <p className="text-[10px] text-muted-foreground">
-                                Pas de résultat disponible
+                                Synthèse non disponible
                               </p>
                             </div>
                           )}

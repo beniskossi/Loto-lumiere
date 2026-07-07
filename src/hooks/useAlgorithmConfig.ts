@@ -8,7 +8,7 @@ export interface AlgorithmConfig {
   is_enabled: boolean;
   weight: number;
   description: string | null;
-  parameters: any;
+  parameters: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -42,7 +42,7 @@ export const useUpdateAlgorithmConfig = () => {
     }) => {
       const { data, error } = await supabase
         .from("algorithm_config")
-        .update(updates as any)
+        .update(updates)
         .eq("id", id)
         .select()
         .single();

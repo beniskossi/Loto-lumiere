@@ -72,8 +72,15 @@ serve(async (req) => {
         const date = new Date(today);
         date.setDate(date.getDate() - i * 7); // Weekly draws
         
+        // LCG simple pour générer des numéros pseudo-aléatoires déterministes
+        let seed = i * 12345 + draw.name.charCodeAt(0);
+        const lcg = () => {
+          seed = (seed * 1664525 + 1013904223) % 4294967296;
+          return seed / 4294967296;
+        };
+
         const winningNumbers = Array.from({ length: 5 }, () => 
-          Math.floor(Math.random() * 90) + 1
+          Math.floor(lcg() * 90) + 1
         );
 
         const { error } = await supabase.from("draw_results").insert({
