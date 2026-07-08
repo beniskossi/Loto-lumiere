@@ -1,24 +1,11 @@
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Flame, Snowflake, Zap, Sparkles, Waves, Scale, ArrowRight, TrendingUp, TrendingDown, Clock, ArrowLeftRight, FlaskConical } from "lucide-react";
+import { Flame, Snowflake, Zap, Sparkles, Waves, Scale, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NumberBall } from "@/components/NumberBall";
 import { useDrawResults } from "@/hooks/useDrawResults";
 import { cn } from "@/lib/utils";
-import { TemporalAnalysis } from "@/components/TemporalAnalysis";
-import { DrawComparison } from "@/components/DrawComparison";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-
-const BacktestingDashboard = lazy(() => import("@/components/BacktestingDashboard").then(m => ({ default: m.BacktestingDashboard })));
-
-const DashboardFallback = () => (
-  <div className="space-y-4">
-    <Skeleton className="h-8 w-48" />
-    <Skeleton className="h-[400px] w-full rounded-xl" />
-  </div>
-);
 
 interface AnalysesTabProps {
   drawName: string;
@@ -35,7 +22,6 @@ interface AnalysisCard {
 
 export const AnalysesTab = ({ drawName }: AnalysesTabProps) => {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState<"patterns" | "temporal" | "comparison" | "backtesting">("patterns");
   const { data: results, isLoading } = useDrawResults(drawName, 50);
 
   // Calculate analytics from results
@@ -63,45 +49,23 @@ export const AnalysesTab = ({ drawName }: AnalysesTabProps) => {
   };
 
   return (
-    <div className="pb-24">
-      {/* Sub-tabs for different analysis types */}
-      <Tabs value={activeSubTab} onValueChange={(v) => setActiveSubTab(v as "patterns" | "temporal" | "comparison" | "backtesting")} className="w-full mb-6">
-        <TabsList className="grid w-full grid-cols-4 bg-secondary/30 backdrop-blur-sm">
-          <TabsTrigger value="patterns" className="flex items-center gap-2 text-xs md:text-sm">
-            <Sparkles className="w-4 h-4" />
-            <span className="hidden sm:inline">Patterns</span>
-          </TabsTrigger>
-          <TabsTrigger value="temporal" className="flex items-center gap-2 text-xs md:text-sm">
-            <Clock className="w-4 h-4" />
-            <span className="hidden sm:inline">Temporel</span>
-          </TabsTrigger>
-          <TabsTrigger value="comparison" className="flex items-center gap-2 text-xs md:text-sm">
-            <ArrowLeftRight className="w-4 h-4" />
-            <span className="hidden sm:inline">Comparer</span>
-          </TabsTrigger>
-          <TabsTrigger value="backtesting" className="flex items-center gap-2 text-xs md:text-sm">
-            <FlaskConical className="w-4 h-4" />
-            <span className="hidden sm:inline">Backtest</span>
-          </TabsTrigger>
-        </TabsList>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center mb-6"
+      >
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+          Le Laboratoire Secret
+        </h2>
+        <p className="text-muted-foreground text-sm mt-2">
+          Analyses avancées basées sur {results?.length || 0} tirages
+        </p>
+      </motion.div>
 
-        <TabsContent value="patterns" className="mt-6">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
-          >
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              Le Laboratoire Secret
-            </h2>
-            <p className="text-muted-foreground text-sm mt-2">
-              Analyses avancées basées sur {results?.length || 0} tirages
-            </p>
-          </motion.div>
-
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {cards.map((card, index) => (
           <motion.div
             key={card.id}
@@ -178,23 +142,7 @@ export const AnalysesTab = ({ drawName }: AnalysesTabProps) => {
             </Card>
           </motion.div>
         ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="temporal" className="mt-6">
-          <TemporalAnalysis drawName={drawName} />
-        </TabsContent>
-
-        <TabsContent value="comparison" className="mt-6">
-          <DrawComparison initialDraw1={drawName} />
-        </TabsContent>
-
-        <TabsContent value="backtesting" className="mt-6">
-          <Suspense fallback={<DashboardFallback />}>
-            <BacktestingDashboard />
-          </Suspense>
-        </TabsContent>
-      </Tabs>
+      </div>
     </div>
   );
 };

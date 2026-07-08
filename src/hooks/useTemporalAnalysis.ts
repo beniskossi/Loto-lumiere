@@ -258,9 +258,10 @@ export function useTemporalAnalysis(drawName?: string, limit = 200): {
     const weekdayFreq = calculateFrequency(weekdayResults);
     const weekendFreq = calculateFrequency(weekendResults);
 
-    // Recent trend analysis (last 20 vs previous 20)
-    const recentResults = results.slice(0, 20);
-    const previousResults = results.slice(20, 40);
+    // Recent trend analysis (last 20% vs previous 20%)
+    const windowSize = Math.max(10, Math.floor(results.length * 0.2));
+    const recentResults = results.slice(0, windowSize);
+    const previousResults = results.slice(windowSize, windowSize * 2);
     const recentFreq = calculateFrequency(recentResults);
     const previousFreq = calculateFrequency(previousResults);
 
@@ -341,7 +342,9 @@ export function useTemporalAnalysis(drawName?: string, limit = 200): {
 function detectCycles(results: any[]): TemporalCycle[] {
   const cycles: TemporalCycle[] = [];
   
-  if (results.length < 30) return cycles;
+  // Need enough data points to detect meaningful cycles
+  const minRequiredData = Math.ceil(90 * 0.33); // At least 1/3 of the number space
+  if (results.length < minRequiredData) return cycles;
 
   // Look for weekly cycles (every 7 draws)
   const weeklyNumbers = findCyclicalNumbers(results, 7);

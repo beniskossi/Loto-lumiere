@@ -27,19 +27,36 @@ export const NumberHeatmap = ({ results }: NumberHeatmapProps) => {
       const lastSeen = appearances.length > 0 ? appearances[0].idx : 999;
       const frequency = appearances.length / results.length;
       
-      const recent = results.slice(0, 10).filter(r => r.winning_numbers?.includes(num)).length;
-      const previous = results.slice(10, 20).filter(r => r.winning_numbers?.includes(num)).length;
+      // Dynamic window based on dataset size for trend analysis (e.g., 20% of dataset)
+      const windowSize = Math.max(5, Math.floor(results.length * 0.2));
+      const recent = results.slice(0, windowSize).filter(r => r.winning_numbers?.includes(num)).length;
+      const previous = results.slice(windowSize, windowSize * 2).filter(r => r.winning_numbers?.includes(num)).length;
       
-      const recencyScore = Math.exp(-lastSeen * 0.1);
-      const freqScore = frequency * 10;
-      const trendScore = recent > previous ? 1.5 : recent < previous ? 0.5 : 1;
-      const score = recencyScore * freqScore * trendScore;
+      // Calculate data-driven decay rate. Inverse of expected average appearances
+      const expectedAppearances = results.length * (5 / 90);
+      const decayRate = 1 / Math.max(1, expectedAppearances);
+
+      const recencyScore = Math.exp(-lastSeen * decayRate);
       
+      // Normalized frequency score relative to expectation
+      const expectedFrequency = 5 / 90;
+      const freqScore = frequency / expectedFrequency;
+      
+      // Trend multiplier derived from statistical improvement
+      const recentRate = windowSize > 0 ? recent / windowSize : 0;
+      const previousRate = windowSize > 0 ? previous / windowSize : 0;
+      const trendMultiplier = previousRate > 0 ? (recentRate / previousRate) : (recentRate > 0 ? 1.5 : 1);
+      const clampedTrendScore = Math.max(0.5, Math.min(2.0, trendMultiplier));
+
+      const score = recencyScore * freqScore * clampedTrendScore;
+      
+      // Temperatures based on statistical quartiles or mean variance
+      // Since score revolves around 1.0 (expected behavior)
       let temperature: NumberHeat["temperature"];
-      if (score > 0.8) temperature = "hot";
-      else if (score > 0.5) temperature = "warm";
-      else if (score > 0.2) temperature = "cold";
-      else temperature = "frozen";
+      if (score > 1.5) temperature = "hot"; // > 50% above expected
+      else if (score > 1.0) temperature = "warm"; // above expected
+      else if (score > 0.5) temperature = "cold"; // below expected
+      else temperature = "frozen"; // < 50% below expected
       
       heat.push({ number: num, temperature, score, lastSeen, frequency });
     }

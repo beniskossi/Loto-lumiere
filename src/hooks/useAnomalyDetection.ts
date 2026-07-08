@@ -18,10 +18,18 @@ export const useAnomalyDetection = (drawName: string) => {
         .from("draw_results")
         .select("winning_numbers, draw_date")
         .eq("draw_name", drawName)
-        .order("draw_date", { ascending: false })
-        .limit(50);
+        .order("draw_date", { ascending: false });
 
       if (!results || results.length < 10) return [];
+      
+      // Dynamic Data Parameters
+      const drawCount = results.length;
+      const numberSpace = 90;
+      const numbersPerDraw = 5;
+      
+      const expectedFrequencyPerDraw = numbersPerDraw / numberSpace;
+      const expectedTotalFrequency = drawCount * expectedFrequencyPerDraw;
+      const expectedRate = expectedFrequencyPerDraw * 100;
 
       const anomalies: Anomaly[] = [];
 
@@ -33,72 +41,95 @@ export const useAnomalyDetection = (drawName: string) => {
         for (let i = 0; i < sorted.length - 1; i++) {
           if (sorted[i + 1] - sorted[i] === 1) consecutive++;
         }
-        if (consecutive >= 3) {
+        
+        // Probability of getting consecutive numbers is low.
+        // We score based on inverse probability heuristic.
+        const maxExpectedConsecutive = Math.ceil(numbersPerDraw * expectedFrequencyPerDraw);
+        
+        if (consecutive > maxExpectedConsecutive) {
+          const score = (consecutive / numbersPerDraw) * 100;
           anomalies.push({
             type: "unusual_pattern",
-            severity: "medium",
+            severity: consecutive >= 3 ? "high" : "medium",
             description: `${consecutive + 1} numéros consécutifs détectés`,
             drawDate: result.draw_date,
             numbers: nums,
-            score: consecutive * 20
+            score: score
           });
         }
       });
 
-      // 2. Analyse de randomness (chi-square test simplifié)
+      // 2. Analyse de randomness
       const allNumbers = results.flatMap(r => r.winning_numbers || []);
       const frequency: Record<number, number> = {};
-      for (let i = 1; i <= 90; i++) frequency[i] = 0;
+      for (let i = 1; i <= numberSpace; i++) frequency[i] = 0;
       allNumbers.forEach(num => frequency[num]++);
+      
+      // Calculate variance and std dev of frequencies
+      const frequencies = Object.values(frequency);
+      const meanFreq = frequencies.reduce((a, b) => a + b, 0) / numberSpace;
+      const varianceFreq = frequencies.reduce((a, b) => a + Math.pow(b - meanFreq, 2), 0) / numberSpace;
+      const stdDevFreq = Math.sqrt(varianceFreq);
 
-      const expected = allNumbers.length / 90;
+      // Chi-square heuristic based on variance
       let chiSquare = 0;
-      Object.values(frequency).forEach(observed => {
-        chiSquare += Math.pow(observed - expected, 2) / expected;
+      frequencies.forEach(observed => {
+        chiSquare += Math.pow(observed - expectedTotalFrequency, 2) / expectedTotalFrequency;
       });
 
-      const criticalValue = 112.02; // Chi-square 90 df, p=0.05
-      if (chiSquare > criticalValue * 1.5) {
+      // Dynamic critical threshold based on empirical rule
+      const dynamicChiSquareThreshold = numberSpace + (2 * Math.sqrt(2 * numberSpace));
+      
+      if (chiSquare > dynamicChiSquareThreshold) {
         anomalies.push({
           type: "randomness_issue",
-          severity: "high",
-          description: `Distribution non-aléatoire détectée (χ²=${chiSquare.toFixed(1)})`,
-          score: 90
+          severity: chiSquare > dynamicChiSquareThreshold * 1.5 ? "high" : "medium",
+          description: `Distribution non-aléatoire détectée (écart de ${((chiSquare / dynamicChiSquareThreshold) * 100 - 100).toFixed(1)}% au modèle théorique)`,
+          score: Math.min((chiSquare / dynamicChiSquareThreshold) * 50, 100)
         });
       }
 
       // 3. Détection de pics de fréquence
+      // Dynamic threshold: Mean + 2 Standard Deviations
+      const spikeThreshold = meanFreq + (2 * stdDevFreq);
+      const criticalSpikeThreshold = meanFreq + (3 * stdDevFreq);
+      
       Object.entries(frequency).forEach(([num, count]) => {
-        const rate = (count / results.length) * 100;
-        if (rate > 15) {
+        if (count > spikeThreshold) {
+          const rate = (count / drawCount) * 100;
           anomalies.push({
             type: "frequency_spike",
-            severity: rate > 20 ? "high" : "medium",
-            description: `Numéro ${num} apparaît ${rate.toFixed(1)}% du temps (attendu: 5.6%)`,
+            severity: count > criticalSpikeThreshold ? "high" : "medium",
+            description: `Numéro ${num} apparaît ${rate.toFixed(1)}% du temps (attendu: ${expectedRate.toFixed(1)}%)`,
             numbers: [parseInt(num)],
-            score: rate * 3
+            score: Math.min((count / spikeThreshold) * 50, 100)
           });
         }
       });
 
       // 4. Tirages suspects (trop similaires)
-      for (let i = 0; i < Math.min(results.length - 1, 10); i++) {
+      // Check adjacent draws for similarity, derived from hypergeometric expected overlap
+      const expectedOverlap = (numbersPerDraw * numbersPerDraw) / numberSpace;
+      const suspiciousOverlapThreshold = Math.ceil(expectedOverlap + 2); // At least expected + 2
+      
+      for (let i = 0; i < results.length - 1; i++) {
         const nums1 = results[i].winning_numbers || [];
         const nums2 = results[i + 1].winning_numbers || [];
         const common = nums1.filter(n => nums2.includes(n)).length;
-        if (common >= 4) {
+        
+        if (common >= suspiciousOverlapThreshold) {
           anomalies.push({
             type: "suspicious_draw",
-            severity: "high",
+            severity: common > suspiciousOverlapThreshold ? "high" : "medium",
             description: `${common} numéros identiques entre 2 tirages consécutifs`,
             drawDate: results[i].draw_date,
             numbers: nums1.filter(n => nums2.includes(n)),
-            score: common * 25
+            score: Math.min((common / numbersPerDraw) * 100, 100)
           });
         }
       }
 
-      return anomalies.sort((a, b) => b.score - a.score).slice(0, 5);
+      return anomalies.sort((a, b) => b.score - a.score).slice(0, Math.ceil(Math.sqrt(drawCount)));
     },
     staleTime: 10 * 60 * 1000,
   });

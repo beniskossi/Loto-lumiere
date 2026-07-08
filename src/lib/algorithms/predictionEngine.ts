@@ -64,7 +64,9 @@ export class LocalPredictionEngine {
     }
 
     // 1. Calculate decayed frequencies and collect appearance history
-    const decay = options.decayRate ?? 0.02;
+    const expectedHalfLife = Math.max(10, sortedDraws.length * 0.2);
+    const dynamicDecayRate = Math.LN2 / expectedHalfLife;
+    const decay = options.decayRate ?? dynamicDecayRate;
     for (let i = 0; i < sortedDraws.length; i++) {
       const draw = sortedDraws[i];
       const numbers = draw.winningNumbers || [];
@@ -101,8 +103,9 @@ export class LocalPredictionEngine {
 
       const currentGap = gaps[num];
       // Normalize gap score: ratio of current gap to average gap
-      // Cap at 3x average gap to avoid extreme outliers overpowering other factors
-      const gapRatio = Math.min(3.0, currentGap / Math.max(1, avgGap));
+      // Cap at standard statistical outlier bound (approx 3 to 4 std deviations, dynamically scaled)
+      const maxGapBound = Math.max(3.0, Math.log(sortedDraws.length || 1));
+      const gapRatio = Math.min(maxGapBound, currentGap / Math.max(1, avgGap));
       gapScores[num] = gapRatio;
     }
 

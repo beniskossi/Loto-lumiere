@@ -316,8 +316,18 @@ const Admin = () => {
         throw new Error("Format JSON invalide");
       }
 
+      // Dedupliquer les données par rapport aux clés uniques
+      const uniqueDataMap = new Map();
+      data.forEach((r: any) => {
+        if (r.draw_name && r.draw_date) {
+          const key = `${r.draw_name}_${r.draw_date}`;
+          uniqueDataMap.set(key, r);
+        }
+      });
+      const uniqueData = Array.from(uniqueDataMap.values());
+
       // Insérer les données avec upsert pour éviter les plantages sur doublons
-      const { error } = await supabase.from("draw_results").upsert(data, { onConflict: "draw_name,draw_date" });
+      const { error } = await supabase.from("draw_results").upsert(uniqueData, { onConflict: "draw_name,draw_date" });
       if (error) throw error;
 
       toast({

@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Timer, Search, Calendar, FlaskConical, BarChart2, Database } from "lucide-react";
+import { BarChart3, Timer, Search, Clock, ArrowLeftRight, FlaskConical, BarChart2, Database } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const AnalysesTab = lazy(() =>
@@ -17,6 +17,12 @@ const ConsulterTab = lazy(() =>
 );
 const DonneesTab = lazy(() =>
   import("./DonneesTab").then((m) => ({ default: m.DonneesTab }))
+);
+const TemporalAnalysis = lazy(() =>
+  import("@/components/TemporalAnalysis").then((m) => ({ default: m.TemporalAnalysis }))
+);
+const DrawComparison = lazy(() =>
+  import("@/components/DrawComparison").then((m) => ({ default: m.DrawComparison }))
 );
 
 interface AnalysesContainerProps {
@@ -36,7 +42,7 @@ const AnalysesFallback = () => (
 );
 
 export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
-  const [activeSubTab, setActiveSubTab] = useState<"data" | "patterns" | "gaps" | "stats" | "search">("data");
+  const [activeSubTab, setActiveSubTab] = useState<"data" | "patterns" | "temporal" | "gaps" | "stats" | "comparison" | "search">("data");
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-24">
@@ -71,7 +77,14 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
             className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
           >
             <FlaskConical className="w-4 h-4 text-purple-500" />
-            Détection de Motifs
+            Motifs (Secret Lab)
+          </TabsTrigger>
+          <TabsTrigger
+            value="temporal"
+            className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
+          >
+            <Clock className="w-4 h-4 text-cyan-400" />
+            Analyse Temporelle
           </TabsTrigger>
           <TabsTrigger
             value="gaps"
@@ -88,11 +101,18 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
             Analyse Fréquentielle
           </TabsTrigger>
           <TabsTrigger
+            value="comparison"
+            className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
+          >
+            <ArrowLeftRight className="w-4 h-4 text-amber-500" />
+            Comparateur
+          </TabsTrigger>
+          <TabsTrigger
             value="search"
             className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
           >
             <Search className="w-4 h-4 text-blue-500" />
-            Audit Numérique
+            Audit d'un Numéro
           </TabsTrigger>
         </TabsList>
 
@@ -105,12 +125,20 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
             <AnalysesTab drawName={drawName} />
           </TabsContent>
 
+          <TabsContent value="temporal" className="mt-0 focus-visible:outline-none">
+            <TemporalAnalysis drawName={drawName} />
+          </TabsContent>
+
           <TabsContent value="gaps" className="mt-0 focus-visible:outline-none">
             <GapAnalysisTab drawName={drawName} />
           </TabsContent>
 
           <TabsContent value="stats" className="mt-0 focus-visible:outline-none">
             <StatistiquesTab drawName={drawName} />
+          </TabsContent>
+
+          <TabsContent value="comparison" className="mt-0 focus-visible:outline-none">
+            <DrawComparison initialDraw1={drawName} />
           </TabsContent>
 
           <TabsContent value="search" className="mt-0 focus-visible:outline-none">

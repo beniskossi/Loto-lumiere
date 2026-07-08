@@ -12,13 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy-loaded pages for code splitting
-const Home = lazy(() => import("./pages/Home"));
-const DrawDetails = lazy(() => import("./pages/DrawDetails"));
-const Statistics = lazy(() => import("./pages/Statistics"));
-const History = lazy(() => import("./pages/History"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Consult = lazy(() => import("./pages/Consult"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -55,71 +50,42 @@ const App = () => (
           <Suspense fallback={<PageFallback />}>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              
+              {/* Unified Core App View */}
               <Route
                 path="/"
                 element={
                   <ProtectedRoute>
-                    <Home />
+                    <Dashboard />
                   </ProtectedRoute>
                 }
               />
-            <Route
-              path="/tirage/:drawName"
-              element={
-                <ProtectedRoute>
-                  <DrawDetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/statistiques"
-              element={
-                <ProtectedRoute>
-                  <Statistics />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/consulter"
-              element={
-                <ProtectedRoute>
-                  <Consult />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/historique"
-              element={
-                <ProtectedRoute>
-                  <History />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminRoute>
-                    <Admin />
-                  </AdminRoute>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminRoute>
+                      <Admin />
+                    </AdminRoute>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Legacy routes redirect to unified dashboard */}
+              <Route path="/statistiques" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/consulter" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/historique" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/tirage/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   </ErrorBoundary>
 );
 

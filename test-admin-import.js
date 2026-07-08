@@ -5,7 +5,14 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
-  const { data, error } = await supabase.from('draw_results').select('*').limit(1);
-  console.log(error);
+  const data = [{
+    draw_name: "Test",
+    draw_day: "Lundi",
+    draw_time: "10:00",
+    draw_date: "2026-07-06",
+    winning_numbers: [1, 2, 3, 4, 5]
+  }];
+  const { error } = await supabase.from("draw_results").upsert(data, { onConflict: "draw_name,draw_date" });
+  console.log("error:", error);
 }
 run();

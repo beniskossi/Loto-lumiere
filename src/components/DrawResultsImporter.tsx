@@ -223,24 +223,89 @@ export const DrawResultsImporter = ({
   const parseJSONContent = (text: string): ParsedResult[] => {
     try {
       const parsed = JSON.parse(text);
-      const items = Array.isArray(parsed) ? parsed : [parsed];
+      
+      const extractRecords = (obj: Record<string, unknown> | unknown[] | null): Record<string, unknown>[] => {
+        let records: Record<string, unknown>[] = [];
+        if (Array.isArray(obj)) {
+          for (const item of obj) {
+            records = records.concat(extractRecords(item));
+          }
+        } else if (typeof obj === 'object' && obj !== null) {
+          const keys = Object.keys(obj).join(' ').toLowerCase();
+          const hasDate = keys.includes('date') || keys.includes('time') || keys.includes('jour');
+          const hasNumbers = keys.includes('win') || keys.includes('num') || keys.includes('gagnant') || keys.includes('result') || keys.includes('tirage');
+          
+          if (hasDate && hasNumbers) {
+            records.push(obj);
+          } else {
+            for (const key in obj) {
+              records = records.concat(extractRecords(obj[key]));
+            }
+          }
+        }
+        return records;
+      };
+
+      let items = extractRecords(parsed);
+      if (items.length === 0) {
+         if (Array.isArray(parsed)) items = parsed;
+         else if (typeof parsed === 'object' && parsed !== null) items = [parsed];
+      }
+      
+      // Deduplicate items just in case
+      items = items.filter((item, index, self) => 
+        index === self.findIndex((t) => JSON.stringify(t) === JSON.stringify(item))
+      );
+
       const results: ParsedResult[] = [];
 
       items.forEach((item, idx) => {
         if (typeof item !== "object" || item === null) return;
 
         // Flexible key matching
-        const rawDrawName = item.draw_name || item.drawName || item.draw || "";
-        const rawDrawDate = item.draw_date || item.drawDate || item.date || "";
+        const rawDrawName = item.draw_name || item.drawName || item.name || item.nom || item.tirage || "";
+        const rawDrawDate = item.draw_date || item.drawDate || item.date || item.jour || "";
         
-        let rawWinning = item.winning_numbers || item.winningNumbers || item.numbers || item.winning || item.gagnants || [];
-        if (typeof rawWinning === "string") {
-          rawWinning = rawWinning.split(/[,\s;]+/).map((n: string) => parseInt(n));
+        let rawWinning: any = undefined;
+        // Search for anything that looks like winning numbers
+        for (const key of ['winning_numbers', 'winningNumbers', 'numbers', 'winning', 'gagnants', 'resultats', 'results', 'nums']) {
+           if (item[key] !== undefined) {
+             rawWinning = item[key];
+             break;
+           }
         }
         
-        let rawMachine = item.machine_numbers || item.machineNumbers || item.machine || undefined;
+        if (typeof rawWinning === "string") {
+          rawWinning = rawWinning.match(/\b\d+\b/g)?.map((n: string) => parseInt(n)) || [];
+        } else if (typeof rawWinning === "number") {
+          rawWinning = [rawWinning];
+        } else if (!rawWinning) {
+           // Search all values for arrays of numbers
+           for (const val of Object.values(item)) {
+              if (Array.isArray(val) && val.length >= 5 && typeof val[0] === 'number') {
+                 rawWinning = val;
+                 break;
+              } else if (typeof val === 'string' && val.split(/[,;\s-]/).length >= 5) {
+                 const nums = val.match(/\b\d+\b/g)?.map(n => parseInt(n));
+                 if (nums && nums.length >= 5) {
+                    rawWinning = nums;
+                    break;
+                 }
+              }
+           }
+        }
+        
+        let rawMachine: any = undefined;
+        for (const key of ['machine_numbers', 'machineNumbers', 'machine', 'machines']) {
+           if (item[key] !== undefined) {
+             rawMachine = item[key];
+             break;
+           }
+        }
         if (typeof rawMachine === "string") {
-          rawMachine = rawMachine.split(/[,\s;]+/).map((n: string) => parseInt(n));
+          rawMachine = rawMachine.match(/\b\d+\b/g)?.map((n: string) => parseInt(n)) || [];
+        } else if (typeof rawMachine === "number") {
+          rawMachine = [rawMachine];
         }
 
         // Standardize date
@@ -260,7 +325,6 @@ export const DrawResultsImporter = ({
           formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
         }
 
-        // If the numbers array actually holds 10 numbers, separate them!
         let winningNumbers = (Array.isArray(rawWinning) ? rawWinning : [])
           .map(n => typeof n === "number" ? n : parseInt(String(n)))
           .filter(n => !isNaN(n) && n >= 1 && n <= 90);
@@ -306,7 +370,7 @@ export const DrawResultsImporter = ({
           draw_day: drawDay,
           draw_time: drawTime,
           isValid: errors.length === 0,
-          validationError: errors.join(" | "),
+          validationError: errors.length > 0 ? errors.join(" | ") : undefined,
           rawLine: JSON.stringify(item)
         });
       });
@@ -319,166 +383,103 @@ export const DrawResultsImporter = ({
 
   const parseCsvContent = (text: string): ParsedResult[] => {
     const lines = text.trim().split("\n");
-    const results: ParsedResult[] = [];
-    
     if (lines.length === 0) return [];
     
-    // Parse headers to find indexes
-    const headerLine = lines[0].trim();
-    const headers = headerLine.split(/[,;\t]/).map(h => h.trim().toLowerCase());
-    
-    let dateIdx = -1;
-    let drawNameIdx = -1;
-    const winningIdxs: number[] = [];
-    const machineIdxs: number[] = [];
-    
-    const isHeader = headers.some(h => 
-      h.includes("date") || 
-      h.includes("tirage") || 
-      h.includes("draw") || 
-      h.includes("g1") || 
-      h.includes("n1") ||
-      h.includes("m1") ||
-      h.includes("winning") ||
-      h.includes("machine")
-    );
-    
-    let startIndex = 0;
-    if (isHeader) {
-      startIndex = 1;
-      headers.forEach((h, idx) => {
-        if (h.includes("date")) {
-          dateIdx = idx;
-        } else if (h.includes("tirage") || h.includes("draw")) {
-          drawNameIdx = idx;
-        } else if (h.match(/^(g|n)\d+$/) || h.includes("winning") || h.includes("gagnant")) {
-          winningIdxs.push(idx);
-        } else if (h.match(/^m\d+$/) || h.includes("machine")) {
-          machineIdxs.push(idx);
-        }
-      });
-    }
-    
-    // Sort columns index for deterministic parsing
-    winningIdxs.sort((a, b) => a - b);
-    machineIdxs.sort((a, b) => a - b);
-    
+    const results: ParsedResult[] = [];
     const dateIsoRegex = /\b(\d{4})[-/. ](\d{1,2})[-/. ](\d{1,2})\b/;
     const dateFrRegex = /\b(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})\b/;
-
-    for (let i = startIndex; i < lines.length; i++) {
+    
+    for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
       
-      const parts = line.split(/[,;\t]/).map(p => p.trim());
-      if (parts.length < 2) continue;
+      const parts = line.split(/[,;\t|]/).map(p => p.trim());
       
+      const potentialNumbers: number[] = [];
       let drawDate = "";
       let inputDrawName = "";
-      let numbers: number[] = [];
-      let machineNumbers: number[] | undefined = undefined;
       
-      if (isHeader) {
-        if (dateIdx !== -1 && dateIdx < parts.length) {
-          drawDate = parts[dateIdx];
+      parts.forEach(part => {
+        // is it a date?
+        if (!drawDate && (part.match(dateIsoRegex) || part.match(dateFrRegex))) {
+          drawDate = part;
+        } 
+        // is it a name? (mostly letters)
+        else if (!inputDrawName && isNaN(parseInt(part)) && part.length >= 3 && /[a-zA-Z]/.test(part) && 
+                 !part.toLowerCase().includes('date') && !part.toLowerCase().includes('tirage') && !part.toLowerCase().includes('winning')) {
+          inputDrawName = part;
         }
-        if (drawNameIdx !== -1 && drawNameIdx < parts.length) {
-          inputDrawName = parts[drawNameIdx];
+        // is it numbers? (could be space separated)
+        else {
+          const nums = part.match(/\b\d+\b/g);
+          if (nums) {
+            potentialNumbers.push(...nums.map(n => parseInt(n)).filter(n => n >= 1 && n <= 90));
+          }
         }
-        
-        // Extract winning numbers from identified winning indexes
-        if (winningIdxs.length > 0) {
-          winningIdxs.forEach(idx => {
-            if (idx < parts.length) {
-              const val = parseInt(parts[idx]);
-              if (!isNaN(val)) numbers.push(val);
-            }
-          });
-        }
-        
-        // Extract machine numbers from identified machine indexes
-        if (machineIdxs.length > 0) {
-          const machs: number[] = [];
-          machineIdxs.forEach(idx => {
-            if (idx < parts.length) {
-              const val = parseInt(parts[idx]);
-              if (!isNaN(val)) machs.push(val);
-            }
-          });
-          if (machs.length > 0) machineNumbers = machs;
-        }
-      } else {
-        // Fallback to legacy positional parsing if no headers were detected
-        const isDateFirst = parts[0] && (parts[0].match(dateIsoRegex) || parts[0].match(dateFrRegex));
-        if (isDateFirst) {
-          drawDate = parts[0] || "";
-          inputDrawName = "";
-          numbers = parts.slice(1, 6).map(n => parseInt(n)).filter(n => !isNaN(n));
-          machineNumbers = parts.length >= 11
-            ? parts.slice(6, 11).map(n => parseInt(n)).filter(n => !isNaN(n))
-            : undefined;
-        } else {
-          inputDrawName = parts[0] || "";
-          drawDate = parts[1] || "";
-          numbers = parts.slice(2, 7).map(n => parseInt(n)).filter(n => !isNaN(n));
-          machineNumbers = parts.length >= 12 
-            ? parts.slice(7, 12).map(n => parseInt(n)).filter(n => !isNaN(n))
-            : undefined;
-        }
-      }
-      
-      const validWinning = numbers.filter(n => n >= 1 && n <= 90);
-      const validMachine = machineNumbers ? machineNumbers.filter(n => n >= 1 && n <= 90) : undefined;
-      
-      let formattedDate = "";
-      const matchIso = drawDate.match(dateIsoRegex);
-      const matchFr = drawDate.match(dateFrRegex);
-
-      if (matchIso) {
-        const [_, year, month, day] = matchIso;
-        formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-      } else if (matchFr) {
-        const [_, day, month, year] = matchFr;
-        formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-      }
-      
-      // If we are forcing an active draw name
-      const match = activeDrawName && activeDrawName !== "all"
-        ? allDraws.find(d => d.name === activeDrawName)
-        : findBestDrawMatch(inputDrawName);
-      
-      let drawName = match?.name || inputDrawName || "Inconnu";
-      let drawDay = match?.day || "";
-      let drawTime = match?.time || "";
-
-      if (!match && formattedDate) {
-        const dayFr = getDayOfWeekFr(formattedDate);
-        const dayDraws = DRAW_SCHEDULE[dayFr];
-        if (dayDraws && dayDraws.length > 0) {
-          const defaultDraw = dayDraws[dayDraws.length - 1];
-          drawName = defaultDraw.name;
-          drawDay = defaultDraw.day;
-          drawTime = defaultDraw.time;
-        }
-      }
-
-      const errors: string[] = [];
-      if (drawName === "Inconnu") errors.push(`Tirage inconnu: "${inputDrawName || 'nom introuvable'}"`);
-      if (!formattedDate) errors.push(`Date invalide: "${drawDate}"`);
-      if (validWinning.length < 5) errors.push(`Numéros gagnants invalides (attendu: 5, reçu: ${validWinning.length})`);
-      
-      results.push({
-        id: `csv-${i}-${Date.now()}`,
-        draw_name: drawName,
-        draw_date: formattedDate || drawDate,
-        winning_numbers: validWinning.slice(0, 5),
-        machine_numbers: validMachine && validMachine.length >= 5 ? validMachine.slice(0, 5) : undefined,
-        draw_day: drawDay,
-        draw_time: drawTime,
-        isValid: errors.length === 0,
-        validationError: errors.join(" | "),
-        rawLine: line
       });
+      
+      // if we couldn't find date from columns, search in whole line
+      if (!drawDate) {
+         const mIso = line.match(dateIsoRegex);
+         const mFr = line.match(dateFrRegex);
+         if (mIso) drawDate = mIso[0];
+         else if (mFr) drawDate = mFr[0];
+      }
+      
+      // If no draw name but we have date and numbers, we can deduce draw name later
+      if (potentialNumbers.length >= 5) {
+        let formattedDate = "";
+        const matchIso = drawDate.match(dateIsoRegex);
+        const matchFr = drawDate.match(dateFrRegex);
+
+        if (matchIso) {
+          const [_, year, month, day] = matchIso;
+          formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+        } else if (matchFr) {
+          const [_, day, month, year] = matchFr;
+          formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+        }
+        
+        const match = activeDrawName && activeDrawName !== "all"
+          ? allDraws.find(d => d.name === activeDrawName)
+          : findBestDrawMatch(inputDrawName);
+        
+        let drawName = match?.name || inputDrawName || "Inconnu";
+        let drawDay = match?.day || "";
+        let drawTime = match?.time || "";
+
+        if (!match && formattedDate) {
+          const dayFr = getDayOfWeekFr(formattedDate);
+          const dayDraws = DRAW_SCHEDULE[dayFr];
+          if (dayDraws && dayDraws.length > 0) {
+            const defaultDraw = dayDraws[dayDraws.length - 1];
+            drawName = defaultDraw.name;
+            drawDay = defaultDraw.day;
+            drawTime = defaultDraw.time;
+          }
+        }
+
+        const validWinning = potentialNumbers.slice(0, 5);
+        const validMachine = potentialNumbers.length >= 10 ? potentialNumbers.slice(5, 10) : undefined;
+
+        const errors: string[] = [];
+        if (drawName === "Inconnu") errors.push(`Tirage inconnu: "${inputDrawName || 'nom introuvable'}"`);
+        if (!formattedDate) errors.push(`Date invalide: "${drawDate}"`);
+        if (validWinning.length < 5) errors.push(`Numéros gagnants invalides (attendu: 5, reçu: ${validWinning.length})`);
+        
+        results.push({
+          id: `csv-${i}-${Date.now()}`,
+          draw_name: drawName,
+          draw_date: formattedDate || drawDate,
+          winning_numbers: validWinning,
+          machine_numbers: validMachine,
+          draw_day: drawDay,
+          draw_time: drawTime,
+          isValid: errors.length === 0,
+          validationError: errors.length > 0 ? errors.join(" | ") : undefined,
+          rawLine: line
+        });
+      }
     }
     
     return results;
@@ -767,14 +768,20 @@ export const DrawResultsImporter = ({
 
     setIsLoading(true);
     try {
-      const payload = selectedResults.map(r => ({
-        draw_name: r.draw_name,
-        draw_date: r.draw_date,
-        winning_numbers: r.winning_numbers,
-        machine_numbers: r.machine_numbers || null,
-        draw_day: r.draw_day,
-        draw_time: r.draw_time,
-      }));
+      // Deduplicate payload to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time" error
+      const uniquePayloadMap = new Map();
+      selectedResults.forEach(r => {
+        const key = `${r.draw_name}_${r.draw_date}`;
+        uniquePayloadMap.set(key, {
+          draw_name: r.draw_name,
+          draw_date: r.draw_date,
+          winning_numbers: r.winning_numbers,
+          machine_numbers: r.machine_numbers || null,
+          draw_day: r.draw_day,
+          draw_time: r.draw_time,
+        });
+      });
+      const payload = Array.from(uniquePayloadMap.values());
 
       // We use upsert with onConflict to handle conflicts gracefully (overwriting or skipping instead of throwing)
       const { error } = await supabase
