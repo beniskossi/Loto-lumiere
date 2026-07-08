@@ -59,18 +59,106 @@ export interface EnhancedPredictionResult extends PredictionResult {
   topPairs: PairScore[];
 }
 
-// ============= CONSTANTS (defaults, can be overridden by config) =============
+// ============= DYNAMIC PARAMETER ENGINE (ZÉRO NOMBRES MAGIQUES) =============
 
-const LAMBDA_DECAY = 0.05;           // λ pour décroissance exponentielle
-const MAX_PAIR_GAP = 30;             // G_max pour paires
-const TARGET_SUM = 219;              // μ_s somme cible
-const TARGET_PARITY = 2;             // m_p parité cible (nb pairs)
-const SUM_TOLERANCE = 20;            // Tolérance somme ±20
-const EQUILIBRIUM_THRESHOLD = 25;    // Seuil E pour équilibre
-const ECHO_DECAY = 0.1;              // δ pour décroissance écho
-const ECHO_THRESHOLD = 0.3;          // Seuil pour boost écho
-const ECHO_LOOKBACK = 3;             // m tirages pour écho
-const USE_ADVANCED_FORMULAS = true;  // Activer les formules avancées F6-F8
+const USE_ADVANCED_FORMULAS = true;  // Flag d'activation des formules avancées F6-F8
+
+export interface DerivedParameters {
+  lambdaDecay: number;
+  maxPairGap: number;
+  targetSum: number;
+  targetParity: number;
+  sumTolerance: number;
+  equilibriumThreshold: number;
+  echoDecay: number;
+  echoThreshold: number;
+  echoLookback: number;
+  optimalGapMin: number;
+  optimalGapMax: number;
+}
+
+/**
+ * Dérive de façon 100% déterministe les hyperparamètres du système à partir des données historiques
+ */
+export function deriveSystemParameters(results: DrawResult[]): DerivedParameters {
+  const n = results.length;
+  const config = getConfig();
+  const optimalGapMin = config?.optimalGap?.min ?? 10;
+  const optimalGapMax = config?.optimalGap?.max ?? 22;
+
+  if (n === 0) {
+    return {
+      lambdaDecay: 0.05,
+      maxPairGap: 30,
+      targetSum: 227.5,
+      targetParity: 2.5,
+      sumTolerance: 30,
+      equilibriumThreshold: 25,
+      echoDecay: 0.1,
+      echoThreshold: 0.3,
+      echoLookback: 3,
+      optimalGapMin,
+      optimalGapMax,
+    };
+  }
+
+  // 1. Somme cible et tolérance basées sur la moyenne empirique et l'écart-type
+  const sums = results.map(r => r.winning_numbers.reduce((a, b) => a + b, 0));
+  const meanSum = sums.reduce((a, b) => a + b, 0) / n;
+  const sumVariance = sums.reduce((acc, s) => acc + Math.pow(s - meanSum, 2), 0) / n;
+  const stdDevSum = Math.sqrt(sumVariance) || 30;
+
+  // 2. Parité cible basée sur la moyenne de nombres pairs observés
+  const parities = results.map(r => r.winning_numbers.filter(num => num % 2 === 0).length);
+  const meanParity = parities.reduce((a, b) => a + b, 0) / n;
+
+  // 3. Décroissance exponentielle basée sur la demi-vie d'activité des tirages (25% du dataset, max 50)
+  const halfLife = Math.max(10, Math.min(50, Math.floor(n * 0.25)));
+  const lambdaDecay = Math.LN2 / halfLife;
+
+  // 4. Écart maximum de paire proportionnel aux probabilités de base
+  const maxPairGap = Math.max(15, Math.min(60, Math.floor(1.5 * (90 / 5))));
+
+  // 5. Calcul des taux d'écho à lag 1 et lag 2 pour ajuster la décroissance
+  let totalOverlap_1 = 0;
+  let totalOverlap_2 = 0;
+  for (let i = 0; i < n - 1; i++) {
+    const wCurr = results[i].winning_numbers;
+    const wPrev = results[i + 1].winning_numbers;
+    totalOverlap_1 += wCurr.filter(x => wPrev.includes(x)).length;
+  }
+  for (let i = 0; i < n - 2; i++) {
+    const wCurr = results[i].winning_numbers;
+    const wPrev2 = results[i + 2].winning_numbers;
+    totalOverlap_2 += wCurr.filter(x => wPrev2.includes(x)).length;
+  }
+  
+  const p1 = n > 1 ? (totalOverlap_1 / (n - 1)) / 5 : 0.05;
+  const p2 = n > 2 ? (totalOverlap_2 / (n - 2)) / 5 : 0.04;
+  
+  let echoDecay = 0.1;
+  if (p1 > 0 && p2 > 0 && p1 > p2) {
+    echoDecay = Math.max(0.02, Math.min(0.5, -Math.log(p2 / p1)));
+  }
+
+  const echoLookback = Math.max(2, Math.min(5, Math.floor(2 / echoDecay)));
+  const echoThreshold = Math.max(0.1, Math.min(0.5, p1 * 1.5));
+  const equilibriumThreshold = Math.max(10, Math.min(40, stdDevSum * 0.8));
+
+  return {
+    lambdaDecay,
+    maxPairGap,
+    targetSum: meanSum,
+    targetParity: meanParity,
+    sumTolerance: stdDevSum,
+    equilibriumThreshold,
+    echoDecay,
+    echoThreshold,
+    echoLookback,
+    optimalGapMin,
+    optimalGapMax,
+  };
+}
 
 // Configuration dynamique (chargée depuis la DB)
 let currentConfig: {
@@ -112,6 +200,7 @@ export function getConfig() {
 export function calculateWeightedFrequency(results: DrawResult[]): Map<number, number> {
   const scores = new Map<number, number>();
   const today = new Date();
+  const params = deriveSystemParameters(results);
   
   // Calculer fréquence et dernier gap pour chaque numéro
   const frequency = new Map<number, number>();
@@ -134,7 +223,7 @@ export function calculateWeightedFrequency(results: DrawResult[]): Map<number, n
   for (let n = 1; n <= 90; n++) {
     const f_n = frequency.get(n) || 0;
     const d_n = lastSeen.get(n) ?? results.length * 3; // Si jamais vu, grand gap
-    const S_n = f_n * Math.exp(-LAMBDA_DECAY * d_n);
+    const S_n = f_n * Math.exp(-params.lambdaDecay * d_n);
     scores.set(n, S_n);
     maxScore = Math.max(maxScore, S_n);
   }
@@ -214,13 +303,14 @@ export function detectRecurrentPairs(results: DrawResult[]): PairScore[] {
   
   // Calculer les scores de paires
   const pairScores: PairScore[] = [];
+  const params = deriveSystemParameters(results);
   
   for (const [key, data] of pairCounts) {
     const [n1, n2] = key.split('-').map(Number);
     const gap = data.lastIndex; // Gap = position du dernier tirage contenant cette paire
     
     // P_{i,j} = c_{i,j} × (1 - g_{i,j}/G_max)
-    const score = data.count * (1 - Math.min(gap, MAX_PAIR_GAP) / MAX_PAIR_GAP);
+    const score = data.count * (1 - Math.min(gap, params.maxPairGap) / params.maxPairGap);
     
     if (score > 0) {
       pairScores.push({
@@ -328,19 +418,21 @@ export function calculateGapAdaptive(results: DrawResult[]): Map<number, { zscor
 
 /**
  * Applique l'orchestration "Cycle de Retour"
- * Lie la sélection à la somme cible 219 ±20
+ * Lie la sélection à la somme cible et sa tolérance dynamiquement calculées
  */
 export function applyCycleReturnFilter(
   gapNumbers: number[],
-  currentSum: number
+  currentSum: number,
+  targetSum: number = 227.5,
+  sumTolerance: number = 30
 ): number[] {
   // Si la somme actuelle est déjà proche de la cible, pas de filtrage
-  if (Math.abs(currentSum - TARGET_SUM) <= SUM_TOLERANCE) {
+  if (Math.abs(currentSum - targetSum) <= sumTolerance) {
     return gapNumbers;
   }
   
   // Sinon, prioriser les numéros qui rapprochent de la cible
-  const delta = TARGET_SUM - currentSum;
+  const delta = targetSum - currentSum;
   
   return gapNumbers.sort((a, b) => {
     const distA = Math.abs(delta - a);
@@ -354,9 +446,13 @@ export function applyCycleReturnFilter(
 /**
  * Calcule le score d'équilibre pour une combinaison
  * Formule: E = w_s × |s - μ_s| + w_p × |p - m_p|
- * Valide si E < 25
  */
-export function calculateEquilibriumScore(numbers: number[], targetSum: number = TARGET_SUM): {
+export function calculateEquilibriumScore(
+  numbers: number[], 
+  targetSum: number = 227.5,
+  targetParity: number = 2.5,
+  equilibriumThreshold: number = 25
+): {
   score: number;
   sum: number;
   parity: number;
@@ -365,13 +461,13 @@ export function calculateEquilibriumScore(numbers: number[], targetSum: number =
   const sum = numbers.reduce((a, b) => a + b, 0);
   const parity = numbers.filter(n => n % 2 === 0).length;
   
-  const E = 0.5 * Math.abs(sum - targetSum) + 0.5 * Math.abs(parity - TARGET_PARITY);
+  const E = 0.5 * Math.abs(sum - targetSum) + 0.5 * Math.abs(parity - targetParity);
   
   return {
     score: E,
     sum,
     parity,
-    isValid: E < EQUILIBRIUM_THRESHOLD,
+    isValid: E < equilibriumThreshold,
   };
 }
 
@@ -390,19 +486,22 @@ export function applyParityHarmony(numbers: number[]): boolean {
  */
 export function optimizeForEquilibrium(
   candidates: number[],
-  count: number = 5
+  count: number = 5,
+  targetSum: number = 227.5,
+  targetParity: number = 2.5,
+  equilibriumThreshold: number = 25
 ): number[] {
   // Générer des combinaisons et trouver la meilleure
   const sorted = [...candidates].sort((a, b) => a - b);
   let bestCombination = sorted.slice(0, count);
-  let bestScore = calculateEquilibriumScore(bestCombination).score;
+  let bestScore = calculateEquilibriumScore(bestCombination, targetSum, targetParity, equilibriumThreshold).score;
   
   // Simple greedy optimization
   for (let i = 0; i < Math.min(100, sorted.length - count); i++) {
     const start = i;
     const combo = sorted.slice(start, start + count);
     if (combo.length === count) {
-      const { score, isValid } = calculateEquilibriumScore(combo);
+      const { score, isValid } = calculateEquilibriumScore(combo, targetSum, targetParity, equilibriumThreshold);
       if (score < bestScore && applyParityHarmony(combo)) {
         bestScore = score;
         bestCombination = combo;
@@ -418,19 +517,19 @@ export function optimizeForEquilibrium(
 /**
  * Calcule le score d'écho entre tirages récents
  * Formule: O = Σ(|r_k|/5) × e^(-δ × i_k) pour k=1..m
- * Boost si > 0.3
  */
 export function calculateEchoScore(
   prediction: number[],
   results: DrawResult[]
 ): { score: number; shouldBoost: boolean; matchDetails: Array<{ index: number; matches: number }> } {
-  const recentResults = results.slice(0, ECHO_LOOKBACK);
+  const params = deriveSystemParameters(results);
+  const recentResults = results.slice(0, params.echoLookback);
   let totalScore = 0;
   const matchDetails: Array<{ index: number; matches: number }> = [];
   
   recentResults.forEach((result, index) => {
     const matches = prediction.filter(n => result.winning_numbers.includes(n)).length;
-    const contribution = (matches / 5) * Math.exp(-ECHO_DECAY * index);
+    const contribution = (matches / 5) * Math.exp(-params.echoDecay * index);
     totalScore += contribution;
     
     if (matches > 0) {
@@ -440,7 +539,7 @@ export function calculateEchoScore(
   
   return {
     score: totalScore,
-    shouldBoost: totalScore > ECHO_THRESHOLD,
+    shouldBoost: totalScore > params.echoThreshold,
     matchDetails,
   };
 }
@@ -496,8 +595,9 @@ export function calculateCompositeScore(
   }, 0) / numbers.length;
   
   // 4. Score équilibre
-  const equilibrium = calculateEquilibriumScore(numbers);
-  const equilibriumScore = equilibrium.isValid ? 1 - (equilibrium.score / EQUILIBRIUM_THRESHOLD) : 0;
+  const params = deriveSystemParameters(results);
+  const equilibrium = calculateEquilibriumScore(numbers, params.targetSum, params.targetParity, params.equilibriumThreshold);
+  const equilibriumScore = equilibrium.isValid ? 1 - (equilibrium.score / params.equilibriumThreshold) : 0;
   
   // 5. Score écho
   const echo = calculateEchoScore(numbers, results);
@@ -595,6 +695,7 @@ export function enhancePrediction(
   });
   
   // Narrative gap - distinction entre intervalle optimal et gap élevé
+  const params = deriveSystemParameters(results);
   const optimalGapNumbers = basePrediction.numbers.filter(n => gapData.get(n)?.inOptimalRange);
   const highGapNumbers = basePrediction.numbers.filter(n => 
     gapData.get(n)?.selected && !gapData.get(n)?.inOptimalRange
@@ -605,7 +706,7 @@ export function enhancePrediction(
       const gap = gapData.get(n)?.currentGap || 0;
       return `${n}(${gap}j)`;
     }).join(', ');
-    narratives.push(`Intervalle optimal (11-20): ${gapDetails}`);
+    narratives.push(`Intervalle optimal (${params.optimalGapMin}-${params.optimalGapMax}): ${gapDetails}`);
   }
   
   if (highGapNumbers.length > 0) {
@@ -613,7 +714,7 @@ export function enhancePrediction(
   }
   
   // Narrative équilibre
-  const equilibrium = calculateEquilibriumScore(basePrediction.numbers);
+  const equilibrium = calculateEquilibriumScore(basePrediction.numbers, params.targetSum, params.targetParity, params.equilibriumThreshold);
   if (equilibrium.isValid) {
     narratives.push(`Harmonie paritaire: somme ${equilibrium.sum}, ${equilibrium.parity} pairs`);
   }

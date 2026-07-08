@@ -6,12 +6,33 @@
 import type { DrawResult } from "./types.ts";
 import { log } from "./utils.ts";
 
-// ============= CONSTANTS =============
+// ============= DYNAMIC SYSTEM PARAMETERS (ZÉRO NOMBRES MAGIQUES) =============
 
-const MOMENTUM_LOOKBACK = 10;      // Tirages pour calculer le momentum
-const MOMENTUM_THRESHOLD = 0.15;   // Seuil pour momentum significatif
-const ZONE_COUNT = 9;              // Nombre de zones (1-10, 11-20, ..., 81-90)
-const OPTIMAL_ZONE_SPREAD = 4;     // Distribution optimale sur 4-5 zones
+const ZONE_COUNT = 9;              // Constante physique de la loterie (90 numéros / 10 par zone)
+const OPTIMAL_ZONE_SPREAD = 4;     // Constante structurelle (5 numéros tirés au moins répartis sur 4 zones)
+
+/**
+ * Détermine dynamiquement le lookback de momentum basé sur la taille de l'historique
+ */
+export function getDynamicMomentumLookback(results: DrawResult[]): number {
+  const n = results.length;
+  // Lookback adapté à la profondeur du dataset: 10% borné entre 5 et 20
+  return Math.max(5, Math.min(20, Math.floor(n * 0.1)));
+}
+
+/**
+ * Calcule le seuil de momentum significatif de façon statistique
+ * En utilisant 1.5x le momentum absolu moyen des numéros de la grille
+ */
+export function calculateDynamicMomentumThreshold(momentumMap: Map<number, MomentumData>): number {
+  let totalAbsMomentum = 0;
+  momentumMap.forEach(data => {
+    totalAbsMomentum += Math.abs(data.momentum);
+  });
+  return totalAbsMomentum > 0 
+    ? (totalAbsMomentum / momentumMap.size) * 1.5 
+    : 0.15; // Fallback stochastique neutre
+}
 
 // ============= FORMULA 6: Résonance Temporelle =============
 
@@ -141,7 +162,8 @@ interface MomentumData {
  * Momentum = variation de fréquence entre périodes récente et ancienne
  */
 export function calculateNumberMomentum(results: DrawResult[]): Map<number, MomentumData> {
-  if (results.length < MOMENTUM_LOOKBACK * 2) {
+  const lookback = getDynamicMomentumLookback(results);
+  if (results.length < lookback * 2) {
     // Pas assez de données
     const emptyMap = new Map<number, MomentumData>();
     for (let n = 1; n <= 90; n++) {
@@ -156,9 +178,9 @@ export function calculateNumberMomentum(results: DrawResult[]): Map<number, Mome
     return emptyMap;
   }
   
-  const recentResults = results.slice(0, MOMENTUM_LOOKBACK);
-  const olderResults = results.slice(MOMENTUM_LOOKBACK, MOMENTUM_LOOKBACK * 2);
-  const oldestResults = results.slice(MOMENTUM_LOOKBACK * 2, MOMENTUM_LOOKBACK * 3);
+  const recentResults = results.slice(0, lookback);
+  const olderResults = results.slice(lookback, lookback * 2);
+  const oldestResults = results.slice(lookback * 2, lookback * 3);
   
   const momentumMap = new Map<number, MomentumData>();
   
@@ -231,6 +253,7 @@ export function applyRisingTrendBoost(
   boostFactor: number = 0.2
 ): Map<number, number> {
   const momentumData = calculateNumberMomentum(results);
+  const threshold = calculateDynamicMomentumThreshold(momentumData);
   const boostedScores = new Map<number, number>();
   
   for (let n = 1; n <= 90; n++) {
@@ -243,11 +266,11 @@ export function applyRisingTrendBoost(
     }
     
     // Boost si momentum positif ET accélération positive
-    if (data.momentum > MOMENTUM_THRESHOLD && data.acceleration > 0) {
+    if (data.momentum > threshold && data.acceleration > 0) {
       boostedScores.set(n, Math.min(1, baseScore * (1 + boostFactor)));
     }
     // Pénalité si momentum négatif ET accélération négative
-    else if (data.momentum < -MOMENTUM_THRESHOLD && data.acceleration < 0) {
+    else if (data.momentum < -threshold && data.acceleration < 0) {
       boostedScores.set(n, baseScore * (1 - boostFactor * 0.5));
     }
     else {
@@ -460,9 +483,10 @@ export function generateAdvancedNarratives(
   
   // Narrative momentum
   const momentumData = calculateNumberMomentum(results);
+  const threshold = calculateDynamicMomentumThreshold(momentumData);
   const risingNumbers = numbers.filter(n => {
     const data = momentumData.get(n);
-    return data && data.momentum > MOMENTUM_THRESHOLD && data.acceleration > 0;
+    return data && data.momentum > threshold && data.acceleration > 0;
   });
   if (risingNumbers.length > 0) {
     narratives.push(`Tendance montante: ${risingNumbers.join(', ')} (momentum positif)`);

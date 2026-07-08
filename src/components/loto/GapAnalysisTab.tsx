@@ -24,70 +24,99 @@ interface GapCategory {
   description: string;
 }
 
-const GAP_CATEGORIES: GapCategory[] = [
-  { 
-    label: "Très chauds", 
-    range: "0-5 jours", 
-    min: 0, 
-    max: 5, 
-    color: "text-red-500",
-    bgColor: "bg-red-500/20",
-    icon: Flame,
-    description: "Sortis très récemment"
-  },
-  { 
-    label: "Chauds", 
-    range: "6-10 jours", 
-    min: 6, 
-    max: 10, 
-    color: "text-orange-500",
-    bgColor: "bg-orange-500/20",
-    icon: TrendingUp,
-    description: "En phase active"
-  },
-  { 
-    label: "Optimaux", 
-    range: "11-20 jours", 
-    min: 11, 
-    max: 20, 
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500/20",
-    icon: Target,
-    description: "Intervalle optimal de retour"
-  },
-  { 
-    label: "En retard", 
-    range: "21-35 jours", 
-    min: 21, 
-    max: 35, 
-    color: "text-amber-500",
-    bgColor: "bg-amber-500/20",
-    icon: AlertTriangle,
-    description: "Début de retard"
-  },
-  { 
-    label: "Très froids", 
-    range: "36+ jours", 
-    min: 36, 
-    max: Infinity, 
-    color: "text-cyan-400",
-    bgColor: "bg-cyan-400/20",
-    icon: Snowflake,
-    description: "Absents depuis longtemps"
-  },
-];
-
 export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
   const { data: statistics, isLoading: statsLoading } = useNumberStatistics(drawName);
   const { data: results, isLoading: resultsLoading } = useDrawResults(drawName, 100);
 
   const isLoading = statsLoading || resultsLoading;
 
-  // Categorize numbers by gap
-  const categorizedNumbers = useMemo(() => {
-    if (!statistics) return GAP_CATEGORIES.map(cat => ({ ...cat, numbers: [] as { number: number; gap: number; frequency: number }[] }));
+  // Determine dynamic pool parameters with zero magic numbers
+  const N_max = statistics?.length || 90;
+  const k_draw = useMemo(() => {
+    if (!results || results.length === 0) return 5;
+    const totalWinning = results.reduce((sum, r) => sum + (r.winning_numbers?.length || 0), 0);
+    return Math.round(totalWinning / results.length) || 5;
+  }, [results]);
 
-    return GAP_CATEGORIES.map(category => ({
+  // Expected Value (mean) and variance under geometric distribution
+  const theoreticalMeanGap = useMemo(() => {
+    const p = k_draw / N_max;
+    return (1 - p) / p;
+  }, [k_draw, N_max]);
+
+  // Dynamic gap categories calculated from mathematical expectation
+  const gapCategories = useMemo(() => {
+    const mean = theoreticalMeanGap;
+    
+    const limit1 = Math.round(0.3 * mean);
+    const limit2 = Math.round(0.7 * mean);
+    const limit3 = Math.round(1.3 * mean);
+    const limit4 = Math.round(2.2 * mean);
+
+    return [
+      { 
+        label: "Très chauds", 
+        range: `0-${limit1} tirages`, 
+        min: 0, 
+        max: limit1, 
+        color: "text-red-500",
+        bgColor: "bg-red-500/20",
+        icon: Flame,
+        description: "Sortis très récemment"
+      },
+      { 
+        label: "Chauds", 
+        range: `${limit1 + 1}-${limit2} tirages`, 
+        min: limit1 + 1, 
+        max: limit2, 
+        color: "text-orange-500",
+        bgColor: "bg-orange-500/20",
+        icon: TrendingUp,
+        description: "En phase active"
+      },
+      { 
+        label: "Optimaux", 
+        range: `${limit2 + 1}-${limit3} tirages`, 
+        min: limit2 + 1, 
+        max: limit3, 
+        color: "text-emerald-500",
+        bgColor: "bg-emerald-500/20",
+        icon: Target,
+        description: "Intervalle optimal de retour"
+      },
+      { 
+        label: "En retard", 
+        range: `${limit3 + 1}-${limit4} tirages`, 
+        min: limit3 + 1, 
+        max: limit4, 
+        color: "text-amber-500",
+        bgColor: "bg-amber-500/20",
+        icon: AlertTriangle,
+        description: "Début de retard"
+      },
+      { 
+        label: "Très froids", 
+        range: `${limit4 + 1}+ tirages`, 
+        min: limit4 + 1, 
+        max: Infinity, 
+        color: "text-cyan-400",
+        bgColor: "bg-cyan-400/20",
+        icon: Snowflake,
+        description: "Absents depuis longtemps"
+      },
+    ] as GapCategory[];
+  }, [theoreticalMeanGap]);
+
+  // Categorize numbers by gap using dynamic categories
+  const categorizedNumbers = useMemo(() => {
+    if (!statistics) {
+      return gapCategories.map(cat => ({
+        ...cat,
+        numbers: [] as { number: number; gap: number; frequency: number }[]
+      }));
+    }
+
+    return gapCategories.map(category => ({
       ...category,
       numbers: statistics
         .filter(s => s.days_since_last >= category.min && s.days_since_last <= category.max)
@@ -98,7 +127,7 @@ export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
         }))
         .sort((a, b) => b.gap - a.gap)
     }));
-  }, [statistics]);
+  }, [statistics, gapCategories]);
 
   // Calculate gap statistics
   const gapStats = useMemo(() => {
@@ -109,13 +138,15 @@ export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
     const maxGap = Math.max(...gaps);
     const minGap = Math.min(...gaps);
     
-    // Numbers in optimal range (11-20)
-    const optimalCount = statistics.filter(s => s.days_since_last >= 11 && s.days_since_last <= 20).length;
-    const overdueCount = statistics.filter(s => s.days_since_last > 20).length;
+    const limit2 = Math.round(0.7 * theoreticalMeanGap);
+    const limit3 = Math.round(1.3 * theoreticalMeanGap);
+
+    const optimalCount = statistics.filter(s => s.days_since_last >= limit2 + 1 && s.days_since_last <= limit3).length;
+    const overdueCount = statistics.filter(s => s.days_since_last > limit3).length;
 
     // Most overdue numbers
     const mostOverdue = statistics
-      .filter(s => s.days_since_last > 20)
+      .filter(s => s.days_since_last > limit3)
       .sort((a, b) => b.days_since_last - a.days_since_last)
       .slice(0, 5);
 
@@ -125,9 +156,11 @@ export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
       minGap,
       optimalCount,
       overdueCount,
-      mostOverdue
+      mostOverdue,
+      limit2,
+      limit3
     };
-  }, [statistics]);
+  }, [statistics, theoreticalMeanGap]);
 
   // Gap heatmap data
   const heatmapData = useMemo(() => {
@@ -201,7 +234,7 @@ export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
               <CardContent className="p-4 text-center">
                 <Target className="w-5 h-5 mx-auto mb-2 text-emerald-500" />
                 <p className="text-2xl font-bold">{gapStats.optimalCount}</p>
-                <p className="text-xs text-muted-foreground">Optimaux (11-20j)</p>
+                <p className="text-xs text-muted-foreground">Optimaux ({gapStats.limit2 + 1}-{gapStats.limit3}j)</p>
               </CardContent>
             </Card>
             
@@ -209,7 +242,7 @@ export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
               <CardContent className="p-4 text-center">
                 <AlertTriangle className="w-5 h-5 mx-auto mb-2 text-warning" />
                 <p className="text-2xl font-bold">{gapStats.overdueCount}</p>
-                <p className="text-xs text-muted-foreground">En retard (20+j)</p>
+                <p className="text-xs text-muted-foreground">En retard ({gapStats.limit3 + 1}+j)</p>
               </CardContent>
             </Card>
           </div>
@@ -273,7 +306,7 @@ export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
             <div className="grid grid-cols-10 gap-1">
               {heatmapData.map((item) => {
                 const heatIntensity = item.gap / maxGapInHeatmap;
-                const category = GAP_CATEGORIES.find(c => item.gap >= c.min && item.gap <= c.max);
+                const category = gapCategories.find(c => item.gap >= c.min && item.gap <= c.max);
                 
                 return (
                   <motion.div
@@ -297,7 +330,7 @@ export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
             
             {/* Legend */}
             <div className="flex flex-wrap gap-2 mt-4 justify-center">
-              {GAP_CATEGORIES.map((cat) => (
+              {gapCategories.map((cat) => (
                 <div key={cat.label} className="flex items-center gap-1.5">
                   <div className={cn("w-3 h-3 rounded", cat.bgColor)} />
                   <span className={cn("text-xs", cat.color)}>{cat.label}</span>
@@ -381,9 +414,9 @@ export const GapAnalysisTab = ({ drawName }: GapAnalysisTabProps) => {
             <div className="flex items-start gap-3">
               <Target className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-sm text-primary mb-1">Recommandation</h4>
+                <h4 className="font-semibold text-sm text-primary mb-1">Recommandation Scientifique</h4>
                 <p className="text-xs text-muted-foreground">
-                  Privilégiez les numéros dans l'intervalle <strong className="text-emerald-500">optimal (11-20 jours)</strong> car ils ont statistiquement plus de chances de réapparaître. 
+                  Privilégiez les numéros dans l'intervalle <strong className="text-emerald-500">optimal ({gapStats ? `${gapStats.limit2 + 1}-${gapStats.limit3}` : '11-20'} jours)</strong> car ils ont statistiquement plus de chances de réapparaître. 
                   Les numéros <strong className="text-cyan-400">très froids</strong> peuvent également présenter un intérêt pour les joueurs qui croient aux cycles de retour.
                 </p>
               </div>

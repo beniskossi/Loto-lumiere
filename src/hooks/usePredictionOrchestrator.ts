@@ -26,6 +26,9 @@ interface CustomPredictionResponse {
     gap: number;
     equilibrium: number;
     echo: number;
+    temporalResonance?: number;
+    numericalMomentum?: number;
+    spatialClustering?: number;
     composite: number;
   };
   enhancedPrediction?: {
@@ -35,6 +38,9 @@ interface CustomPredictionResponse {
       gap: number;
       equilibrium: number;
       echo: number;
+      temporalResonance?: number;
+      numericalMomentum?: number;
+      spatialClustering?: number;
       composite: number;
     };
     narratives: string[];

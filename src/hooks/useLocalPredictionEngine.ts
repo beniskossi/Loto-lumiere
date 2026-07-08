@@ -8,16 +8,22 @@ export interface LocalPredictionEngineParams {
   frequencyWeight: number;
   gapWeight: number;
   markovWeight: number;
+  momentumWeight: number;
   decayRate: number;
+  markovOrder: number;
+  poissonLambda: number;
   historyLimit: number;
 }
 
 export const useLocalPredictionEngine = (drawName: string) => {
   const [params, setParams] = useState<LocalPredictionEngineParams>({
-    frequencyWeight: 40,
-    gapWeight: 30,
-    markovWeight: 30,
+    frequencyWeight: 35,
+    gapWeight: 25,
+    markovWeight: 20,
+    momentumWeight: 20,
     decayRate: 0.02,
+    markovOrder: 1,
+    poissonLambda: 1.0,
     historyLimit: 200,
   });
 
@@ -61,7 +67,10 @@ export const useLocalPredictionEngine = (drawName: string) => {
       frequencyWeight: params.frequencyWeight,
       gapWeight: params.gapWeight,
       markovWeight: params.markovWeight,
+      momentumWeight: params.momentumWeight,
       decayRate: params.decayRate,
+      markovOrder: params.markovOrder,
+      poissonLambda: params.poissonLambda,
       targetCount: 5,
     });
   }, [rawDraws, params]);
@@ -85,6 +94,7 @@ export const useLocalPredictionEngine = (drawName: string) => {
     recommendations: predictionResult?.recommendations || [],
     scores: predictionResult?.scores || [],
     insights: predictionResult?.insights || [],
+    hyperparameters: predictionResult?.hyperparameters || {},
     hasData: !!rawDraws && rawDraws.length > 0,
     drawCount: rawDraws?.length || 0,
   };

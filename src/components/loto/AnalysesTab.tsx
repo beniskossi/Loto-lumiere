@@ -306,9 +306,15 @@ function calculateAnalytics(results: any[]) {
       explosivePairs: [],
       magicTriplets: [],
       echoNumbers: [],
-      balanceData: { avgSum: 0, targetSum: 219, evenRatio: 0.5 }
+      balanceData: { avgSum: 0, targetSum: 227, evenRatio: 0.5 }
     };
   }
+
+  // Determine dynamic pool parameters with zero magic numbers
+  const allNumbers = results.flatMap(r => r.winning_numbers || []);
+  const N_max = allNumbers.length > 0 ? Math.max(...allNumbers) : 90;
+  const k_draw = Math.round(allNumbers.length / results.length) || 5;
+  const targetSum = Math.round(k_draw * ((N_max + 1) / 2));
 
   // Calculate frequency of each number
   const frequency: Record<number, number> = {};
@@ -420,8 +426,8 @@ function calculateAnalytics(results: any[]) {
     magicTriplets,
     echoNumbers,
     balanceData: {
-      avgSum: totalNumbers > 0 ? Math.round(totalSum / (totalNumbers / 5)) : 0,
-      targetSum: 219,
+      avgSum: totalNumbers > 0 ? Math.round(totalSum / (totalNumbers / k_draw)) : 0,
+      targetSum,
       evenRatio: totalNumbers > 0 ? totalEven / totalNumbers : 0.5
     }
   };

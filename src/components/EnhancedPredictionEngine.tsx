@@ -35,6 +35,15 @@ interface AlgorithmPerformance {
   predictions: number;
 }
 
+interface PredictionItem {
+  numbers: number[];
+  confidence: number;
+  algorithm: string;
+  factors: string[];
+  score: number;
+  category: string;
+}
+
 export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineProps) => {
   const { 
     predictions, 
@@ -50,7 +59,7 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
   const [selectedAlgorithms, setSelectedAlgorithms] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isExplanationOpen, setIsExplanationOpen] = useState(false);
-  const [selectedPrediction, setSelectedPrediction] = useState<any | null>(null);
+  const [selectedPrediction, setSelectedPrediction] = useState<PredictionItem | null>(null);
   
   // Récupérer les vraies performances via fonction RPC sécurisée
   const { data: rankings } = useQuery({
@@ -379,9 +388,9 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
               <FormulasDashboard 
                 breakdown={{
                   ...formulasBreakdown,
-                  temporalResonance: (formulasBreakdown as any).temporalResonance ?? 0,
-                  numericalMomentum: (formulasBreakdown as any).numericalMomentum ?? 0,
-                  spatialClustering: (formulasBreakdown as any).spatialClustering ?? 0,
+                  temporalResonance: formulasBreakdown.temporalResonance ?? 0,
+                  numericalMomentum: formulasBreakdown.numericalMomentum ?? 0,
+                  spatialClustering: formulasBreakdown.spatialClustering ?? 0,
                 }}
                 narratives={formulasNarratives}
               />

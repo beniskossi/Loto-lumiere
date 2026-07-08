@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Timer, Search, Clock, ArrowLeftRight, FlaskConical, BarChart2, Database } from "lucide-react";
+import { BarChart3, Timer, Search, Clock, ArrowLeftRight, FlaskConical, BarChart2, Database, BrainCircuit } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const AnalysesTab = lazy(() =>
@@ -24,6 +24,9 @@ const TemporalAnalysis = lazy(() =>
 const DrawComparison = lazy(() =>
   import("@/components/DrawComparison").then((m) => ({ default: m.DrawComparison }))
 );
+const FractalPatternAnalyzer = lazy(() =>
+  import("@/components/FractalPatternAnalyzer").then((m) => ({ default: m.FractalPatternAnalyzer }))
+);
 
 interface AnalysesContainerProps {
   drawName: string;
@@ -42,7 +45,7 @@ const AnalysesFallback = () => (
 );
 
 export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
-  const [activeSubTab, setActiveSubTab] = useState<"data" | "patterns" | "temporal" | "gaps" | "stats" | "comparison" | "search">("data");
+  const [activeSubTab, setActiveSubTab] = useState<"data" | "patterns" | "temporal" | "gaps" | "stats" | "comparison" | "search" | "fractal">("data");
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-24">
@@ -114,6 +117,13 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
             <Search className="w-4 h-4 text-blue-500" />
             Audit d'un Numéro
           </TabsTrigger>
+          <TabsTrigger
+            value="fractal"
+            className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
+          >
+            <BrainCircuit className="w-4 h-4 text-purple-500" />
+            Analyse Fractale
+          </TabsTrigger>
         </TabsList>
 
         <Suspense fallback={<AnalysesFallback />}>
@@ -143,6 +153,10 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
 
           <TabsContent value="search" className="mt-0 focus-visible:outline-none">
             <ConsulterTab drawName={drawName} />
+          </TabsContent>
+
+          <TabsContent value="fractal" className="mt-0 focus-visible:outline-none">
+            <FractalPatternAnalyzer drawName={drawName} />
           </TabsContent>
         </Suspense>
       </Tabs>
