@@ -164,7 +164,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
                   
                   <div className="flex gap-3 flex-wrap justify-center mb-4">
                     {latestPrediction.predicted_numbers.map((num, idx) => (
-                      <NumberBall key={`${num}-${idx}`} number={num} size="lg" />
+                      <NumberBall key={`${num}-${idx}`} number={num} size="lg" confidence={latestPrediction.confidence_score ? latestPrediction.confidence_score * 100 : undefined} />
                     ))}
                   </div>
 
@@ -318,7 +318,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
           <CardContent>
             <div className="flex gap-3 flex-wrap justify-center mb-4">
               {personalizedPrediction.numbers.map((num, idx) => (
-                <NumberBall key={`${num}-${idx}`} number={num} size="lg" />
+                <NumberBall key={`${num}-${idx}`} number={num} size="lg" confidence={personalizedPrediction.confidence * 100} />
               ))}
             </div>
             <div className="text-center text-sm opacity-90">
@@ -391,7 +391,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
           <CardContent>
             <div className="flex gap-3 flex-wrap justify-center mb-4">
               {topAdvancedPrediction.numbers.map((num, idx) => (
-                <NumberBall key={`${num}-${idx}`} number={num} size="lg" />
+                <NumberBall key={`${num}-${idx}`} number={num} size="lg" confidence={topAdvancedPrediction.confidence * 100} />
               ))}
             </div>
             <div className="flex gap-1 flex-wrap justify-center">

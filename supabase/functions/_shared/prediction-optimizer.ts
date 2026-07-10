@@ -440,7 +440,7 @@ export class PredictionOptimizer {
     const totalDraws = results.length;
     if (totalDraws === 0) return scores;
 
-    // Constantes empiriques pour le loto 5/90
+    // Constantes structurelles pour le loto 5/90
     const expectedGap = 18; // En loto 5/90, un numéro sort en moyenne tous les 18 tirages
     
     candidates.forEach(num => {

@@ -1,14 +1,14 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
-  generateRandomPrediction,
+  generateDeterministicFallback,
   selectBalancedNumbers,
   calculateDataQuality,
   calculateFreshness,
 } from "../utils.ts";
 import type { DrawResult } from "../types.ts";
 
-Deno.test("generateRandomPrediction - Generates Valid Numbers", () => {
-  const prediction = generateRandomPrediction();
+Deno.test("generateDeterministicFallback - Generates Valid Numbers", () => {
+  const prediction = generateDeterministicFallback();
   
   assertEquals(prediction.length, 5);
   

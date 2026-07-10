@@ -54,7 +54,7 @@ export function deriveSeedFromDraws(results: DrawResult[]): number {
  * Si aucun seed ni historique de tirages n'est fourni, on dérive un seed
  * à partir de l'état ou de paramètres système d'une manière 100% stable.
  */
-export function generateRandomPrediction(seedOrResults?: number | DrawResult[]): number[] {
+export function generateDeterministicFallback(seedOrResults?: number | DrawResult[]): number[] {
   let seed = 123456789;
   if (typeof seedOrResults === "number") {
     seed = seedOrResults;

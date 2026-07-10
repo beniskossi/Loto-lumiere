@@ -326,6 +326,7 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
                       <NumberBall 
                         number={num} 
                         size="lg" 
+                        confidence={officialPrediction.confidence * 100}
                         className="relative z-10 w-14 h-14 sm:w-16 sm:h-16 text-lg sm:text-xl shadow-lg shadow-primary/20" 
                       />
                     </motion.div>

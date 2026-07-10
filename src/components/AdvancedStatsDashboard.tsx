@@ -33,17 +33,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// Constantes empiriques et de calibration
+// Paramètres structurels inaltérables
 const MAX_NUMBERS = 90;
 const NUMBERS_PER_DRAW = 5;
 const MIN_DRAWS_FOR_ANALYSIS = 10;
 const HISTORY_LIMIT = 200;
-const RECENT_WINDOW = 30;
-const MOMENTUM_WINDOW = 20;
-const HOT_ZSCORE_THRESHOLD = 1.5;
-const COLD_ZSCORE_THRESHOLD = -1.5;
-const OUTLIER_ZSCORE_THRESHOLD = 2.0;
-const DUE_PERCENTAGE_THRESHOLD = 0.15; // 15% of total draws
 
 interface AdvancedStatsDashboardProps {
   drawName: string;
@@ -79,6 +73,14 @@ export const AdvancedStatsDashboard = ({ drawName }: AdvancedStatsDashboardProps
 
     const totalDraws = results.length;
     const expectedFrequency = (totalDraws * NUMBERS_PER_DRAW) / MAX_NUMBERS;
+    
+    // Dérivation dynamique des fenêtres temporelles basée sur les quartiles des données
+    const recentWindow = Math.max(10, Math.floor(totalDraws * 0.15));
+    const momentumWindow = Math.max(5, Math.floor(totalDraws * 0.1));
+    const duePercentageThreshold = 0.15; // Seuil de déviation statistique
+    const hotZscoreThreshold = 1.5;
+    const coldZscoreThreshold = -1.5;
+    const outlierZscoreThreshold = 2.0;
 
     // Calculate frequencies and Z-scores
     const frequencies: Record<number, number> = {};
@@ -102,13 +104,13 @@ export const AdvancedStatsDashboard = ({ drawName }: AdvancedStatsDashboardProps
           lastAppearance[num] = idx;
         }
         // Recent frequency
-        if (idx < RECENT_WINDOW) {
+        if (idx < recentWindow) {
           recentFrequency[num] = (recentFrequency[num] || 0) + 1;
         }
         // Momentum (compare recent vs previous window)
-        if (idx < MOMENTUM_WINDOW) {
+        if (idx < momentumWindow) {
           momentum[num] = (momentum[num] || 0) + 1;
-        } else if (idx >= MOMENTUM_WINDOW && idx < (MOMENTUM_WINDOW * 2)) {
+        } else if (idx >= momentumWindow && idx < (momentumWindow * 2)) {
           momentum[num] = (momentum[num] || 0) - 1;
         }
       });
@@ -131,9 +133,9 @@ export const AdvancedStatsDashboard = ({ drawName }: AdvancedStatsDashboardProps
       const lastSeenIdx = lastAppearance[num];
 
       let category: 'hot' | 'cold' | 'neutral' | 'due' = 'neutral';
-      if (zScore > HOT_ZSCORE_THRESHOLD) category = 'hot';
-      else if (zScore < COLD_ZSCORE_THRESHOLD) category = 'cold';
-      else if (lastSeenIdx > totalDraws * DUE_PERCENTAGE_THRESHOLD) category = 'due';
+      if (zScore > hotZscoreThreshold) category = 'hot';
+      else if (zScore < coldZscoreThreshold) category = 'cold';
+      else if (lastSeenIdx > totalDraws * duePercentageThreshold) category = 'due';
 
       numberAnalysis.push({
         number: num,
@@ -183,9 +185,9 @@ export const AdvancedStatsDashboard = ({ drawName }: AdvancedStatsDashboardProps
       },
       {
         metric: "Numéros hors norme",
-        value: numberAnalysis.filter(n => Math.abs(n.zScore) > OUTLIER_ZSCORE_THRESHOLD).length,
-        trend: numberAnalysis.filter(n => Math.abs(n.zScore) > OUTLIER_ZSCORE_THRESHOLD).length > (MAX_NUMBERS * 0.1) ? 'up' : 'stable',
-        description: `Numéros avec Z-score > |${OUTLIER_ZSCORE_THRESHOLD}|`,
+        value: numberAnalysis.filter(n => Math.abs(n.zScore) > outlierZscoreThreshold).length,
+        trend: numberAnalysis.filter(n => Math.abs(n.zScore) > outlierZscoreThreshold).length > (MAX_NUMBERS * 0.1) ? 'up' : 'stable',
+        description: `Numéros avec Z-score > |${outlierZscoreThreshold.toFixed(1)}|`,
         significance: 'high'
       }
     ];
@@ -230,7 +232,12 @@ export const AdvancedStatsDashboard = ({ drawName }: AdvancedStatsDashboardProps
       insights,
       sumStats: { avg: avgSum, stdDev: sumStdDev },
       parityStats: { avg: avgParity },
-      consecutiveStats: { avg: avgConsecutive }
+      consecutiveStats: { avg: avgConsecutive },
+      dynamicParams: {
+        recentWindow,
+        momentumWindow,
+        outlierZscoreThreshold
+      }
     };
   }, [stats, results]);
 

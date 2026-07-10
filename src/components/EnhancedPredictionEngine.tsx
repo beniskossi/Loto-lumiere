@@ -216,7 +216,7 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
                       
                       <div className="flex gap-2 mb-3">
                         {pred.numbers.map((num, idx) => (
-                          <NumberBall key={`${num}-${idx}`} number={num} size="lg" />
+                          <NumberBall key={`${num}-${idx}`} number={num} size="lg" confidence={pred.confidence * 100} />
                         ))}
                       </div>
                       
@@ -260,11 +260,8 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
                   <CardContent>
                     <div className="grid grid-cols-5 gap-4 mb-4">
                       {consensusNumbers.map(({ number, percentage }) => (
-                        <div key={number} className="text-center">
-                          <NumberBall number={number} size="md" />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {percentage}%
-                          </p>
+                        <div key={number} className="text-center flex justify-center">
+                          <NumberBall number={number} size="md" confidence={percentage} />
                         </div>
                       ))}
                     </div>

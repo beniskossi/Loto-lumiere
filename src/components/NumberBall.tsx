@@ -6,9 +6,10 @@ interface NumberBallProps {
   size?: "xs" | "sm" | "md" | "lg";
   className?: string;
   onClick?: () => void;
+  confidence?: number;
 }
 
-export const NumberBall = ({ number, size = "md", className, onClick }: NumberBallProps) => {
+export const NumberBall = ({ number, size = "md", className, onClick, confidence }: NumberBallProps) => {
   const sizeClasses = {
     xs: "w-6 h-6 text-[10px]",
     sm: "w-7 h-7 sm:w-8 sm:h-8 text-xs",
@@ -16,13 +17,13 @@ export const NumberBall = ({ number, size = "md", className, onClick }: NumberBa
     lg: "w-12 h-12 sm:w-14 sm:h-14 text-base sm:text-lg",
   };
 
-  return (
+  const ball = (
     <div
       onClick={onClick}
       className={cn(
         "rounded-full flex items-center justify-center font-bold shadow-md",
         "transition-all duration-300 touch-target font-display",
-        "relative overflow-hidden",
+        "relative overflow-hidden z-10",
         onClick ? "cursor-pointer hover:scale-105 active:scale-95 hover:shadow-lg" : "cursor-default",
         getNumberColorClasses(number),
         sizeClasses[size],
@@ -33,4 +34,48 @@ export const NumberBall = ({ number, size = "md", className, onClick }: NumberBa
       <span className="relative z-10">{number}</span>
     </div>
   );
+
+  if (confidence !== undefined) {
+    const radius = 50;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference - (confidence / 100) * circumference;
+    
+    const getStrokeColor = (conf: number) => {
+      if (conf >= 80) return "stroke-emerald-500";
+      if (conf >= 60) return "stroke-amber-500";
+      return "stroke-rose-500";
+    };
+
+    return (
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="relative">
+          <svg className="absolute -inset-1.5 w-[calc(100%+12px)] h-[calc(100%+12px)] -rotate-90 pointer-events-none" viewBox="0 0 120 120">
+            <circle
+              cx="60"
+              cy="60"
+              r="50"
+              className="fill-none stroke-muted opacity-50"
+              strokeWidth="8"
+            />
+            <circle
+              cx="60"
+              cy="60"
+              r="50"
+              className={cn("fill-none transition-all duration-1000 ease-out", getStrokeColor(confidence))}
+              strokeWidth="8"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+            />
+          </svg>
+          {ball}
+        </div>
+        <span className="text-[10px] sm:text-xs font-mono text-muted-foreground font-medium">
+          {Math.round(confidence)}%
+        </span>
+      </div>
+    );
+  }
+
+  return ball;
 };

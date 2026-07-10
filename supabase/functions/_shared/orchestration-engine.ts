@@ -43,15 +43,57 @@ export interface OrchestrationResult {
 
 // ============= CONSTANTS =============
 
-const MOMENTUM_WINDOW = 5;          // Tirages pour momentum
-const TREND_WINDOW_RECENT = 10;     // Tirages récents
-const TREND_WINDOW_OLDER = 20;      // Tirages plus anciens
-const MIN_WEIGHT = 0.2;             // Poids minimum
-const MAX_WEIGHT = 2.5;             // Poids maximum
-const ADJUSTMENT_RATE = 0.15;       // Taux d'ajustement par défaut
-const STABILITY_THRESHOLD = 60;     // Seuil de consistance
-const PERFORMANCE_THRESHOLD_HIGH = 18; // % accuracy considéré bon
-const PERFORMANCE_THRESHOLD_LOW = 8;   // % accuracy considéré faible
+export interface OrchestrationParams {
+  momentumWindow: number;
+  trendWindowRecent: number;
+  trendWindowOlder: number;
+  stabilityThreshold: number;
+  performanceThresholdHigh: number;
+  performanceThresholdLow: number;
+  minWeight: number;
+  maxWeight: number;
+  adjustmentRate: number;
+}
+
+export function deriveOrchestrationParams(performances: Array<{
+  accuracy_score: number;
+}>): OrchestrationParams {
+  const n = performances.length;
+  if (n === 0) {
+    return {
+      momentumWindow: 5,
+      trendWindowRecent: 10,
+      trendWindowOlder: 20,
+      stabilityThreshold: 60,
+      performanceThresholdHigh: 18,
+      performanceThresholdLow: 8,
+      minWeight: 0.2,
+      maxWeight: 2.5,
+      adjustmentRate: 0.15,
+    };
+  }
+
+  const scores = performances.map(p => p.accuracy_score).sort((a, b) => a - b);
+  const q1 = scores[Math.floor(n * 0.25)] || 8;
+  const median = scores[Math.floor(n * 0.5)] || 12;
+  const q3 = scores[Math.floor(n * 0.75)] || 18;
+  
+  // Stabilité basée sur l'écart interquartile (IQR). Moins de variance = plus de stabilité.
+  const iqr = q3 - q1;
+  const stabilityThreshold = Math.max(40, Math.min(80, 100 - iqr * 2));
+  
+  return {
+    momentumWindow: Math.max(3, Math.min(10, Math.floor(n * 0.1))),
+    trendWindowRecent: Math.max(5, Math.min(20, Math.floor(n * 0.2))),
+    trendWindowOlder: Math.max(10, Math.min(40, Math.floor(n * 0.4))),
+    stabilityThreshold,
+    performanceThresholdHigh: Math.max(12, q3),
+    performanceThresholdLow: Math.min(10, q1),
+    minWeight: 0.2,
+    maxWeight: 2.5,
+    adjustmentRate: 0.15,
+  };
+}
 
 // ============= ANALYSIS FUNCTIONS =============
 
@@ -65,7 +107,8 @@ export function calculateAlgorithmMetrics(
     matches_count: number;
     draw_date: string;
     confidence_score?: number;
-  }>
+  }>,
+  params: OrchestrationParams
 ): AlgorithmMetrics {
   if (performances.length === 0) {
     return {
@@ -87,14 +130,14 @@ export function calculateAlgorithmMetrics(
   // Moyenne générale
   const avgAccuracy = sorted.reduce((sum, p) => sum + p.accuracy_score, 0) / sorted.length;
   
-  // Accuracy récente (10 derniers)
-  const recent = sorted.slice(0, TREND_WINDOW_RECENT);
+  // Accuracy récente
+  const recent = sorted.slice(0, params.trendWindowRecent);
   const recentAccuracy = recent.length > 0
     ? recent.reduce((sum, p) => sum + p.accuracy_score, 0) / recent.length
     : avgAccuracy;
   
-  // Accuracy plus ancienne (10-20)
-  const older = sorted.slice(TREND_WINDOW_RECENT, TREND_WINDOW_RECENT + TREND_WINDOW_OLDER);
+  // Accuracy plus ancienne
+  const older = sorted.slice(params.trendWindowRecent, params.trendWindowRecent + params.trendWindowOlder);
   const olderAccuracy = older.length > 0
     ? older.reduce((sum, p) => sum + p.accuracy_score, 0) / older.length
     : avgAccuracy;
@@ -102,8 +145,8 @@ export function calculateAlgorithmMetrics(
   // Trend = différence récent vs ancien
   const trend = recentAccuracy - olderAccuracy;
   
-  // Momentum = variation sur les 5 derniers tirages
-  const veryRecent = sorted.slice(0, MOMENTUM_WINDOW);
+  // Momentum
+  const veryRecent = sorted.slice(0, params.momentumWindow);
   const momentumAccuracy = veryRecent.length > 0
     ? veryRecent.reduce((sum, p) => sum + p.accuracy_score, 0) / veryRecent.length
     : recentAccuracy;
@@ -130,7 +173,10 @@ export function calculateAlgorithmMetrics(
 /**
  * Détermine la stratégie d'orchestration basée sur les métriques
  */
-export function determineStrategy(metrics: AlgorithmMetrics[]): {
+export function determineStrategy(
+  metrics: AlgorithmMetrics[],
+  params: OrchestrationParams
+): {
   strategy: string;
   description: string;
   aggressiveness: number;
@@ -141,11 +187,11 @@ export function determineStrategy(metrics: AlgorithmMetrics[]): {
   const avgPerformance = metrics.reduce((sum, m) => sum + m.avgAccuracy, 0) / metrics.length;
   
   // Déterminer la stratégie
-  if (avgConsistency < 50 && avgPerformance < PERFORMANCE_THRESHOLD_LOW) {
+  if (avgConsistency < params.stabilityThreshold && avgPerformance < params.performanceThresholdLow) {
     return {
       strategy: "aggressive_rebalancing",
       description: "Performance faible et instable - rééquilibrage agressif",
-      aggressiveness: 0.25,
+      aggressiveness: params.adjustmentRate * 1.5,
     };
   }
   
@@ -153,7 +199,7 @@ export function determineStrategy(metrics: AlgorithmMetrics[]): {
     return {
       strategy: "momentum_following",
       description: "Tendance positive - suivre le momentum",
-      aggressiveness: 0.18,
+      aggressiveness: params.adjustmentRate * 1.2,
     };
   }
   
@@ -161,22 +207,22 @@ export function determineStrategy(metrics: AlgorithmMetrics[]): {
     return {
       strategy: "defensive_adjustment",
       description: "Tendance négative - ajustements défensifs",
-      aggressiveness: 0.12,
+      aggressiveness: params.adjustmentRate * 0.8,
     };
   }
   
-  if (avgConsistency > 70 && avgPerformance > PERFORMANCE_THRESHOLD_HIGH) {
+  if (avgConsistency > params.stabilityThreshold && avgPerformance > params.performanceThresholdHigh) {
     return {
       strategy: "fine_tuning",
       description: "Performance stable et bonne - ajustements fins",
-      aggressiveness: 0.08,
+      aggressiveness: params.adjustmentRate * 0.5,
     };
   }
   
   return {
     strategy: "balanced_optimization",
     description: "Optimisation équilibrée standard",
-    aggressiveness: ADJUSTMENT_RATE,
+    aggressiveness: params.adjustmentRate,
   };
 }
 
@@ -188,7 +234,8 @@ export function determineStrategy(metrics: AlgorithmMetrics[]): {
 export function calculateWeightAdjustments(
   metrics: AlgorithmMetrics[],
   currentWeights: Map<string, number>,
-  strategy: { strategy: string; aggressiveness: number }
+  strategy: { strategy: string; aggressiveness: number },
+  params: OrchestrationParams
 ): WeightAdjustment[] {
   const adjustments: WeightAdjustment[] = [];
   const rate = strategy.aggressiveness;
@@ -209,7 +256,7 @@ export function calculateWeightAdjustments(
     const momentumFactor = 1 + (metric.momentum / 50);
     
     // Facteur de consistance (bonus pour algorithmes stables)
-    const consistencyFactor = metric.consistency > STABILITY_THRESHOLD ? 1.05 : 0.95;
+    const consistencyFactor = metric.consistency > params.stabilityThreshold ? 1.05 : 0.95;
     
     // Calculer le multiplicateur combiné
     const combinedFactor = (
@@ -237,7 +284,7 @@ export function calculateWeightAdjustments(
     }
     
     // Contraindre le poids
-    newWeight = Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, newWeight));
+    newWeight = Math.max(params.minWeight, Math.min(params.maxWeight, newWeight));
     newWeight = Math.round(newWeight * 100) / 100;
     
     // N'enregistrer que si changement significatif
@@ -262,17 +309,18 @@ export function calculateWeightAdjustments(
  */
 export function suggestParameterAdjustments(
   metrics: AlgorithmMetrics[],
-  currentParams: Map<string, Record<string, number | string>>
+  currentParams: Map<string, Record<string, number | string>>,
+  params: OrchestrationParams
 ): ParameterAdjustment[] {
   const adjustments: ParameterAdjustment[] = [];
   
   for (const metric of metrics) {
-    const params = currentParams.get(metric.name);
-    if (!params) continue;
+    const algParams = currentParams.get(metric.name);
+    if (!algParams) continue;
     
     // Ajuster learning rate si performance faible et instable
-    if ('learningRate' in params && metric.consistency < 50 && metric.avgAccuracy < PERFORMANCE_THRESHOLD_LOW) {
-      const currentLR = Number(params.learningRate) || 0.01;
+    if ('learningRate' in algParams && metric.consistency < params.stabilityThreshold * 0.8 && metric.avgAccuracy < params.performanceThresholdLow) {
+      const currentLR = Number(algParams.learningRate) || 0.01;
       const newLR = currentLR * 0.8; // Réduire le learning rate
       
       adjustments.push({
@@ -285,8 +333,8 @@ export function suggestParameterAdjustments(
     }
     
     // Augmenter regularization si overfitting suspecté
-    if ('regularization' in params && metric.trend < -5 && metric.avgAccuracy > metric.recentAccuracy + 5) {
-      const currentReg = Number(params.regularization) || 0.01;
+    if ('regularization' in algParams && metric.trend < -5 && metric.avgAccuracy > metric.recentAccuracy + 5) {
+      const currentReg = Number(algParams.regularization) || 0.01;
       const newReg = currentReg * 1.3;
       
       adjustments.push({
@@ -299,8 +347,8 @@ export function suggestParameterAdjustments(
     }
     
     // Ajuster window size si données historiques abondantes mais performance moyenne
-    if ('windowSize' in params && metric.dataPoints > 100 && metric.avgAccuracy < 15) {
-      const currentWindow = Number(params.windowSize) || 30;
+    if ('windowSize' in algParams && metric.dataPoints > 100 && metric.avgAccuracy < 15) {
+      const currentWindow = Number(algParams.windowSize) || 30;
       const newWindow = Math.min(50, currentWindow + 5);
       
       if (newWindow !== currentWindow) {
@@ -340,6 +388,10 @@ export function runOrchestration(
   const minDataPoints = options.minDataPoints || 10;
   const notes: string[] = [];
   
+  // Extraire toutes les performances pour dériver les paramètres
+  const allPerformances = Array.from(performanceData.values()).flat();
+  const orchestrationParams = deriveOrchestrationParams(allPerformances);
+  
   // Calculer les métriques pour chaque algorithme
   const metrics: AlgorithmMetrics[] = [];
   
@@ -349,7 +401,7 @@ export function runOrchestration(
       continue;
     }
     
-    const metric = calculateAlgorithmMetrics(algoName, performances);
+    const metric = calculateAlgorithmMetrics(algoName, performances, orchestrationParams);
     metrics.push(metric);
     
     log("info", `Metrics calculated for ${algoName}`, {
@@ -371,7 +423,7 @@ export function runOrchestration(
   }
   
   // Déterminer la stratégie
-  const strategy = determineStrategy(metrics);
+  const strategy = determineStrategy(metrics, orchestrationParams);
   notes.push(`Stratégie: ${strategy.strategy} (${strategy.description})`);
   
   log("info", "Orchestration strategy determined", {
@@ -380,10 +432,10 @@ export function runOrchestration(
   });
   
   // Calculer les ajustements de poids
-  const weightAdjustments = calculateWeightAdjustments(metrics, currentWeights, strategy);
+  const weightAdjustments = calculateWeightAdjustments(metrics, currentWeights, strategy, orchestrationParams);
   
   // Calculer les ajustements de paramètres
-  const parameterAdjustments = suggestParameterAdjustments(metrics, currentParams);
+  const parameterAdjustments = suggestParameterAdjustments(metrics, currentParams, orchestrationParams);
   
   // Estimer l'amélioration attendue
   const avgTrend = metrics.reduce((sum, m) => sum + m.trend, 0) / metrics.length;
@@ -392,24 +444,24 @@ export function runOrchestration(
   );
   const expectedImprovement = Math.max(0, avgTrend + adjustmentImpact * 2);
   
-  return {
+  return validateOrchestrationResult({
     weightAdjustments,
     parameterAdjustments,
     metrics,
     strategy: strategy.strategy,
     expectedImprovement,
     notes,
-  };
+  }, orchestrationParams);
 }
 
 /**
  * Valide et nettoie les résultats d'orchestration
  */
-export function validateOrchestrationResult(result: OrchestrationResult): OrchestrationResult {
+export function validateOrchestrationResult(result: OrchestrationResult, params: OrchestrationParams): OrchestrationResult {
   // Filtrer les ajustements invalides
   const validWeightAdjustments = result.weightAdjustments.filter(adj => 
-    adj.newWeight >= MIN_WEIGHT && 
-    adj.newWeight <= MAX_WEIGHT &&
+    adj.newWeight >= params.minWeight && 
+    adj.newWeight <= params.maxWeight &&
     adj.confidence > 0.2
   );
   

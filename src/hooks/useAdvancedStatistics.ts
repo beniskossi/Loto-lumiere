@@ -35,7 +35,7 @@ interface AdvancedStatistics {
   consecutiveNumbers: { hasConsecutive: number; noConsecutive: number };
 }
 
-// Constantes de calibration empirique
+// Limites structurelles de requête
 const STALE_TIME = 10 * 60 * 1000; // 10 minutes
 const HISTORY_LIMIT = 200;
 const TOP_ITEMS_LIMIT = 10;

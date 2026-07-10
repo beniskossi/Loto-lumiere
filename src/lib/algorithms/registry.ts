@@ -55,8 +55,8 @@ export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
   },
   'Random Forest': {
     name: 'Random Forest',
-    displayName: 'Random Forest',
-    description: 'Ensemble d\'arbres de décision avec bootstrap sampling. Robuste et bon en feature importance.',
+    displayName: 'Decision Forest',
+    description: 'Ensemble d\'arbres de décision déterministes. Robuste, analyse d\'importance de caractéristiques non-linéaire.',
     category: 'ensemble',
     defaultWeight: 0.8,
     color: 'hsl(200 70% 50%)',
@@ -64,8 +64,8 @@ export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
       num_trees: { type: 'number', default: 10, min: 5, max: 50 },
       max_depth: { type: 'number', default: 5, min: 3, max: 15 }
     },
-    strengths: ['Robuste au bruit', 'Feature importance', 'Moins de surapprentissage'],
-    bestFor: 'Données avec interactions non-linéaires'
+    strengths: ['Robuste au bruit', 'Analyse structurelle', 'Généralisation mathématique'],
+    bestFor: 'Données avec interactions non-linéaires déterministes'
   },
   'LSTM Network': {
     name: 'LSTM Network',

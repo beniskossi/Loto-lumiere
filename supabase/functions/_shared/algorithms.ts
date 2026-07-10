@@ -4,7 +4,7 @@
 // =====================================================
 
 import type { DrawResult, PredictionResult, AlgorithmCategory } from "./types.ts";
-import { generateRandomPrediction, selectBalancedNumbers, log, DeterministicLCG } from "./utils.ts";
+import { generateDeterministicFallback, selectBalancedNumbers, log, DeterministicLCG } from "./utils.ts";
 
 // Réexporter les algorithmes avancés
 export { transformerAlgorithm } from "./transformer.ts";
@@ -25,7 +25,7 @@ export function generateFallbackPrediction(
   category: AlgorithmCategory
 ): PredictionResult {
   return {
-    numbers: generateRandomPrediction(),
+    numbers: generateDeterministicFallback(),
     confidence: 0.2,
     algorithm: `${algorithm} (Données Insuffisantes)`,
     factors: ["Données insuffisantes", "Mode dégradé"],

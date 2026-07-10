@@ -211,7 +211,7 @@ export const FractalPatternAnalyzer = ({ drawName }: FractalPatternAnalyzerProps
     // Normalize H to [0, 1] interval just in case of regression noise
     const boundedH = Math.max(0, Math.min(1, H));
 
-    // Predictability Index: represents how far H is from the pure random walk of H = 0.5
+    // Predictability Index: represents how far H is from the state of structural equilibrium (H = 0.5)
     // PI = |H - 0.5| * 2, scaled to 0-100%
     const predictabilityIndex = Math.min(100, Math.round(Math.abs(boundedH - 0.5) * 200));
 
@@ -221,13 +221,13 @@ export const FractalPatternAnalyzer = ({ drawName }: FractalPatternAnalyzerProps
 
     if (boundedH < 0.45) {
       interpretation = "Anti-Persistant (Régression Moyenne)";
-      interpretationDetail = `Hurst exponentiel H = ${boundedH.toFixed(3)} (< 0.50). La série temporelle des tirages possède un caractère "auto-correcteur". Un écart vers le haut par rapport à la moyenne sera très probablement suivi d'une correction immédiate vers le bas au prochain tirage. Les oscillations courtes sont privilégiées, favorisant des transitions de phase régulières.`;
+      interpretationDetail = `Hurst exponentiel H = ${boundedH.toFixed(3)} (< 0.50). La série temporelle des tirages possède un caractère "auto-correcteur". Un écart vers le haut par rapport à la moyenne sera mathématiquement suivi d'une correction de phase vers le bas au prochain cycle. Les oscillations de courte longueur d'onde sont prédominantes.`;
     } else if (boundedH >= 0.45 && boundedH <= 0.55) {
-      interpretation = "Mouvement Brownien (Bruit Aléatoire)";
-      interpretationDetail = `Hurst exponentiel H = ${boundedH.toFixed(3)} (≈ 0.50). La série temporelle se comporte comme un bruit blanc ou un mouvement brownien pur, dénué de toute mémoire à long terme. Chaque tirage est rigoureusement indépendant du précédent. Le chaos thermique domine l'historique récent.`;
+      interpretation = "Équilibre Structurel (Phase de Transition)";
+      interpretationDetail = `Hurst exponentiel H = ${boundedH.toFixed(3)} (≈ 0.50). La série temporelle se trouve dans un état d'équilibre stationnaire transitoire. L'inertie directionnelle est nulle, indiquant un pivotement d'état où la force de mémoire à long terme s'annule avant de basculer vers un nouveau cycle d'oscillation.`;
     } else {
-      interpretation = "Persistant (Effet Tendance)";
-      interpretationDetail = `Hurst exponentiel H = ${boundedH.toFixed(3)} (> 0.50). La série temporelle possède une "mémoire de tendance" active. Un mouvement récent dans une direction (hausse de la somme, décalage de la parité) tend à être suivi d'une dynamique similaire. Des patterns de clusters fractals se dessinent dans le temps.`;
+      interpretation = "Persistant (Inertie Tendance)";
+      interpretationDetail = `Hurst exponentiel H = ${boundedH.toFixed(3)} (> 0.50). La série temporelle possède une "mémoire de tendance" active. Un mouvement récent dans une direction (hausse de la somme, décalage de la parité) induit structurellement une dynamique inertielle similaire. Des patterns de clusters fractals se dessinent dans le continuum temporel.`;
     }
 
     return {
@@ -319,7 +319,7 @@ export const FractalPatternAnalyzer = ({ drawName }: FractalPatternAnalyzerProps
     const mean = series.reduce((s, v) => s + v, 0) / (series.length || 1);
     const insights: string[] = [];
 
-    insights.push(`Le **coefficient d'autocorrélation fractal (Hurst)** est mesuré à **H = ${H.toFixed(4)}** avec un indice d'alignement empirique **R² = ${hurstData.r2.toFixed(3)}**.`);
+    insights.push(`Le **coefficient d'autocorrélation fractal (Hurst)** est mesuré à **H = ${H.toFixed(4)}** avec un indice d'alignement paramétrique **R² = ${hurstData.r2.toFixed(3)}**.`);
 
     if (H < 0.45) {
       insights.push(
@@ -345,7 +345,7 @@ export const FractalPatternAnalyzer = ({ drawName }: FractalPatternAnalyzerProps
       );
     } else {
       insights.push(
-        `**Neutralité chaotique optimale (Bruit Pur)**. La série ne présente pas de biais de structure mesurable à ce jour. Les variations restent rigoureusement aléatoires autour du centre de gravité standard.`
+        `**Neutralité Structurelle Optimale**. La série ne présente pas de biais de structure mesurable à ce jour. Les variations s'équilibrent parfaitement autour du centre de gravité standard.`
       );
       insights.push(
         `**Recommandation active** : Exploitez la distribution canonique pure (somme médiane attendue, parité de 50/50) sans forcer d'anticipation cyclique.`

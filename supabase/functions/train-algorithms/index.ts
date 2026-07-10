@@ -46,14 +46,42 @@ interface ResponseData {
   error?: string;
 }
 
-// Hyperparamètres d'entraînement
-const HIGH_PERF_THRESHOLD = 0.7;
-const LOW_PERF_THRESHOLD = 0.4;
-const LR_INCREASE_FACTOR = 1.15;
-const LR_DECREASE_FACTOR = 0.85;
-const WEIGHT_MOMENTUM = 0.3;
-const MAX_WEIGHT_CHANGE = 0.3;
-const MIN_EVALUATIONS_REQUIRED = 5;
+// Dérivation dynamique des hyperparamètres d'entraînement
+function deriveTrainingParams(performances: AlgorithmPerformance[]) {
+  if (performances.length === 0) {
+    return {
+      highPerfThreshold: 0.7,
+      lowPerfThreshold: 0.4,
+      lrIncreaseFactor: 1.15,
+      lrDecreaseFactor: 0.85,
+      weightMomentum: 0.3,
+      maxWeightChange: 0.3,
+      minEvaluationsRequired: 5
+    };
+  }
+
+  // Trier les scores globaux pour trouver les quartiles
+  const scores = performances.map(p => p.overall_score).sort((a, b) => a - b);
+  const q1 = scores[Math.floor(scores.length * 0.25)] || 0.4;
+  const q3 = scores[Math.floor(scores.length * 0.75)] || 0.7;
+
+  // Calcul de la variance pour ajuster dynamiquement l'inertie
+  const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  const variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / scores.length;
+  
+  // Plus la variance est grande, plus on augmente le momentum (inertie) pour éviter les sur-réactions
+  const weightMomentum = Math.max(0.1, Math.min(0.8, variance * 10));
+
+  return {
+    highPerfThreshold: q3,
+    lowPerfThreshold: q1,
+    lrIncreaseFactor: 1.1 + (q3 * 0.1),
+    lrDecreaseFactor: 0.9 - (q1 * 0.1),
+    weightMomentum,
+    maxWeightChange: Math.max(0.1, Math.min(0.5, (q3 - q1))),
+    minEvaluationsRequired: 5
+  };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -138,6 +166,8 @@ serve(async (req) => {
 
     const updates = [];
     const trainingHistory: TrainingHistoryEntry[] = [];
+    const allValidPerformances = (rankings as AlgorithmPerformance[]).filter(validatePerformance);
+    const trainingParams = deriveTrainingParams(allValidPerformances);
 
     // Pour chaque algorithme, ajuster le poids
     for (const config of configs as AlgorithmConfig[]) {
@@ -149,7 +179,7 @@ serve(async (req) => {
         continue;
       }
 
-      const adjustment = adjustAlgorithmConfig(config, validPerformances);
+      const adjustment = adjustAlgorithmConfig(config, validPerformances, trainingParams);
       if (adjustment) {
         console.log("Algorithm adjustment", { algorithm: config.algorithm_name, oldWeight: config.weight, newWeight: adjustment.newWeight, improvement: adjustment.improvement.toFixed(1) });
 
@@ -238,13 +268,14 @@ function validatePerformance(perf: AlgorithmPerformance): boolean {
  */
 function adjustAlgorithmConfig(
   config: AlgorithmConfig,
-  performances: AlgorithmPerformance[]
+  performances: AlgorithmPerformance[],
+  params: ReturnType<typeof deriveTrainingParams>
 ): { newWeight: number; newParams: Record<string, unknown>; improvement: number } | null {
   if (performances.length === 0) return null;
 
   // Vérifier qu'on a assez d'évaluations pour un entraînement fiable
-  if (performances.length < MIN_EVALUATIONS_REQUIRED) {
-    console.log("Insufficient evaluations for training", { algorithm: config.algorithm_name, count: performances.length, required: MIN_EVALUATIONS_REQUIRED });
+  if (performances.length < params.minEvaluationsRequired) {
+    console.log("Insufficient evaluations for training", { algorithm: config.algorithm_name, count: performances.length, required: params.minEvaluationsRequired });
     return null;
   }
 

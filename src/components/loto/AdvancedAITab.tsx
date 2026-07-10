@@ -323,6 +323,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
                         <NumberBall 
                           number={num} 
                           size="lg" 
+                          confidence={optimizedPrediction.confidence * 100}
                           className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 shadow-lg shadow-accent/20" 
                         />
                       </motion.div>
@@ -520,7 +521,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
                         </div>
                         <div className="flex gap-1.5">
                           {pred.numbers.map((num, idx) => (
-                            <NumberBall key={idx} number={num} size="sm" />
+                            <NumberBall key={idx} number={num} size="sm" confidence={pred.confidence * 100} />
                           ))}
                         </div>
                       </div>

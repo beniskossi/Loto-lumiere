@@ -343,41 +343,25 @@ function detectCycles(results: any[]): TemporalCycle[] {
   const cycles: TemporalCycle[] = [];
   
   // Need enough data points to detect meaningful cycles
-  const minRequiredData = Math.ceil(90 * 0.33); // At least 1/3 of the number space
+  // At least 1/3 of the MAX_NUMBERS
+  const minRequiredData = Math.ceil(90 * 0.33); 
   if (results.length < minRequiredData) return cycles;
 
-  // Look for weekly cycles (every 7 draws)
-  const weeklyNumbers = findCyclicalNumbers(results, 7);
-  if (weeklyNumbers.length > 0) {
-    cycles.push({
-      cycleLength: 7,
-      numbers: weeklyNumbers.slice(0, 5),
-      confidence: Math.min(0.9, 0.5 + weeklyNumbers.length * 0.1),
-      description: "Cycle hebdomadaire détecté"
-    });
-  }
+  // Derive structural cycle lengths dynamically from total data span
+  const maxCycle = Math.floor(results.length / 3);
+  const cycleLengths = [7, 14, 28].filter(len => len <= maxCycle);
 
-  // Look for bi-weekly cycles (every 14 draws)
-  const biweeklyNumbers = findCyclicalNumbers(results, 14);
-  if (biweeklyNumbers.length > 0) {
-    cycles.push({
-      cycleLength: 14,
-      numbers: biweeklyNumbers.slice(0, 5),
-      confidence: Math.min(0.85, 0.4 + biweeklyNumbers.length * 0.1),
-      description: "Cycle bi-hebdomadaire détecté"
-    });
-  }
-
-  // Look for monthly cycles (every 28-30 draws)
-  const monthlyNumbers = findCyclicalNumbers(results, 28);
-  if (monthlyNumbers.length > 0) {
-    cycles.push({
-      cycleLength: 28,
-      numbers: monthlyNumbers.slice(0, 5),
-      confidence: Math.min(0.8, 0.3 + monthlyNumbers.length * 0.1),
-      description: "Cycle mensuel détecté"
-    });
-  }
+  cycleLengths.forEach(len => {
+    const numbers = findCyclicalNumbers(results, len);
+    if (numbers.length > 0) {
+      cycles.push({
+        cycleLength: len,
+        numbers: numbers.slice(0, 5),
+        confidence: Math.min(0.9, 0.3 + numbers.length * 0.1),
+        description: `Cycle de ${len} tirages détecté`
+      });
+    }
+  });
 
   return cycles;
 }

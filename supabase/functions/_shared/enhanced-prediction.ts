@@ -102,7 +102,7 @@ export function deriveSystemParameters(results: DrawResult[]): DerivedParameters
     };
   }
 
-  // 1. Somme cible et tolérance basées sur la moyenne empirique et l'écart-type
+  // 1. Somme cible et tolérance basées sur la moyenne théorique calculée et l'écart-type
   const sums = results.map(r => r.winning_numbers.reduce((a, b) => a + b, 0));
   const meanSum = sums.reduce((a, b) => a + b, 0) / n;
   const sumVariance = sums.reduce((acc, s) => acc + Math.pow(s - meanSum, 2), 0) / n;

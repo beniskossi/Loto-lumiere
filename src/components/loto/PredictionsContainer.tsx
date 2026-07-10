@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, Brain, Sparkles, Cpu, Zap, GitBranch, SlidersHorizontal, FlaskConical } from "lucide-react";
+import { Target, Brain, Sparkles, Cpu, Zap, GitBranch, SlidersHorizontal, FlaskConical, Compass, History } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MonteCarloOracle } from "@/components/MonteCarloOracle";
 import { MathematicalModelsVisualizer } from "@/components/MathematicalModelsVisualizer";
@@ -20,6 +20,12 @@ const ConditionalPredictions = lazy(() =>
 );
 const BacktestingDashboard = lazy(() =>
   import("@/components/BacktestingDashboard").then((m) => ({ default: m.BacktestingDashboard }))
+);
+const AffinityAndTransforms = lazy(() =>
+  import("./AffinityAndTransforms").then((m) => ({ default: m.AffinityAndTransforms }))
+);
+const PredictionLog = lazy(() =>
+  import("@/components/PredictionLog").then((m) => ({ default: m.PredictionLog }))
 );
 
 interface PredictionsContainerProps {
@@ -44,7 +50,7 @@ export const PredictionsContainer = ({
   selectedDate,
   onClearDate,
 }: PredictionsContainerProps) => {
-  const [activeSubTab, setActiveSubTab] = useState<"official" | "enhanced" | "conditional" | "advanced" | "montecarlo" | "backtesting">("official");
+  const [activeSubTab, setActiveSubTab] = useState<"official" | "enhanced" | "conditional" | "advanced" | "montecarlo" | "backtesting" | "affinity" | "log">("official");
   const { data } = useAdvancedPrediction(drawName, { useSmartEnsemble: true });
   const basePrediction = data?.optimizedPrediction?.numbers || data?.predictions?.[0]?.numbers || [1, 2, 3, 4, 5];
 
@@ -105,11 +111,25 @@ export const PredictionsContainer = ({
             Laboratoire Monte Carlo
           </TabsTrigger>
           <TabsTrigger
+            value="affinity"
+            className="flex-1 min-w-[140px] gap-2 py-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs sm:text-sm font-medium whitespace-nowrap"
+          >
+            <Compass className="w-4 h-4 text-primary" />
+            Affinités & Écarts
+          </TabsTrigger>
+          <TabsTrigger
             value="backtesting"
             className="flex-1 min-w-[140px] gap-2 py-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs sm:text-sm font-medium whitespace-nowrap"
           >
             <FlaskConical className="w-4 h-4 text-orange-500" />
             Backtesting & Précision
+          </TabsTrigger>
+          <TabsTrigger
+            value="log"
+            className="flex-1 min-w-[140px] gap-2 py-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs sm:text-sm font-medium whitespace-nowrap"
+          >
+            <History className="w-4 h-4 text-blue-500" />
+            Journal (Logs)
           </TabsTrigger>
         </TabsList>
 
@@ -146,6 +166,13 @@ export const PredictionsContainer = ({
              </div>
           </TabsContent>
 
+          <TabsContent value="affinity" className="mt-0 focus-visible:outline-none">
+            <AffinityAndTransforms drawName={drawName} />
+          </TabsContent>
+
+          <TabsContent value="log" className="mt-0 focus-visible:outline-none">
+            <PredictionLog />
+          </TabsContent>
           <TabsContent value="backtesting" className="mt-0 focus-visible:outline-none">
             <BacktestingDashboard />
           </TabsContent>
