@@ -71,7 +71,7 @@ export const PredictionsContainer = ({
 
       <Tabs
         value={activeSubTab}
-        onValueChange={(v) => setActiveSubTab(v as any)}
+        onValueChange={(v) => setActiveSubTab(v)}
         className="w-full"
       >
         <TabsList className="flex flex-row w-full h-auto bg-muted/40 p-1.5 rounded-xl mb-6 overflow-x-auto no-scrollbar justify-start gap-1">
@@ -162,7 +162,7 @@ export const PredictionsContainer = ({
                   drawName={drawName} 
                   initialPredictions={basePrediction} 
                />
-               <MathematicalModelsVisualizer />
+               <MathematicalModelsVisualizer drawName={drawName} />
              </div>
           </TabsContent>
 

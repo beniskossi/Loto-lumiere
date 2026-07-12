@@ -16,7 +16,7 @@ export const TrackedPredictionsDisplay = () => {
   const [selectedDraw, setSelectedDraw] = useState<string>("all");
   const itemsPerPage = 10;
   
-  const { data: paginatedData, isLoading } = usePaginatedQuery<any>(
+  const { data: paginatedData, isLoading } = usePaginatedQuery<Record<string, unknown>>(
     "user_prediction_tracking",
     ["tracked-predictions", user?.id || "", selectedDraw],
     { page: currentPage, pageSize: itemsPerPage, orderBy: "marked_at", ascending: false },
@@ -29,7 +29,7 @@ export const TrackedPredictionsDisplay = () => {
   
   // Get draw names for filter
   const { data: allPredictions } = useTrackedPredictions(user?.id);
-  const drawNames = Array.from(new Set((allPredictions || []).map((p: any) => p.predictions?.draw_name).filter(Boolean)));
+  const drawNames = Array.from(new Set((allPredictions || []).map((p: Record<string, any>) => p.predictions?.draw_name).filter(Boolean)));
   
   const handleDrawChange = (value: string) => {
     setSelectedDraw(value);

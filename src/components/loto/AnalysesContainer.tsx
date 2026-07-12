@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Timer, Search, Clock, ArrowLeftRight, FlaskConical, BarChart2, Database, BrainCircuit } from "lucide-react";
+import { BarChart3, Timer, Search, Clock, ArrowLeftRight, FlaskConical, BarChart2, Database, BrainCircuit, Layers } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const AnalysesTab = lazy(() =>
@@ -8,6 +8,9 @@ const AnalysesTab = lazy(() =>
 );
 const GapAnalysisTab = lazy(() =>
   import("./GapAnalysisTab").then((m) => ({ default: m.GapAnalysisTab }))
+);
+const DoubleGapAnalyzer = lazy(() =>
+  import("./DoubleGapAnalyzer").then((m) => ({ default: m.DoubleGapAnalyzer }))
 );
 const StatistiquesTab = lazy(() =>
   import("./StatistiquesTab").then((m) => ({ default: m.StatistiquesTab }))
@@ -45,7 +48,7 @@ const AnalysesFallback = () => (
 );
 
 export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
-  const [activeSubTab, setActiveSubTab] = useState<"data" | "patterns" | "temporal" | "gaps" | "stats" | "comparison" | "search" | "fractal">("data");
+  const [activeSubTab, setActiveSubTab] = useState<"data" | "patterns" | "temporal" | "gaps" | "double-gap" | "stats" | "comparison" | "search" | "fractal">("data");
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-24">
@@ -64,7 +67,7 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
 
       <Tabs
         value={activeSubTab}
-        onValueChange={(v) => setActiveSubTab(v as any)}
+        onValueChange={(v) => setActiveSubTab(v)}
         className="w-full"
       >
         <TabsList className="flex flex-row w-full h-auto bg-muted/40 p-1.5 rounded-xl mb-6 overflow-x-auto no-scrollbar justify-start gap-1">
@@ -95,6 +98,13 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
           >
             <Timer className="w-4 h-4 text-orange-500" />
             Analyse des Gaps
+          </TabsTrigger>
+          <TabsTrigger
+            value="double-gap"
+            className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
+          >
+            <Layers className="w-4 h-4 text-purple-400" />
+            Écart des Écarts
           </TabsTrigger>
           <TabsTrigger
             value="stats"
@@ -141,6 +151,10 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
 
           <TabsContent value="gaps" className="mt-0 focus-visible:outline-none">
             <GapAnalysisTab drawName={drawName} />
+          </TabsContent>
+
+          <TabsContent value="double-gap" className="mt-0 focus-visible:outline-none">
+            <DoubleGapAnalyzer drawName={drawName} />
           </TabsContent>
 
           <TabsContent value="stats" className="mt-0 focus-visible:outline-none">

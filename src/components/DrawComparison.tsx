@@ -397,7 +397,7 @@ const StatRow = ({
   value, 
   highlight 
 }: { 
-  icon: any; 
+  icon: React.ElementType; 
   label: string; 
   value: string; 
   highlight?: boolean;

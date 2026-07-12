@@ -202,9 +202,7 @@ export const FormulasDashboard = memo<FormulasDashboardProps>(({
         const currentValue = breakdown[key as keyof ExtendedScoreBreakdown];
         const baseValue = typeof currentValue === 'number' ? currentValue * 100 : 50;
         // Variation déterministe par ondes trigonométriques autour de la valeur actuelle
-        const formulaSeed = key.charCodeAt(0) + key.charCodeAt(key.length - 1);
-        const variation = Math.sin(i * 1.5 + formulaSeed) * 10;
-        baseData[key] = Math.max(0, Math.min(100, Math.round(baseValue + variation * (1 - i / 7))));
+        baseData[key] = Math.max(0, Math.min(100, Math.round(baseValue)));
       });
       
       return baseData;

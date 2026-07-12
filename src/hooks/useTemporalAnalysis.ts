@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useDrawResults } from "./useDrawResults";
+import { useDrawResults, DrawResult } from "./useDrawResults";
 
 export interface DayPattern {
   day: string;
@@ -81,7 +81,7 @@ function getSeason(month: number): string {
   return "Harmattan";
 }
 
-function calculateFrequency(results: any[]): Record<number, number> {
+function calculateFrequency(results: DrawResult[]): Record<number, number> {
   const freq: Record<number, number> = {};
   results.forEach(r => {
     (r.winning_numbers || []).forEach((n: number) => {
@@ -109,7 +109,7 @@ function getColdNumbers(freq: Record<number, number>, allNumbers: number[], limi
     .map(([n]) => parseInt(n));
 }
 
-function calculateAvgSum(results: any[]): number {
+function calculateAvgSum(results: DrawResult[]): number {
   if (results.length === 0) return 0;
   let total = 0;
   let count = 0;
@@ -136,16 +136,16 @@ export function useTemporalAnalysis(drawName?: string, limit = 200): {
     const allNumbers = Array.from({ length: 90 }, (_, i) => i + 1);
 
     // Group by day of week
-    const byDay: Record<string, any[]> = {};
+    const byDay: Record<string, DrawResult[]> = {};
     // Group by month
-    const byMonth: Record<number, any[]> = {};
+    const byMonth: Record<number, DrawResult[]> = {};
     // Group by time slot
-    const byTimeSlot: Record<string, any[]> = {};
+    const byTimeSlot: Record<string, DrawResult[]> = {};
     // Group by season
-    const bySeason: Record<string, any[]> = {};
+    const bySeason: Record<string, DrawResult[]> = {};
     // Weekday vs Weekend
-    const weekdayResults: any[] = [];
-    const weekendResults: any[] = [];
+    const weekdayResults: DrawResult[] = [];
+    const weekendResults: DrawResult[] = [];
 
     results.forEach(result => {
       const date = new Date(result.draw_date);
@@ -339,7 +339,7 @@ export function useTemporalAnalysis(drawName?: string, limit = 200): {
 }
 
 // Detect cyclical patterns in number appearances
-function detectCycles(results: any[]): TemporalCycle[] {
+function detectCycles(results: DrawResult[]): TemporalCycle[] {
   const cycles: TemporalCycle[] = [];
   
   // Need enough data points to detect meaningful cycles
@@ -366,7 +366,7 @@ function detectCycles(results: any[]): TemporalCycle[] {
   return cycles;
 }
 
-function findCyclicalNumbers(results: any[], cycleLength: number): number[] {
+function findCyclicalNumbers(results: DrawResult[], cycleLength: number): number[] {
   const cyclicalNumbers: number[] = [];
   const numberAppearances: Record<number, number[]> = {};
 

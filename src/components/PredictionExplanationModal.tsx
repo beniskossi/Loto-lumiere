@@ -150,7 +150,7 @@ export const PredictionExplanationModal = ({
 
   const activeBreakdown = useMemo(() => {
     if (formulasBreakdown) return formulasBreakdown;
-    if (prediction && (prediction as any).breakdown) return (prediction as any).breakdown;
+    if (prediction && (prediction as Record<string, unknown>).breakdown) return (prediction as Record<string, unknown>).breakdown;
     return null;
   }, [formulasBreakdown, prediction]);
 
@@ -158,7 +158,7 @@ export const PredictionExplanationModal = ({
     if (!activeBreakdown) return [];
     
     return Object.entries(FORMULA_METRICS).map(([key, meta]) => {
-      const val = (activeBreakdown as any)[key] ?? 0;
+      const val = (activeBreakdown as Record<string, number>)[key] ?? 0;
       // Convert value between 0 and 100 for visual progress, assuming val is already normalized out of maxPoints or 100.
       const displayVal = Math.min(Math.round(val * 10) / 10, meta.maxPoints);
       const percentage = Math.round((displayVal / meta.maxPoints) * 100);

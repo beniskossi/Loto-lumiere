@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { NumberBall } from "@/components/NumberBall";
 import { motion, AnimatePresence } from "framer-motion";
-import { History, TrendingUp, Trophy, AlertCircle, CheckCircle2, Search, Filter } from "lucide-react";
+import { History, TrendingUp, Trophy, AlertCircle, CheckCircle2, Search, Filter, Download, Share2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DataExporter } from "@/components/DataExporter";
+import { SocialShare } from "@/components/SocialShare";
 
 export const PredictionLog = () => {
   const { user } = useAuth();
@@ -41,14 +43,32 @@ export const PredictionLog = () => {
 
   return (
     <Card className="shadow-sm border-accent/20">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <History className="w-5 h-5 text-accent" />
-          Journal de Validation Longitudinale
-        </CardTitle>
-        <CardDescription>
-          Comparez vos prédictions générées avec les résultats réels pour évaluer les performances du modèle.
-        </CardDescription>
+      <CardHeader className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <History className="w-5 h-5 text-accent" />
+            Journal de Validation Longitudinale
+          </CardTitle>
+          <CardDescription className="mt-1.5">
+            Comparez vos prédictions générées avec les résultats réels pour évaluer les performances du modèle.
+          </CardDescription>
+        </div>
+        <DataExporter 
+          data={filteredLogs}
+          columns={[
+            { key: "prediction_date", label: "Date Prédiction" },
+            { key: "draw_name", label: "Tirage" },
+            { key: "model_used", label: "Modèle" },
+            { key: "predicted_numbers", label: "Prédiction" },
+            { key: "winning_numbers", label: "Résultat" },
+            { key: "matches", label: "Matchs" },
+            { key: "success_rate", label: "Précision (%)" },
+            { key: "notes", label: "Notes" }
+          ]}
+          id="prediction-log-export"
+          defaultFileName="journal-predictions"
+          buttonText="Exporter le journal"
+        />
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 items-center">
@@ -67,7 +87,7 @@ export const PredictionLog = () => {
             </Select>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
+            <Select value={filter} onValueChange={(v: string) => setFilter(v as any)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
@@ -116,20 +136,40 @@ export const PredictionLog = () => {
                       </p>
                     </div>
                     {log.winning_numbers ? (
-                      <div className="text-right">
-                        <p className="text-sm font-semibold flex items-center justify-end gap-1 text-success">
-                          <CheckCircle2 className="w-4 h-4" />
-                          Précision: {log.success_rate.toFixed(0)}%
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {log.matches} match(s) sur {log.predicted_numbers.length}
-                        </p>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="text-right">
+                          <p className="text-sm font-semibold flex items-center justify-end gap-1 text-success">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Précision: {log.success_rate.toFixed(0)}%
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {log.matches} match(s) sur {log.predicted_numbers.length}
+                          </p>
+                        </div>
+                        <SocialShare 
+                          title={`Prédiction Validée Loto Lumière - ${log.draw_name}`}
+                          description={`Mon modèle ${log.model_used} a obtenu une précision de ${log.success_rate.toFixed(0)}% !`}
+                          numbers={log.predicted_numbers}
+                          drawName={log.draw_name}
+                          confidence={log.confidence_score}
+                          predictionId={log.prediction_id}
+                        />
                       </div>
                     ) : (
-                      <div className="text-right">
-                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-                          En attente de résultat
-                        </Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="text-right">
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                            En attente de résultat
+                          </Badge>
+                        </div>
+                        <SocialShare 
+                          title={`Nouvelle Prédiction Loto Lumière - ${log.draw_name}`}
+                          description={`Découvrez ma prédiction générée par IA (Modèle: ${log.model_used}).`}
+                          numbers={log.predicted_numbers}
+                          drawName={log.draw_name}
+                          confidence={log.confidence_score}
+                          predictionId={log.prediction_id}
+                        />
                       </div>
                     )}
                   </div>

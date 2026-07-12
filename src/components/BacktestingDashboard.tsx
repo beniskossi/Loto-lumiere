@@ -34,7 +34,9 @@ export const BacktestingDashboard = () => {
   const allDraws = DAYS_ORDER.flatMap(day => DRAW_SCHEDULE[day]);
 
   // Sync latest results from hook
-  const displayResults = latestResults.length > 0 ? latestResults : (lastResults?.evaluations || []);
+  const displayResults = useMemo(() => {
+    return latestResults.length > 0 ? latestResults : (lastResults?.evaluations || []);
+  }, [latestResults, lastResults]);
 
   const handleRunBacktest = () => {
     runBacktest({

@@ -323,7 +323,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
                         <NumberBall 
                           number={num} 
                           size="lg" 
-                          confidence={optimizedPrediction.confidence * 100}
+                          confidence={customPrediction.confidence * 100}
                           className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 shadow-lg shadow-accent/20" 
                         />
                       </motion.div>

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NumberBall } from "@/components/NumberBall";
-import { useTemporalAnalysis } from "@/hooks/useTemporalAnalysis";
+import { useTemporalAnalysis, TemporalAnalysisData, DayPattern, MonthPattern, TimeSlotPattern, SeasonalTrend, TemporalCycle } from "@/hooks/useTemporalAnalysis";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -132,7 +132,7 @@ const QuickStatCard = ({
   value, 
   trend 
 }: { 
-  icon: any; 
+  icon: React.ElementType; 
   label: string; 
   value: string; 
   trend: "up" | "down" | "stable";
@@ -159,7 +159,7 @@ const QuickStatCard = ({
 );
 
 // Overview Tab
-const OverviewTab = ({ data }: { data: any }) => (
+const OverviewTab = ({ data }: { data: TemporalAnalysisData }) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -264,7 +264,7 @@ const OverviewTab = ({ data }: { data: any }) => (
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {data.timeSlotPatterns.map((slot: any, idxSlot: number) => (
+          {data.timeSlotPatterns.map((slot: TimeSlotPattern, idxSlot: number) => (
             <div key={`timeslot-${slot.timeSlot || idxSlot}`} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
               <div>
                 <span className="font-medium text-sm">{slot.timeSlot}</span>
@@ -284,14 +284,14 @@ const OverviewTab = ({ data }: { data: any }) => (
 );
 
 // Daily Tab
-const DailyTab = ({ data }: { data: any }) => (
+const DailyTab = ({ data }: { data: TemporalAnalysisData }) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     className="space-y-3"
   >
-    {data.dayPatterns.map((day: any, index: number) => (
+    {data.dayPatterns.map((day: DayPattern, index: number) => (
       <motion.div
         key={`day-pattern-${day.day}-${index}`}
         initial={{ opacity: 0, x: -20 }}
@@ -349,7 +349,7 @@ const DailyTab = ({ data }: { data: any }) => (
 );
 
 // Monthly Tab
-const MonthlyTab = ({ data }: { data: any }) => (
+const MonthlyTab = ({ data }: { data: TemporalAnalysisData }) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -365,7 +365,7 @@ const MonthlyTab = ({ data }: { data: any }) => (
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {data.seasonalTrends.map((season: any, idxSeason: number) => (
+        {data.seasonalTrends.map((season: SeasonalTrend, idxSeason: number) => (
           <div key={`season-${season.season}-${idxSeason}`} className="p-3 rounded-lg bg-secondary/30">
             <div className="flex items-center justify-between mb-2">
               <span className="font-medium text-sm">{season.season}</span>
@@ -391,7 +391,7 @@ const MonthlyTab = ({ data }: { data: any }) => (
 
     {/* Monthly Details */}
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-      {data.monthPatterns.map((month: any, index: number) => (
+      {data.monthPatterns.map((month: MonthPattern, index: number) => (
         <motion.div
           key={`month-pattern-${month.month}-${index}`}
           initial={{ opacity: 0, scale: 0.95 }}
@@ -418,7 +418,7 @@ const MonthlyTab = ({ data }: { data: any }) => (
 );
 
 // Cycles Tab
-const CyclesTab = ({ data }: { data: any }) => (
+const CyclesTab = ({ data }: { data: TemporalAnalysisData }) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -435,7 +435,7 @@ const CyclesTab = ({ data }: { data: any }) => (
         </CardContent>
       </Card>
     ) : (
-      data.detectedCycles.map((cycle: any, index: number) => (
+      data.detectedCycles.map((cycle: TemporalCycle, index: number) => (
         <motion.div
           key={`cycle-${cycle.cycleLength}-${index}`}
           initial={{ opacity: 0, y: 20 }}

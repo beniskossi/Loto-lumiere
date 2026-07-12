@@ -61,10 +61,10 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
         title: "✓ Prédiction générée",
         description: "Nouvelle prédiction disponible",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de générer la prédiction",
+        description: (error as Error).message || "Impossible de générer la prédiction",
         variant: "destructive",
       });
     }
