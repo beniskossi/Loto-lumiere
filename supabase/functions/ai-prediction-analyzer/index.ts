@@ -85,7 +85,7 @@ serve(async (req) => {
       predictions = [{
         numbers: body.numbers,
         confidence: 0.85,
-        algorithm: "XGBoost",
+        algorithm: "Stacking Ensemble",
         category: "ML"
       }];
     }

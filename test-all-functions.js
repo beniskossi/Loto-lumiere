@@ -7,9 +7,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const functionsToTest = [
   { name: "evaluate-algorithms", body: { drawName: "Wari" } },
-  { name: "chronological-training", body: { drawName: "Wari", algorithm: "XGBoost" } },
+  { name: "chronological-training", body: { drawName: "Wari", algorithm: "Stacking Ensemble" } },
   { name: "multi-draw-prediction", body: { drawNames: ["Wari"] } },
-  { name: "ai-prediction-analyzer", body: { drawName: "Wari", predictions: [{ numbers: [3, 11, 21, 32, 50], confidence: 0.85, algorithm: "XGBoost", category: "ML" }] } },
+  { name: "ai-prediction-analyzer", body: { drawName: "Wari", predictions: [{ numbers: [3, 11, 21, 32, 50], confidence: 0.85, algorithm: "Stacking Ensemble", category: "ML" }] } },
   { name: "scrape-results", body: { drawName: "Wari" } },
   { name: "personalized-prediction", body: { drawName: "Wari", userId: "dummy" } },
   { name: "multi-algorithm-comparison", body: { drawName: "Wari" } },

@@ -5,7 +5,6 @@ import {
   lstmAlgorithm,
 } from "./algorithms.ts";
 import { transformerAlgorithm } from "./transformer.ts";
-import { xgboostAlgorithm } from "./xgboost.ts";
 import { stackingEnsemble } from "./stacking.ts";
 import { selectBestAlgorithm } from "./decision-tree-selector.ts";
 
@@ -38,9 +37,6 @@ export function ensemblePrediction(results: DrawResult[], drawName?: string): Pr
   switch (selection.selectedAlgorithm) {
     case "Transformer":
       prediction = transformerAlgorithm(results);
-      break;
-    case "XGBoost":
-      prediction = xgboostAlgorithm(results);
       break;
     case "LSTM":
       prediction = lstmAlgorithm(results);

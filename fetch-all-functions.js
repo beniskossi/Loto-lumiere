@@ -3,7 +3,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const functionsToTest = [
   { name: "evaluate-algorithms", body: { drawName: "Wari" } },
-  { name: "chronological-training", body: { drawName: "Wari", algorithm: "XGBoost" } },
+  { name: "chronological-training", body: { drawName: "Wari", algorithm: "Stacking Ensemble" } },
   { name: "multi-draw-prediction", body: { drawName: "Wari", drawsCount: 5 } },
   { name: "ai-prediction-analyzer", body: { drawName: "Wari", numbers: [3, 11, 21, 32, 50] } },
   { name: "scrape-results", body: { drawName: "Wari" } },

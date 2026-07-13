@@ -15,10 +15,11 @@ import {
   frequencyProAlgorithm, 
   randomForestAlgorithm, 
   lstmAlgorithm,
+  doubleGapSequenceAlgorithm,
+  gapCadenceAlgorithm,
   generateFallbackPrediction 
 } from "./algorithms.ts";
 import { transformerAlgorithm } from "./transformer.ts";
-import { xgboostAlgorithm } from "./xgboost.ts";
 import { stackingEnsemble } from "./stacking.ts";
 import { log } from "./utils.ts";
 
@@ -61,13 +62,22 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 1.1,
     enabled: true,
   }],
-  ["XGBoost", {
-    name: "XGBoost",
-    category: "gradient" as AlgorithmCategory,
-    minDataRequired: 120,
-    maxDataUsed: 400,
-    resourceIntensity: "high",
-    weight: 1.0,
+  ["Double Gap Sequence", {
+    name: "Double Gap Sequence",
+    category: "statistical" as AlgorithmCategory,
+    minDataRequired: 10,
+    maxDataUsed: 200,
+    resourceIntensity: "low",
+    weight: 1.5,
+    enabled: true,
+  }],
+  ["Gap Cadence", {
+    name: "Gap Cadence",
+    category: "statistical" as AlgorithmCategory,
+    minDataRequired: 15,
+    maxDataUsed: 200,
+    resourceIntensity: "low",
+    weight: 1.4,
     enabled: true,
   }],
   ["Stacking Ensemble", {
@@ -88,7 +98,8 @@ const ALGORITHM_FUNCTIONS: Map<string, AlgorithmFunction> = new Map([
   ["Random Forest", randomForestAlgorithm],
   ["LSTM Network", lstmAlgorithm],
   ["Transformer (Attention)", transformerAlgorithm],
-  ["XGBoost", xgboostAlgorithm],
+  ["Double Gap Sequence", doubleGapSequenceAlgorithm],
+  ["Gap Cadence", gapCadenceAlgorithm],
   ["Stacking Ensemble", stackingEnsemble],
 ]);
 
@@ -171,13 +182,6 @@ export class AlgorithmRegistryManager {
       return {
         algorithm: "Transformer (Attention)",
         reason: `Volume important (${dataCount} tirages) - Transformer attention recommandé`
-      };
-    }
-
-    if (dataCount >= 120 && eligible.some(a => a.config.name === "XGBoost")) {
-      return {
-        algorithm: "XGBoost",
-        reason: `Volume solide (${dataCount} tirages) - XGBoost gradient boosting`
       };
     }
 

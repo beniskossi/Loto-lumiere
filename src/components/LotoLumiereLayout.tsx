@@ -22,6 +22,7 @@ import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import { AccueilTab } from "./loto/AccueilTab";
 import { BottomNavBar, TabId } from "./loto/BottomNavBar";
 import { ScrollToTop } from "./loto/ScrollToTop";
+import { CadenceAlertNotificationCenter } from "./CadenceAlertNotificationCenter";
 
 // Lazy-loaded tab components — only loaded when user navigates to them
 const PredictionsContainer = lazy(() => import("./loto/PredictionsContainer").then(m => ({ default: m.PredictionsContainer })));
@@ -151,6 +152,7 @@ export const LotoLumiereLayout = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-1">
+              <CadenceAlertNotificationCenter drawName={selectedDraw} />
               {isAdmin && (
                 <Button 
                   variant="ghost" 

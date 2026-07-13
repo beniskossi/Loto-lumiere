@@ -72,6 +72,28 @@ serve(async (req) => {
         elapsed: Date.now() - startTime 
       });
       
+      // Deduplicate arrays in precalculated payload to fix older bad cached items
+      const deduplicateNumbers = (nums: number[]) => {
+        const unique = Array.from(new Set(nums));
+        if (unique.length < 5) {
+          let extra = 1;
+          while (unique.length < 5 && extra <= 90) {
+            if (!unique.includes(extra)) unique.push(extra);
+            extra++;
+          }
+        }
+        return unique.sort((a, b) => a - b).slice(0, 5);
+      };
+
+      if (precalculated.optimized_prediction?.numbers) {
+        precalculated.optimized_prediction.numbers = deduplicateNumbers(precalculated.optimized_prediction.numbers);
+      }
+      if (Array.isArray(precalculated.predictions)) {
+        precalculated.predictions.forEach((p: any) => {
+          if (p.numbers) p.numbers = deduplicateNumbers(p.numbers);
+        });
+      }
+      
       return new Response(JSON.stringify({
         predictions: precalculated.predictions,
         optimizedPrediction: precalculated.optimized_prediction,

@@ -7,9 +7,10 @@ import {
   frequencyProAlgorithm,
   randomForestAlgorithm,
   lstmAlgorithm,
+  doubleGapSequenceAlgorithm,
+  gapCadenceAlgorithm,
 } from "../_shared/algorithms.ts";
 import { transformerAlgorithm } from "../_shared/transformer.ts";
-import { xgboostAlgorithm } from "../_shared/xgboost.ts";
 import { stackingEnsemble } from "../_shared/stacking.ts";
 import { RateLimiter, getClientIdentifier, createRateLimitResponse } from "../_shared/rate-limiter.ts";
 
@@ -35,12 +36,13 @@ const evaluateAlgorithmsSchema = z.object({
 
 // Noms des algorithmes conformes à la configuration
 const ALGORITHM_DISPLAY_NAMES: Record<string, string> = {
-  "Optimiseur MCMC": "Optimiseur MCMC (Monte Carlo)",
+  "Optimiseur MCMC": "Optimiseur MCMC (Chaîne de Markov)",
   "FrequencyPro": "FrequencyPro",
   "Random Forest": "Random Forest",
   "LSTM": "LSTM Network",
   "Transformer": "Transformer (Attention)",
-  "XGBoost": "XGBoost",
+  "Double Gap Sequence": "Double Gap (Écarts des Écarts)",
+  "Gap Cadence": "Cadence Morphologique",
   "Stacking Ensemble": "Stacking Ensemble",
 };
 
@@ -118,7 +120,8 @@ serve(async (req) => {
       }},
       { name: "Stacking Ensemble", fn: stackingEnsemble },
       { name: "Transformer", fn: transformerAlgorithm },
-      { name: "XGBoost", fn: xgboostAlgorithm },
+      { name: "Double Gap Sequence", fn: doubleGapSequenceAlgorithm },
+      { name: "Gap Cadence", fn: gapCadenceAlgorithm },
       { name: "FrequencyPro", fn: frequencyProAlgorithm },
       { name: "Random Forest", fn: randomForestAlgorithm },
       { name: "LSTM", fn: lstmAlgorithm },

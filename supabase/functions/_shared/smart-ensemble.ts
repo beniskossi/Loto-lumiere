@@ -1,12 +1,13 @@
-// Smart Ensemble - Ensemble intelligent avec les 5 meilleurs algorithmes
+// Smart Ensemble - Ensemble intelligent avec les meilleurs algorithmes de base
 import type { DrawResult, PredictionResult } from "./types.ts";
 import { 
   frequencyProAlgorithm,
   randomForestAlgorithm,
   lstmAlgorithm,
+  doubleGapSequenceAlgorithm,
+  gapCadenceAlgorithm,
 } from "./algorithms.ts";
 import { transformerAlgorithm } from "./transformer.ts";
-import { xgboostAlgorithm } from "./xgboost.ts";
 import { selectBalancedNumbers, log } from "./utils.ts";
 import { callAIForOrchestration } from "./ai-orchestration.ts";
 
@@ -24,13 +25,14 @@ interface ModelConfig {
   resourceIntensity: "low" | "medium" | "high";
 }
 
-// Configuration des 5 algorithmes avec leurs exigences de données
+// Configuration des algorithmes avec leurs exigences de données (XGBoost retiré, nouveaux algorithmes ajoutés)
 const MODEL_CONFIGS: ModelConfig[] = [
   { name: "FrequencyPro", fn: frequencyProAlgorithm, minDataRequired: 5, resourceIntensity: "low" },
   { name: "Random Forest", fn: randomForestAlgorithm, minDataRequired: 40, resourceIntensity: "low" },
   { name: "LSTM", fn: lstmAlgorithm, minDataRequired: 80, resourceIntensity: "medium" },
-  { name: "XGBoost", fn: xgboostAlgorithm, minDataRequired: 150, resourceIntensity: "high" },
   { name: "Transformer", fn: transformerAlgorithm, minDataRequired: 300, resourceIntensity: "high" },
+  { name: "Double Gap Sequence", fn: doubleGapSequenceAlgorithm, minDataRequired: 10, resourceIntensity: "low" },
+  { name: "Gap Cadence", fn: gapCadenceAlgorithm, minDataRequired: 15, resourceIntensity: "low" },
 ];
 
 export class SmartEnsemble {
@@ -46,11 +48,12 @@ export class SmartEnsemble {
 
   private initializeWeights(): void {
     const initialModels = [
-      { name: "Transformer", weight: 0.22 },
-      { name: "XGBoost", weight: 0.22 },
-      { name: "LSTM", weight: 0.20 },
-      { name: "Random Forest", weight: 0.18 },
-      { name: "FrequencyPro", weight: 0.18 },
+      { name: "Transformer", weight: 0.20 },
+      { name: "LSTM", weight: 0.18 },
+      { name: "Random Forest", weight: 0.15 },
+      { name: "FrequencyPro", weight: 0.15 },
+      { name: "Double Gap Sequence", weight: 0.17 },
+      { name: "Gap Cadence", weight: 0.15 },
     ];
 
     initialModels.forEach(model => {
@@ -143,7 +146,7 @@ export class SmartEnsemble {
       return {
         numbers: ensemblePrediction,
         confidence,
-        algorithm: useAIOrchestration ? `AI Orchestrated Hybrid (${modelsUsed.length} Modèles)` : `Smart Ensemble (${modelsUsed.length}/5 Modèles)`,
+        algorithm: useAIOrchestration ? `AI Orchestrated Hybrid (${modelsUsed.length} Modèles)` : `Smart Ensemble (${modelsUsed.length}/${MODEL_CONFIGS.length} Modèles)`,
         factors: [
           `${modelsUsed.length} algorithmes exécutés`,
           useAIOrchestration ? "Sélection & Pondération via IA" : "Poids adaptatifs",

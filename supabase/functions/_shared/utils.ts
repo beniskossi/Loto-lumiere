@@ -90,12 +90,26 @@ export function getNumberColorGroup(number: number): string {
  * Sélectionne des numéros équilibrés par groupe de couleurs
  */
 export function selectBalancedNumbers(candidates: number[], count: number): number[] {
-  if (candidates.length <= count) {
-    return candidates.sort((a, b) => a - b);
+  // Deduplicate candidates to ensure unique numbers in prediction
+  const uniqueCandidates = Array.from(new Set(candidates));
+  
+  // Si pas assez de candidats, on complète avec des numéros déterministes (basés sur le jour)
+  if (uniqueCandidates.length < count) {
+    const lcg = new DeterministicLCG(new Date().getTime());
+    while (uniqueCandidates.length < count) {
+      const fallbackNum = Math.floor(lcg.next() * 90) + 1;
+      if (!uniqueCandidates.includes(fallbackNum)) {
+        uniqueCandidates.push(fallbackNum);
+      }
+    }
+  }
+
+  if (uniqueCandidates.length === count) {
+    return uniqueCandidates.sort((a, b) => a - b);
   }
 
   const colorGroups: Record<string, number[]> = {};
-  candidates.forEach(num => {
+  uniqueCandidates.forEach(num => {
     const group = getNumberColorGroup(num);
     if (!colorGroups[group]) {
       colorGroups[group] = [];
@@ -118,7 +132,7 @@ export function selectBalancedNumbers(candidates: number[], count: number): numb
   }
 
   // Compléter avec les candidats restants
-  const remainingCandidates = candidates.filter(num => !selected.includes(num));
+  const remainingCandidates = uniqueCandidates.filter(num => !selected.includes(num));
   while (selected.length < count && remainingCandidates.length > 0) {
     selected.push(remainingCandidates.shift()!);
   }

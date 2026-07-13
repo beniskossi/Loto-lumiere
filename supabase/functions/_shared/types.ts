@@ -12,13 +12,12 @@ export interface DrawResult {
   machine_numbers?: number[];
 }
 
-// Les 6 catégories d'algorithmes
+// Les catégories d'algorithmes (XGBoost / Gradient boosting retiré)
 export type AlgorithmCategory = 
   | "statistical"   // FrequencyPro - Analyse statistique
   | "forest"        // Random Forest - Ensemble d'arbres
   | "recurrent"     // LSTM - Réseaux récurrents
   | "transformer"   // Transformer - Attention mechanism
-  | "gradient"      // XGBoost - Gradient boosting
   | "ensemble";     // Stacking/Smart Ensemble
 
 // ====================== PRÉDICTIONS ======================
@@ -246,7 +245,8 @@ export const ALGORITHM_NAMES = {
   RANDOM_FOREST: "Random Forest",
   LSTM: "LSTM Network",
   TRANSFORMER: "Transformer (Attention)",
-  XGBOOST: "XGBoost",
+  DOUBLE_GAP_SEQUENCE: "Double Gap Sequence",
+  GAP_CADENCE: "Gap Cadence",
   STACKING: "Stacking Ensemble",
   SMART_ENSEMBLE: "Smart Ensemble",
   BAYESIAN: "Bayesian Ensemble",

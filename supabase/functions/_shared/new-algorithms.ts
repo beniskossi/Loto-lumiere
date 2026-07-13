@@ -1,6 +1,11 @@
-import { DrawResult } from "./types.ts"; // Assuming types exist or any equivalent
+import type { DrawResult, PredictionResult } from "./types.ts";
+import { selectBalancedNumbers, generateDeterministicFallback } from "./utils.ts";
 
-export function calculateDoubleGapSequence(results: any[]): Map<number, number> {
+/**
+ * Calcule les scores de tendance basés sur l'accélération et le momentum des écarts
+ * (Double Gap Sequence - second ordre des écarts).
+ */
+export function calculateDoubleGapSequence(results: DrawResult[]): Map<number, number> {
   const scores = new Map<number, number>();
   for (let n = 1; n <= 90; n++) {
     const indices = [];
@@ -35,7 +40,10 @@ export function calculateDoubleGapSequence(results: any[]): Map<number, number> 
   return scores;
 }
 
-export function calculateGapCadenceMorphology(results: any[]): Map<number, number> {
+/**
+ * Calcule les scores rythmiques et de morphologie basés sur la périodicité des écarts (Gap Cadence).
+ */
+export function calculateGapCadenceMorphology(results: DrawResult[]): Map<number, number> {
   const scores = new Map<number, number>();
   for (let n = 1; n <= 90; n++) {
     const indices = [];
@@ -84,4 +92,86 @@ export function calculateGapCadenceMorphology(results: any[]): Map<number, numbe
     scores.set(n, score);
   }
   return scores;
+}
+
+/**
+ * Algorithme Double Gap Sequence - Standalone
+ */
+export function doubleGapSequenceAlgorithm(results: DrawResult[]): PredictionResult {
+  if (results.length < 5) {
+    const fallbackNumbers = generateDeterministicFallback(results);
+    return {
+      numbers: fallbackNumbers,
+      confidence: 0.60,
+      algorithm: "Double Gap Sequence",
+      factors: ["Fallback dégradé - Données insuffisantes (min: 5)"],
+      score: 0.5,
+      category: "statistical",
+    };
+  }
+
+  const scores = calculateDoubleGapSequence(results);
+  const sortedNumbers = Array.from(scores.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(entry => entry[0]);
+
+  const prediction = selectBalancedNumbers(sortedNumbers.slice(0, 15), 5);
+
+  // Calcule de la confiance moyenne sur les numéros sélectionnés
+  const avgScore = prediction.reduce((sum, num) => sum + (scores.get(num) || 0), 0) / 5;
+  const confidence = Math.max(0.70, Math.min(0.95, 0.70 + avgScore * 0.25));
+
+  return {
+    numbers: prediction,
+    confidence,
+    algorithm: "Double Gap Sequence",
+    factors: [
+      "Vitesse de variation d'écart",
+      "Accélération du momentum d'écart",
+      "Projection gaussienne de second ordre"
+    ],
+    score: confidence * 0.88,
+    category: "statistical",
+  };
+}
+
+/**
+ * Algorithme Gap Cadence - Standalone
+ */
+export function gapCadenceAlgorithm(results: DrawResult[]): PredictionResult {
+  if (results.length < 5) {
+    const fallbackNumbers = generateDeterministicFallback(results);
+    return {
+      numbers: fallbackNumbers,
+      confidence: 0.60,
+      algorithm: "Gap Cadence",
+      factors: ["Fallback dégradé - Données insuffisantes (min: 5)"],
+      score: 0.5,
+      category: "statistical",
+    };
+  }
+
+  const scores = calculateGapCadenceMorphology(results);
+  const sortedNumbers = Array.from(scores.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(entry => entry[0]);
+
+  const prediction = selectBalancedNumbers(sortedNumbers.slice(0, 15), 5);
+
+  // Calcule de la confiance moyenne sur les numéros sélectionnés
+  const avgScore = prediction.reduce((sum, num) => sum + (scores.get(num) || 0), 0) / 5;
+  const confidence = Math.max(0.68, Math.min(0.92, 0.68 + avgScore * 0.24));
+
+  return {
+    numbers: prediction,
+    confidence,
+    algorithm: "Gap Cadence",
+    factors: [
+      "Périodicité rythmique des écarts",
+      "Cohérence de la morphologie d'écart",
+      "Projection de phase d'apparition"
+    ],
+    score: confidence * 0.85,
+    category: "statistical",
+  };
 }

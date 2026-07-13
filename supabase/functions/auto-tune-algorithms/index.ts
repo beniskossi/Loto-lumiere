@@ -24,13 +24,14 @@ interface HyperparameterConfig {
   learningRate?: number;
 }
 
-// Les 6 algorithmes valides uniquement
+// Les algorithmes valides uniquement
 const VALID_ALGORITHMS = [
   "FrequencyPro",
   "Random Forest", 
   "LSTM Network",
   "Transformer (Attention)",
-  "XGBoost",
+  "Double Gap Sequence",
+  "Gap Cadence",
   "Stacking Ensemble"
 ];
 
@@ -258,15 +259,6 @@ function calculateOptimalParameters(
       newParams.decayRate = Math.max(0.02, Math.min(0.05, 0.035 * (1 - performanceScore * 0.3)));
       break;
 
-    case 'XGBoost':
-      newParams.numTrees = Math.max(10, Math.min(50, 
-        Math.floor(20 + performanceScore * 30)
-      ));
-      newParams.learningRate = Math.max(0.01, Math.min(0.1, 
-        0.05 * (1 + performanceScore * 0.5)
-      ));
-      break;
-
     case 'Random Forest':
       newParams.numTrees = Math.max(5, Math.min(30, 
         Math.floor(10 + performanceScore * 20)
@@ -282,6 +274,18 @@ function calculateOptimalParameters(
       ));
       newParams.minDataPoints = Math.max(5, Math.min(20, 
         Math.floor(10 - performanceScore * 5)
+      ));
+      break;
+
+    case 'Double Gap Sequence':
+      newParams.window_size = Math.max(5, Math.min(30, 
+        Math.floor(10 + performanceScore * 20)
+      ));
+      break;
+
+    case 'Gap Cadence':
+      newParams.cadence_depth = Math.max(2, Math.min(15, 
+        Math.floor(5 + performanceScore * 10)
       ));
       break;
 

@@ -227,11 +227,10 @@ async function performAdvancedAnalysis(
     // Moyenne bayésienne si bon consensus
     if (consensus.agreementScore > 0.3) {
       const priorPerformance = new Map([
-        ["Transformer (Attention)", 0.25],
-        ["XGBoost", 0.22],
-        ["LSTM Network", 0.18],
-        ["Random Forest", 0.18],
-        ["FrequencyPro", 0.17]
+        ["Transformer (Attention)", 0.28],
+        ["LSTM Network", 0.24],
+        ["Random Forest", 0.24],
+        ["FrequencyPro", 0.24]
       ]);
       
       const bayesianResult = calculateBayesianModelAverage(predictionsMap, priorPerformance);
@@ -456,9 +455,8 @@ export function generateExplanations(
 
   // Descriptions des algorithmes
   const algorithmDescriptions: Record<string, string> = {
-    "Stacking Ensemble": "Méta-algorithme combinant 5 modèles pour une prédiction optimisée",
+    "Stacking Ensemble": "Méta-algorithme combinant les modèles pour une prédiction optimisée",
     "Transformer (Attention)": "Réseau d'attention pour capturer les dépendances longue distance",
-    "XGBoost": "Gradient boosting performant pour patterns complexes",
     "LSTM Network": "Réseau récurrent spécialisé dans les séquences temporelles",
     "Random Forest": "Ensemble d'arbres de décision pour robustesse",
     "FrequencyPro": "Analyse fréquentielle pondérée avec détection de tendances"

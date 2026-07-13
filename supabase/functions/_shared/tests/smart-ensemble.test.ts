@@ -56,8 +56,8 @@ Deno.test("SmartEnsemble - Medium Data (100 draws) Runs Multiple Algorithms", as
   
   assertExists(prediction);
   assertEquals(prediction.numbers.length, 5);
-  // Should run FrequencyPro, Random Forest, and LSTM (3 algorithms)
-  assertEquals(prediction.algorithm.includes("3/5 Modèles") || prediction.algorithm.includes("2/5 Modèles"), true);
+  // Should run FrequencyPro, Random Forest, LSTM, Double Gap, Gap Cadence (5 algorithms)
+  assertEquals(prediction.algorithm.includes("5/6 Modèles"), true);
   assertEquals(prediction.confidence >= 0.5, true);
 });
 
@@ -68,8 +68,8 @@ Deno.test("SmartEnsemble - Large Data (400 draws) Runs All 5 Algorithms", async 
   
   assertExists(prediction);
   assertEquals(prediction.numbers.length, 5);
-  // Should run all 5 algorithms
-  assertEquals(prediction.algorithm.includes("5/5 Modèles"), true);
+  // Should run all 6 algorithms
+  assertEquals(prediction.algorithm.includes("6/6 Modèles"), true);
   assertEquals(prediction.confidence >= 0.7, true);
 });
 
@@ -127,16 +127,17 @@ Deno.test("SmartEnsemble - Initial Weights Sum To 1", () => {
   assertEquals(Math.abs(totalWeight - 1) < 0.001, true);
 });
 
-Deno.test("SmartEnsemble - Has All 5 Model Weights", () => {
+Deno.test("SmartEnsemble - Has All Model Weights", () => {
   const ensemble = new SmartEnsemble();
   const weights = ensemble.getModelWeights();
   
-  assertEquals(weights.size, 5);
+  assertEquals(weights.size, 6);
   assertEquals(weights.has("FrequencyPro"), true);
   assertEquals(weights.has("Random Forest"), true);
   assertEquals(weights.has("LSTM"), true);
-  assertEquals(weights.has("XGBoost"), true);
   assertEquals(weights.has("Transformer"), true);
+  assertEquals(weights.has("Double Gap Sequence"), true);
+  assertEquals(weights.has("Gap Cadence"), true);
 });
 
 Deno.test("SmartEnsemble - Reset Weights Works", async () => {
@@ -195,8 +196,8 @@ Deno.test("SmartEnsemble - Get Ensemble Stats", () => {
   const ensemble = new SmartEnsemble();
   const stats = ensemble.getEnsembleStats();
   
-  assertEquals(stats.totalModels, 5);
-  assertEquals(stats.activeModels.length, 5);
+  assertEquals(stats.totalModels, 6);
+  assertEquals(stats.activeModels.length, 6);
   assertEquals(stats.averageWeight > 0, true);
   assertEquals(stats.averageStability > 0, true);
 });

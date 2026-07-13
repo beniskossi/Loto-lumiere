@@ -88,9 +88,9 @@ Deno.test("Prediction Engine - Algorithm Selection Logic", async () => {
     true
   );
   
-  // Large dataset should use Transformer or XGBoost
+  // Large dataset should use Transformer
   assertEquals(
-    ["Transformer", "XGBoost", "StackingEnsemble"].includes(largeResult.selectedAlgorithm),
+    ["Transformer", "StackingEnsemble"].includes(largeResult.selectedAlgorithm),
     true
   );
 });
@@ -242,7 +242,7 @@ Deno.test("Prediction Engine - Smart Ensemble Handles Large Data", async () => {
   
   assertExists(result);
   assertEquals(result.optimizedPrediction.numbers.length, 5);
-  // Should run all 5 algorithms with large data
-  assertEquals(result.optimizedPrediction.algorithm.includes("5/5"), true);
+  // Should run all 6 algorithms with large data
+  assertEquals(result.optimizedPrediction.algorithm.includes("6/6"), true);
   assertEquals(result.optimizedPrediction.confidence >= 0.7, true);
 });

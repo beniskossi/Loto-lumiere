@@ -2,7 +2,7 @@
 import type { DrawResult } from "./types.ts";
 
 export interface AlgorithmSelection {
-  selectedAlgorithm: "Transformer" | "XGBoost" | "LSTM" | "RandomForest" | "FrequencyPro" | "StackingEnsemble" | "SmartEnsemble";
+  selectedAlgorithm: "Transformer" | "LSTM" | "RandomForest" | "FrequencyPro" | "StackingEnsemble" | "SmartEnsemble";
   reason: string;
 }
 
@@ -72,15 +72,7 @@ export function selectBestAlgorithm(
     };
   }
   
-  // Niveau 2: 120-249 tirages → XGBoost (seuil ↓ de 150)
-  if (historicalCount >= 120) {
-    return {
-      selectedAlgorithm: "XGBoost",
-      reason: `Historique substantiel (${historicalCount} tirages) - XGBoost avec régularisation L2 optimisée`
-    };
-  }
-  
-  // Niveau 3: 60-119 tirages → LSTM (seuil ↓ de 80)
+  // Niveau 2: 60-249 tirages → LSTM (seuil ↓ de 80, couvre l'ancien XGBoost)
   if (historicalCount >= 60) {
     return {
       selectedAlgorithm: "LSTM",
@@ -88,7 +80,7 @@ export function selectBestAlgorithm(
     };
   }
   
-  // Niveau 4: 30-59 tirages → Random Forest (seuil ↓ de 40)
+  // Niveau 3: 30-59 tirages → Random Forest (seuil ↓ de 40)
   if (historicalCount >= 30) {
     return {
       selectedAlgorithm: "RandomForest",
@@ -96,7 +88,7 @@ export function selectBestAlgorithm(
     };
   }
   
-  // Niveau 5: <30 tirages → FrequencyPro (statistiques de base)
+  // Niveau 4: <30 tirages → FrequencyPro (statistiques de base)
   return {
     selectedAlgorithm: "FrequencyPro",
     reason: `Historique limité (${historicalCount} tirages) - Analyse fréquentielle pondérée recommandée`
@@ -121,17 +113,7 @@ export function getAlgorithmInfo(algorithm: AlgorithmSelection["selectedAlgorith
         "Détection de patterns non-linéaires",
         "Mécanisme d'attention pour relations long-terme"
       ],
-      optimalRange: "300+ tirages"
-    },
-    "XGBoost": {
-      name: "XGBoost",
-      description: "Gradient boosting avec régularisation L2 et arbres optimisés",
-      strengths: [
-        "Équilibre performance/vitesse optimal",
-        "Régularisation avancée anti-overfitting",
-        "Gestion efficace des features temporelles"
-      ],
-      optimalRange: "150-299 tirages"
+      optimalRange: "250+ tirages"
     },
     "LSTM": {
       name: "LSTM Network",

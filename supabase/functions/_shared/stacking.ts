@@ -1,8 +1,8 @@
-// Stacking Ensemble - Meta-learning avec les 5 meilleurs algorithmes
+// Stacking Ensemble - Meta-learning avec les meilleurs algorithmes de base
 import type { DrawResult, PredictionResult } from "./types.ts";
 import { transformerAlgorithm } from "./transformer.ts";
-import { xgboostAlgorithm } from "./xgboost.ts";
 import { lstmAlgorithm, randomForestAlgorithm, frequencyProAlgorithm } from "./algorithms.ts";
+import { doubleGapSequenceAlgorithm, gapCadenceAlgorithm } from "./new-algorithms.ts";
 import { selectBalancedNumbers } from "./utils.ts";
 
 const EPSILON = 1e-10;
@@ -20,13 +20,14 @@ export function stackingEnsemble(results: DrawResult[]): PredictionResult {
   }
 
   try {
-    // Level 1: Les 5 meilleurs algorithmes de base
+    // Level 1: Les meilleurs algorithmes de base
     const level1Models = [
       transformerAlgorithm(results),
-      xgboostAlgorithm(results),
       lstmAlgorithm(results),
       randomForestAlgorithm(results),
       frequencyProAlgorithm(results),
+      doubleGapSequenceAlgorithm(results),
+      gapCadenceAlgorithm(results),
     ];
 
     // Level 2: Meta-learner
@@ -53,10 +54,10 @@ export function stackingEnsemble(results: DrawResult[]): PredictionResult {
 
     return {
       numbers: prediction,
-      confidence: Math.min(0.93, avgConfidence * 1.15),
+      confidence: Math.min(0.95, avgConfidence * 1.15),
       algorithm: "Stacking Ensemble",
-      factors: ["5 modèles L1", "Meta-learner", "Poids optimisés"],
-      score: 0.93 * 0.93,
+      factors: ["6 modèles L1", "Meta-learner", "Poids optimisés"],
+      score: 0.95 * 0.95,
       category: "ensemble",
     };
   } catch (error) {

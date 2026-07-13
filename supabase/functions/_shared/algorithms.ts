@@ -1,6 +1,6 @@
 // =====================================================
 // Algorithmes de prédiction optimaux
-// Les 6 algorithmes principaux du système
+// Les algorithmes principaux du système
 // =====================================================
 
 import type { DrawResult, PredictionResult, AlgorithmCategory } from "./types.ts";
@@ -8,8 +8,8 @@ import { generateDeterministicFallback, selectBalancedNumbers, log, Deterministi
 
 // Réexporter les algorithmes avancés
 export { transformerAlgorithm } from "./transformer.ts";
-export { xgboostAlgorithm } from "./xgboost.ts";
 export { stackingEnsemble } from "./stacking.ts";
+export { doubleGapSequenceAlgorithm, gapCadenceAlgorithm } from "./new-algorithms.ts";
 
 const EPSILON = 1e-10;
 
