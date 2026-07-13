@@ -253,45 +253,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
         </CardContent>
       </Card>
 
-      <Card className="bg-accent/10 border-accent/30">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2 text-foreground">
-            <TrendingUp className="w-4 h-4 text-accent" />
-            Approche Hybride Multi-Modèles
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 text-sm">
-            <div className="flex gap-3">
-              <div className="w-2 h-2 mt-2 rounded-full bg-primary flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-foreground">Analyse de Fréquence Pondérée</p>
-                <p className="text-xs text-muted-foreground">
-                  Détection des numéros chauds avec boost de récence et seuil d'activité
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="w-2 h-2 mt-2 rounded-full bg-success flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-foreground">Patterns de Séquence</p>
-                <p className="text-xs text-muted-foreground">
-                  Analyse des paires et triplets fréquents pour identifier les associations
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="w-2 h-2 mt-2 rounded-full bg-accent flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-foreground">Gap Analysis Avancée</p>
-                <p className="text-xs text-muted-foreground">
-                  Prédiction basée sur les écarts temporels et la variance des patterns
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
 
       <Card className="bg-destructive/10 border-destructive/30">
         <CardContent className="pt-6">

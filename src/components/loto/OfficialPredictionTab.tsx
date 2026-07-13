@@ -296,7 +296,7 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
                 <div className="text-center">
                   <Badge className="mb-3 bg-primary/20 text-primary border-primary/30 px-4 py-1">
                     <Sparkles className="w-3 h-3 mr-1" />
-                    Prédiction Optimisée MCMC (Monte Carlo)
+                    Prédiction Optimisée
                   </Badge>
                   
                   {data?.isPrecalculated && (

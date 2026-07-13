@@ -446,17 +446,26 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
                             <span className="font-medium text-primary">{adj.newWeight.toFixed(2)}</span>
                           </div>
                         </div>
-                        
-                        <p className="text-sm text-muted-foreground">{adj.reason}</p>
-                        
-                        {adj.newParams && (
-                          <div className="mt-2 p-2 rounded bg-slate-700/50 text-xs">
-                            <span className="text-muted-foreground">Paramètres ajustés: </span>
-                            {Object.entries(adj.newParams).map(([k, v]) => (
-                              <span key={k} className="mr-2">{k}: {typeof v === 'number' ? v.toFixed(4) : typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
-                            ))}
+
+                        {adj.previousParams && adj.newParams && (
+                          <div className="mt-2 p-2 bg-slate-900/50 rounded-md text-xs">
+                            <span className="text-muted-foreground font-medium mb-1 block">Ajustement des Hyper-paramètres:</span>
+                            <div className="grid grid-cols-1 gap-1">
+                              {Object.keys(adj.newParams).map(key => (
+                                adj.previousParams?.[key] !== adj.newParams?.[key] && (
+                                  <div key={key} className="flex items-center gap-2">
+                                    <span className="text-slate-400">{key}:</span>
+                                    <span>{typeof adj.previousParams?.[key] === 'number' ? Number(adj.previousParams[key]).toFixed(3) : adj.previousParams?.[key]}</span>
+                                    <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-accent font-medium">{typeof adj.newParams?.[key] === 'number' ? Number(adj.newParams[key]).toFixed(3) : adj.newParams?.[key]}</span>
+                                  </div>
+                                )
+                              ))}
+                            </div>
                           </div>
                         )}
+                        
+                        <p className="text-sm text-muted-foreground mt-2">{adj.reason}</p>
                       </CardContent>
                     </Card>
                   ))}

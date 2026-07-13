@@ -79,13 +79,6 @@ const INITIAL_WEIGHTS: AlgorithmWeight[] = [
     color: "bg-amber-500"
   },
   { 
-    name: ALGORITHM_NAMES.XGBOOST, 
-    weight: 15, 
-    enabled: true,
-    description: "Gradient boosting optimisé",
-    color: "bg-red-500"
-  },
-  { 
     name: ALGORITHM_NAMES.STACKING, 
     weight: 20, 
     enabled: true,

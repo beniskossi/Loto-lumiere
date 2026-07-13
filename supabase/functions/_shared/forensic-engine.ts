@@ -255,15 +255,22 @@ export class ForensicEngine {
           Math.min(this.maxWeight, currentWeight + adjustment)
         );
 
-        // Ajustement des paramètres si overconfidence significative
+        // Ajustement des paramètres
         let newParams: Record<string, number> | undefined;
         let previousParams: Record<string, number> | undefined;
         
-        if (m.overconfidence && Math.abs(m.calibrationError) > 0.2) {
+        if (m.overconfidence && Math.abs(m.calibrationError) > 0.15) {
           previousParams = currentParams.get(m.algorithm);
           newParams = this.adjustParametersForOverconfidence(
+            m.algorithm,
             previousParams || {},
             m.calibrationError
+          );
+        } else if (m.trend === "declining" && m.accuracy < 15) {
+          previousParams = currentParams.get(m.algorithm);
+          newParams = this.adjustParametersForUnderperformance(
+            m.algorithm,
+            previousParams || {}
           );
         }
 
@@ -299,25 +306,78 @@ export class ForensicEngine {
    * Ajuste les paramètres pour réduire la surconfiance
    */
   private adjustParametersForOverconfidence(
+    algorithm: string,
     currentParams: Record<string, number>,
     calibrationError: number
   ): Record<string, number> {
     const adjusted = { ...currentParams };
     const reduction = Math.min(0.2, calibrationError);
 
-    // Réduire le learning rate si présent
-    if (adjusted.learningRate) {
-      adjusted.learningRate = Math.max(0.001, adjusted.learningRate * (1 - reduction));
+    // Si on est surconfiant, il faut être plus conservateur (plus de lissage, moins de sensibilité)
+    switch(algorithm) {
+      case 'FrequencyPro':
+        if (adjusted.decay_rate) adjusted.decay_rate = Math.max(0.01, adjusted.decay_rate * (1 - reduction));
+        if (adjusted.top_candidates) adjusted.top_candidates = Math.max(5, Math.floor(adjusted.top_candidates * (1 - reduction)));
+        break;
+      case 'Random Forest':
+        if (adjusted.max_depth) adjusted.max_depth = Math.max(3, Math.floor(adjusted.max_depth * (1 - reduction)));
+        break;
+      case 'LSTM Network':
+        if (adjusted.learning_rate) adjusted.learning_rate = Math.max(0.0001, adjusted.learning_rate * (1 - reduction));
+        break;
+      case 'Transformer (Attention)':
+        if (adjusted.dropout) adjusted.dropout = Math.min(0.5, adjusted.dropout * (1 + reduction));
+        break;
+      case 'Double Gap Sequence':
+        if (adjusted.window_size) adjusted.window_size = Math.min(30, Math.floor(adjusted.window_size * (1 + reduction)));
+        break;
+      case 'Gap Cadence':
+        if (adjusted.cadence_depth) adjusted.cadence_depth = Math.min(15, Math.floor(adjusted.cadence_depth * (1 + reduction)));
+        break;
+      case 'Stacking Ensemble':
+        if (adjusted.l2_penalty) adjusted.l2_penalty = Math.min(1.0, (adjusted.l2_penalty || 0.1) * (1 + reduction));
+        if (adjusted.meta_learning_rate) adjusted.meta_learning_rate = Math.max(0.001, adjusted.meta_learning_rate * (1 - reduction));
+        break;
     }
 
-    // Augmenter la régularisation
-    if (adjusted.regularization !== undefined) {
-      adjusted.regularization = Math.min(0.5, (adjusted.regularization || 0.01) * (1 + reduction));
-    }
+    return adjusted;
+  }
 
-    // Réduire la température (plus conservateur)
-    if (adjusted.temperature) {
-      adjusted.temperature = Math.max(0.3, adjusted.temperature * (1 - reduction * 0.5));
+  /**
+   * Ajuste les paramètres pour stimuler les performances lors d'une baisse
+   */
+  private adjustParametersForUnderperformance(
+    algorithm: string,
+    currentParams: Record<string, number>
+  ): Record<string, number> {
+    const adjusted = { ...currentParams };
+    const boost = 0.1; // 10% boost/change to explore better options
+
+    // Si on sous-performe, on augmente la sensibilité aux signaux récents
+    switch(algorithm) {
+      case 'FrequencyPro':
+        if (adjusted.decay_rate) adjusted.decay_rate = Math.min(0.2, adjusted.decay_rate * (1 + boost));
+        break;
+      case 'Random Forest':
+        if (adjusted.num_trees) adjusted.num_trees = Math.min(50, Math.floor(adjusted.num_trees * (1 + boost)));
+        if (adjusted.max_depth) adjusted.max_depth = Math.min(15, Math.floor(adjusted.max_depth * (1 + boost)));
+        break;
+      case 'LSTM Network':
+        if (adjusted.epochs) adjusted.epochs = Math.min(200, Math.floor(adjusted.epochs * (1 + boost)));
+        if (adjusted.sequence_length) adjusted.sequence_length = Math.max(10, Math.floor(adjusted.sequence_length * (1 - boost)));
+        break;
+      case 'Transformer (Attention)':
+        if (adjusted.num_heads) adjusted.num_heads = Math.min(8, Math.floor(adjusted.num_heads + 1));
+        break;
+      case 'Double Gap Sequence':
+        if (adjusted.window_size) adjusted.window_size = Math.max(5, Math.floor(adjusted.window_size * (1 - boost)));
+        break;
+      case 'Gap Cadence':
+        if (adjusted.cadence_depth) adjusted.cadence_depth = Math.max(2, Math.floor(adjusted.cadence_depth * (1 - boost)));
+        break;
+      case 'Stacking Ensemble':
+        if (adjusted.cv_folds) adjusted.cv_folds = Math.min(10, Math.floor(adjusted.cv_folds + 1));
+        break;
     }
 
     return adjusted;

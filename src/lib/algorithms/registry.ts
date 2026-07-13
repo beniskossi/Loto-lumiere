@@ -15,7 +15,8 @@ export type AlgorithmName =
   | 'Random Forest'
   | 'LSTM Network'
   | 'Transformer (Attention)'
-  | 'XGBoost'
+  | 'Double Gap Sequence'
+  | 'Gap Cadence'
   | 'Stacking Ensemble';
 
 export interface ParameterSchema {
@@ -97,21 +98,31 @@ export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
     strengths: ['Attention sur relations', 'Parallélisable', 'Haut potentiel'],
     bestFor: 'Relations complexes entre numéros'
   },
-  'XGBoost': {
-    name: 'XGBoost',
-    displayName: 'XGBoost',
-    description: 'Extreme Gradient Boosting avec régularisation. Excellent équilibre performance / interprétabilité.',
-    category: 'ensemble',
-    defaultWeight: 1.0,
-    color: 'hsl(140 60% 45%)',
+  'Double Gap Sequence': {
+    name: 'Double Gap Sequence',
+    displayName: 'Double Gap (Écarts des Écarts)',
+    description: 'Analyse et projette la séquence des écarts des écarts (second ordre) pour prédire la tendance de tranche.',
+    category: 'statistical',
+    defaultWeight: 1.5,
+    color: 'hsl(28 90% 50%)',
     parametersSchema: {
-      max_iterations: { type: 'number', default: 50, min: 20, max: 200 },
-      learning_rate: { type: 'number', default: 0.1, min: 0.01, max: 0.3 },
-      lambda: { type: 'number', default: 1.0 },
-      gamma: { type: 'number', default: 0.1 }
+      window_size: { type: 'number', default: 10, min: 5, max: 30 }
     },
-    strengths: ['Très performant', 'Régularisation intégrée', 'Rapide'],
-    bestFor: 'Compétition de précision'
+    strengths: ['Projection de tendance', 'Analyse du second ordre', 'Haute précision'],
+    bestFor: 'Détection des retournements de tendance'
+  },
+  'Gap Cadence': {
+    name: 'Gap Cadence',
+    displayName: 'Cadence Morphologique',
+    description: 'Recherche la cadence rythmique des écarts pour détecter les patterns et la morphologie du prochain tirage.',
+    category: 'statistical',
+    defaultWeight: 1.4,
+    color: 'hsl(180 70% 45%)',
+    parametersSchema: {
+      cadence_depth: { type: 'number', default: 5, min: 2, max: 15 }
+    },
+    strengths: ['Détection de patterns rythmiques', 'Morphologie', 'Explicabilité'],
+    bestFor: 'Anticipation des vagues d\'apparition'
   },
   'Stacking Ensemble': {
     name: 'Stacking Ensemble',

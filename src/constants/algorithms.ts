@@ -4,7 +4,8 @@ export const ALGORITHM_NAMES = {
   RANDOM_FOREST: "Random Forest",
   LSTM: "LSTM Network",
   TRANSFORMER: "Transformer (Attention)",
-  XGBOOST: "XGBoost",
+  DOUBLE_GAP_SEQUENCE: "Double Gap Sequence",
+  GAP_CADENCE: "Gap Cadence",
   STACKING: "Stacking Ensemble",
 } as const;
 
@@ -14,7 +15,8 @@ export const ALGORITHM_CATEGORIES = {
   [ALGORITHM_NAMES.RANDOM_FOREST]: "forest",
   [ALGORITHM_NAMES.LSTM]: "transformer",
   [ALGORITHM_NAMES.TRANSFORMER]: "transformer",
-  [ALGORITHM_NAMES.XGBOOST]: "xgboost",
+  [ALGORITHM_NAMES.DOUBLE_GAP_SEQUENCE]: "statistical",
+  [ALGORITHM_NAMES.GAP_CADENCE]: "statistical",
   [ALGORITHM_NAMES.STACKING]: "ensemble",
 } as const;
 

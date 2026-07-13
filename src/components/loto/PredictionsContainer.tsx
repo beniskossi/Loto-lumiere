@@ -2,8 +2,6 @@ import { useState, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Target, Brain, Sparkles, Cpu, Zap, GitBranch, SlidersHorizontal, FlaskConical, Compass, History } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MonteCarloOracle } from "@/components/MonteCarloOracle";
-import { MathematicalModelsVisualizer } from "@/components/MathematicalModelsVisualizer";
 import { useAdvancedPrediction } from "@/hooks/useAdvancedPrediction";
 
 const OfficialPredictionTab = lazy(() =>
@@ -50,7 +48,7 @@ export const PredictionsContainer = ({
   selectedDate,
   onClearDate,
 }: PredictionsContainerProps) => {
-  const [activeSubTab, setActiveSubTab] = useState<"official" | "enhanced" | "conditional" | "advanced" | "montecarlo" | "backtesting" | "affinity" | "log">("official");
+  const [activeSubTab, setActiveSubTab] = useState<"official" | "enhanced" | "conditional" | "advanced" | "backtesting" | "affinity" | "log">("official");
   const { data } = useAdvancedPrediction(drawName, { useSmartEnsemble: true });
   const basePrediction = data?.optimizedPrediction?.numbers || data?.predictions?.[0]?.numbers || [1, 2, 3, 4, 5];
 
@@ -104,13 +102,6 @@ export const PredictionsContainer = ({
             IA Paramétrable
           </TabsTrigger>
           <TabsTrigger
-            value="montecarlo"
-            className="flex-1 min-w-[140px] gap-2 py-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs sm:text-sm font-medium whitespace-nowrap"
-          >
-            <Cpu className="w-4 h-4 text-emerald-500" />
-            Laboratoire Monte Carlo
-          </TabsTrigger>
-          <TabsTrigger
             value="affinity"
             className="flex-1 min-w-[140px] gap-2 py-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs sm:text-sm font-medium whitespace-nowrap"
           >
@@ -154,16 +145,6 @@ export const PredictionsContainer = ({
 
           <TabsContent value="advanced" className="mt-0 focus-visible:outline-none">
             <AdvancedAITab drawName={drawName} />
-          </TabsContent>
-
-          <TabsContent value="montecarlo" className="mt-0 focus-visible:outline-none">
-             <div className="space-y-6">
-               <MonteCarloOracle 
-                  drawName={drawName} 
-                  initialPredictions={basePrediction} 
-               />
-               <MathematicalModelsVisualizer drawName={drawName} />
-             </div>
           </TabsContent>
 
           <TabsContent value="affinity" className="mt-0 focus-visible:outline-none">
