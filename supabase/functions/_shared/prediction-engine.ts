@@ -155,8 +155,8 @@ async function executePredictions(
 
   // Mode Smart Ensemble
   if (options.useSmartEnsemble) {
-    log("info", "Utilisation du Smart Ensemble (mode adaptatif)");
-    optimizedPrediction = await smartEnsemble.generateEnsemblePrediction(results);
+    log("info", `Utilisation du Smart Ensemble (mode adaptatif, AI Orchestration: ${options.useAIOrchestration})`);
+    optimizedPrediction = await smartEnsemble.generateEnsemblePrediction(results, options.useAIOrchestration);
     
     if (options.multiAlgorithm) {
       const multiPredictions = await algorithmRegistry.executeMultiple(results);

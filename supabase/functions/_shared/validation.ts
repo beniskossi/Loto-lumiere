@@ -71,6 +71,7 @@ export const predictionRequestSchema = z.object({
   drawName: drawNameSchema,
   analysisDepth: analysisDepthSchema,
   useSmartEnsemble: booleanFlagSchema,
+  useAIOrchestration: booleanFlagSchema,
 }).strict();
 
 // Personalized prediction request

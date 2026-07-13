@@ -174,6 +174,7 @@ export interface PredictionOptions {
   drawName?: string;
   useStackingEnsemble?: boolean;
   useSmartEnsemble?: boolean;
+  useAIOrchestration?: boolean;
   multiAlgorithm?: boolean;
   useEnhancedFormulas?: boolean;
   useBayesian?: boolean;

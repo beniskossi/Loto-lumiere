@@ -45,19 +45,21 @@ const CACHE_TIME = 15 * 60 * 1000; // 15 minutes
 
 export interface AdvancedPredictionOptions {
   useSmartEnsemble?: boolean;
+  useAIOrchestration?: boolean;
 }
 
 export const useAdvancedPrediction = (drawName: string, options: AdvancedPredictionOptions = {}) => {
-  const { useSmartEnsemble = false } = options;
+  const { useSmartEnsemble = false, useAIOrchestration = false } = options;
   
   return useQuery({
-    queryKey: ["advanced-predictions", drawName, useSmartEnsemble],
+    queryKey: ["advanced-predictions", drawName, useSmartEnsemble, useAIOrchestration],
     queryFn: async (): Promise<AdvancedPredictionResponse> => {
       try {
         const { data, error } = await supabase.functions.invoke("advanced-ai-prediction-v2", {
           body: { 
             drawName,
-            useSmartEnsemble 
+            useSmartEnsemble,
+            useAIOrchestration
           },
         });
 

@@ -46,9 +46,9 @@ serve(async (req) => {
       );
     }
     
-    const { drawName, useSmartEnsemble, analysisDepth } = validation.data;
+    const { drawName, useSmartEnsemble, useAIOrchestration, analysisDepth } = validation.data;
 
-    log("info", `Generating advanced predictions for ${drawName}`, { drawName, useSmartEnsemble, analysisDepth });
+    log("info", `Generating advanced predictions for ${drawName}`, { drawName, useSmartEnsemble, useAIOrchestration, analysisDepth });
 
     // Vérifier d'abord les prédictions pré-calculées
     const supabase = createClient(
@@ -93,7 +93,7 @@ serve(async (req) => {
     log("info", `No valid precalculated predictions found for ${drawName}, generating fresh ones`);
 
     // Vérifier le cache mémoire ensuite (inclure useSmartEnsemble et analysisDepth dans la clé)
-    const cacheKey = `predictions_${drawName}_${useSmartEnsemble ? 'smart' : 'stacking'}_${analysisDepth}_v3`;
+    const cacheKey = `predictions_${drawName}_${useSmartEnsemble ? 'smart' : 'stacking'}_${useAIOrchestration ? 'ai' : 'std'}_${analysisDepth}_v3`;
     const cached = predictionCache.get(cacheKey);
     if (cached) {
       log("info", `Cache hit for predictions for ${drawName}`, { drawName, elapsed: Date.now() - startTime });
@@ -122,6 +122,7 @@ serve(async (req) => {
       drawName,
       multiAlgorithm: true, // Génère plusieurs algorithmes pour comparaison
       useSmartEnsemble: useSmartEnsemble || false,
+      useAIOrchestration: useAIOrchestration || false,
     });
 
     // Générer les explications

@@ -8,6 +8,7 @@ import {
 import { transformerAlgorithm } from "./transformer.ts";
 import { xgboostAlgorithm } from "./xgboost.ts";
 import { selectBalancedNumbers, log } from "./utils.ts";
+import { callAIForOrchestration } from "./ai-orchestration.ts";
 
 interface ModelWeight {
   algorithm: string;
@@ -67,7 +68,7 @@ export class SmartEnsemble {
    * Génère une prédiction ensemble en exécutant les 5 algorithmes
    * de manière adaptative selon les données disponibles
    */
-  async generateEnsemblePrediction(results: DrawResult[]): Promise<PredictionResult> {
+  async generateEnsemblePrediction(results: DrawResult[], useAIOrchestration: boolean = false): Promise<PredictionResult> {
     if (results.length < 5) {
       return this.getFallbackPrediction();
     }
@@ -82,6 +83,7 @@ export class SmartEnsemble {
 
       log("info", `Smart Ensemble: ${eligibleModels.length} algorithmes éligibles sur 5`, {
         dataCount,
+        useAIOrchestration,
         models: eligibleModels.map(m => m.name)
       });
 
@@ -92,29 +94,64 @@ export class SmartEnsemble {
         return this.getFallbackPrediction();
       }
       
-      // Adapter les poids basés sur la performance récente
-      this.adaptWeights(modelPredictions);
+      let ensemblePrediction: number[];
+      let confidence: number;
       
-      // Combiner les prédictions avec les poids adaptatifs
-      const ensemblePrediction = this.combineWithAdaptiveWeights(modelPredictions);
-      
-      // Calculer la confiance ensemble
-      const confidence = this.calculateEnsembleConfidence(modelPredictions);
+      if (useAIOrchestration) {
+         log("info", "Orchestration gérée par l'IA");
+         const aiResult = await callAIForOrchestration(modelPredictions, results);
+         
+         if (aiResult && aiResult.weights) {
+           log("info", "Poids définis par l'IA", { reasoning: aiResult.reasoning, weights: aiResult.weights });
+           
+           // Apply AI weights
+           let totalAIWeight = 0;
+           Object.values(aiResult.weights).forEach(w => totalAIWeight += Number(w));
+           
+           if (totalAIWeight > 0) {
+             modelPredictions.forEach((_, modelName) => {
+               const w = aiResult.weights[modelName] || 0;
+               const currentWeight = this.modelWeights.get(modelName);
+               if (currentWeight) {
+                 this.modelWeights.set(modelName, {
+                   ...currentWeight,
+                   weight: w / totalAIWeight
+                 });
+               }
+             });
+           }
+         } else {
+           // Fallback if AI fails
+           this.adaptWeights(modelPredictions);
+         }
+         
+         ensemblePrediction = this.combineWithAdaptiveWeights(modelPredictions);
+         confidence = this.calculateEnsembleConfidence(modelPredictions);
+      } else {
+        // Adapter les poids basés sur la performance récente
+        this.adaptWeights(modelPredictions);
+        
+        // Combiner les prédictions avec les poids adaptatifs
+        ensemblePrediction = this.combineWithAdaptiveWeights(modelPredictions);
+        
+        // Calculer la confiance ensemble
+        confidence = this.calculateEnsembleConfidence(modelPredictions);
+      }
       
       const modelsUsed = Array.from(modelPredictions.keys());
       
       return {
         numbers: ensemblePrediction,
         confidence,
-        algorithm: `Smart Ensemble (${modelsUsed.length}/5 Modèles)`,
+        algorithm: useAIOrchestration ? `AI Orchestrated Hybrid (${modelsUsed.length} Modèles)` : `Smart Ensemble (${modelsUsed.length}/5 Modèles)`,
         factors: [
           `${modelsUsed.length} algorithmes exécutés`,
-          "Poids adaptatifs",
+          useAIOrchestration ? "Sélection & Pondération via IA" : "Poids adaptatifs",
           "Performance tracking",
           `Modèles: ${modelsUsed.join(", ")}`
         ],
         score: confidence * 0.95,
-        category: "ensemble"
+        category: useAIOrchestration ? "hybrid" : "ensemble"
       };
     } catch (error) {
       log("error", "Smart ensemble failed", { error: error instanceof Error ? error.message : error });

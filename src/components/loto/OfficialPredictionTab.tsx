@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
   Zap, 
   Activity, 
@@ -45,7 +47,11 @@ interface OfficialPredictionTabProps {
 }
 
 export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: OfficialPredictionTabProps) => {
-  const { data, isLoading, refetch, isFetching } = useAdvancedPrediction(drawName, { useSmartEnsemble: true });
+  const [useAIOrchestration, setUseAIOrchestration] = useState(false);
+  const { data, isLoading, refetch, isFetching } = useAdvancedPrediction(drawName, { 
+    useSmartEnsemble: true,
+    useAIOrchestration
+  });
   const [showDetails, setShowDetails] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -256,22 +262,38 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
       {/* Header with refresh */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-bold flex items-center gap-2">
             {isHistoricalView ? "Prédiction générée" : "Prédiction Officielle"}
           </h2>
           <p className="text-sm text-muted-foreground">{drawName}</p>
         </div>
-        {!isHistoricalView && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleRefresh}
-            disabled={isFetching}
-            className="hover:bg-primary/10"
-          >
-            <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
-          </Button>
-        )}
+        <div className="flex items-center gap-4">
+          {!isHistoricalView && (
+            <div className="flex items-center gap-2 border border-border/50 bg-muted/20 px-3 py-1.5 rounded-full">
+              <Switch 
+                id="ai-orchestration" 
+                checked={useAIOrchestration}
+                onCheckedChange={setUseAIOrchestration}
+                className="data-[state=checked]:bg-primary"
+              />
+              <Label htmlFor="ai-orchestration" className="text-xs font-medium cursor-pointer flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                Hybride IA
+              </Label>
+            </div>
+          )}
+          {!isHistoricalView && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={isFetching}
+              className="hover:bg-primary/10"
+            >
+              <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Main Prediction Card */}
