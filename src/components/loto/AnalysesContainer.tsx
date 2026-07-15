@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Timer, Search, Clock, ArrowLeftRight, FlaskConical, BarChart2, Database, BrainCircuit, Layers } from "lucide-react";
+import { BarChart3, Timer, Search, Clock, ArrowLeftRight, FlaskConical, BarChart2, Database, BrainCircuit, Layers, LayoutGrid } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const AnalysesTab = lazy(() =>
@@ -30,6 +30,9 @@ const DrawComparison = lazy(() =>
 const FractalPatternAnalyzer = lazy(() =>
   import("@/components/FractalPatternAnalyzer").then((m) => ({ default: m.FractalPatternAnalyzer }))
 );
+const AnisotropyAnalyzer = lazy(() =>
+  import("./AnisotropyAnalyzer").then((m) => ({ default: m.AnisotropyAnalyzer }))
+);
 
 interface AnalysesContainerProps {
   drawName: string;
@@ -48,7 +51,7 @@ const AnalysesFallback = () => (
 );
 
 export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
-  const [activeSubTab, setActiveSubTab] = useState<"data" | "patterns" | "temporal" | "gaps" | "double-gap" | "stats" | "comparison" | "search" | "fractal">("data");
+  const [activeSubTab, setActiveSubTab] = useState<"data" | "patterns" | "temporal" | "gaps" | "double-gap" | "stats" | "comparison" | "search" | "fractal" | "anisotropy">("data");
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-24">
@@ -134,6 +137,13 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
             <BrainCircuit className="w-4 h-4 text-purple-500" />
             Analyse Fractale
           </TabsTrigger>
+          <TabsTrigger
+            value="anisotropy"
+            className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
+          >
+            <LayoutGrid className="w-4 h-4 text-emerald-500" />
+            Anisotropie Spatiale
+          </TabsTrigger>
         </TabsList>
 
         <Suspense fallback={<AnalysesFallback />}>
@@ -171,6 +181,10 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
 
           <TabsContent value="fractal" className="mt-0 focus-visible:outline-none">
             <FractalPatternAnalyzer drawName={drawName} />
+          </TabsContent>
+
+          <TabsContent value="anisotropy" className="mt-0 focus-visible:outline-none">
+            <AnisotropyAnalyzer drawName={drawName} />
           </TabsContent>
         </Suspense>
       </Tabs>

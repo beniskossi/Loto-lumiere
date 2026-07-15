@@ -16,14 +16,45 @@ import {
   Database,
   Smartphone
 } from "lucide-react";
-import { runDiagnostics, getSystemInfo, type DiagnosticResult } from "@/utils/diagnostics";
+import { runDiagnostics, getSystemInfo, runMathematicalValidation, type DiagnosticResult } from "@/utils/diagnostics";
 import { supabase } from "@/integrations/supabase/client";
+import { ShieldCheck, Cpu } from "lucide-react";
+
+export interface SystemInfo {
+  userAgent: string;
+  platform: string;
+  language: string;
+  cookieEnabled: boolean;
+  onLine: boolean;
+  screen: {
+    width: number;
+    height: number;
+    colorDepth: number;
+  };
+  viewport: {
+    width: number;
+    height: number;
+  };
+  timestamp: string;
+}
+
+export interface MathValidationCheck {
+  name: string;
+  status: 'ok' | 'error';
+  message: string;
+}
+
+export interface MathValidationResult {
+  success: boolean;
+  checks: MathValidationCheck[];
+}
 
 export const DiagnosticPanel = () => {
   const [diagnostics, setDiagnostics] = useState<DiagnosticResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [systemInfo, setSystemInfo] = useState<any>(null);
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [dbStatus, setDbStatus] = useState<'checking' | 'ok' | 'error'>('checking');
+  const [mathValidation, setMathValidation] = useState<MathValidationResult | null>(null);
 
   const runAllDiagnostics = async () => {
     setLoading(true);
@@ -31,6 +62,7 @@ export const DiagnosticPanel = () => {
       const results = await runDiagnostics();
       setDiagnostics(results);
       setSystemInfo(getSystemInfo());
+      setMathValidation(runMathematicalValidation());
       
       // Test de connexion à la base de données
       try {
@@ -108,10 +140,11 @@ export const DiagnosticPanel = () => {
       
       <CardContent>
         <Tabs defaultValue="status" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 p-1.5 bg-muted/50 rounded-xl mb-4">
-            <TabsTrigger value="status" className="rounded-lg data-[state=active]:shadow-sm">État</TabsTrigger>
-            <TabsTrigger value="system" className="rounded-lg data-[state=active]:shadow-sm">Système</TabsTrigger>
-            <TabsTrigger value="fixes" className="rounded-lg data-[state=active]:shadow-sm">Solutions</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 p-1.5 bg-muted/50 rounded-xl mb-4">
+            <TabsTrigger value="status" className="rounded-lg data-[state=active]:shadow-sm text-xs">État</TabsTrigger>
+            <TabsTrigger value="system" className="rounded-lg data-[state=active]:shadow-sm text-xs">Système</TabsTrigger>
+            <TabsTrigger value="math_validation" className="rounded-lg data-[state=active]:shadow-sm text-xs">Sécurité ML</TabsTrigger>
+            <TabsTrigger value="fixes" className="rounded-lg data-[state=active]:shadow-sm text-xs">Solutions</TabsTrigger>
           </TabsList>
           
           <TabsContent value="status" className="space-y-4">
@@ -196,6 +229,44 @@ export const DiagnosticPanel = () => {
                 </Card>
               </div>
             )}
+          </TabsContent>
+          
+          <TabsContent value="math_validation" className="space-y-4 animate-fade-in">
+            <Alert className="bg-primary/5 border-primary/20">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <AlertDescription className="flex items-center justify-between w-full">
+                <div>
+                  <span className="font-semibold block text-sm">Garanties Anti-Hallucinations & Anti-Hasard</span>
+                  <span className="text-xs text-muted-foreground block mt-0.5">Vérification de la rigueur mathématique et de l'intégrité déterministe du moteur de calcul.</span>
+                </div>
+                {mathValidation?.success ? (
+                  <Badge className="bg-green-500 hover:bg-green-600 ml-2">VALIDÉ</Badge>
+                ) : (
+                  <Badge variant="destructive" className="ml-2">ERREUR</Badge>
+                )}
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-3">
+              {mathValidation?.checks ? (
+                mathValidation.checks.map((check: MathValidationCheck, idx: number) => (
+                  <div key={idx} className="p-3 border rounded-lg bg-card/50 flex items-center justify-between gap-3 border-border/60">
+                    <div className="space-y-0.5">
+                      <p className="font-medium text-sm text-foreground flex items-center gap-1.5">
+                        <Cpu className="w-3.5 h-3.5 text-muted-foreground" />
+                        {check.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{check.message}</p>
+                    </div>
+                    <Badge variant={check.status === 'ok' ? 'default' : 'destructive'} className="uppercase text-[10px] whitespace-nowrap">
+                      {check.status === 'ok' ? 'Conforme' : 'Échec'}
+                    </Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">Lancement des simulations mathématiques...</p>
+              )}
+            </div>
           </TabsContent>
           
           <TabsContent value="fixes" className="space-y-4">

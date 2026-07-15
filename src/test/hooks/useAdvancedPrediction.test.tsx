@@ -73,7 +73,7 @@ describe('useAdvancedPrediction', () => {
 
     expect(result.current.data).toEqual(mockPredictions);
     expect(supabase.functions.invoke).toHaveBeenCalledWith('advanced-ai-prediction-v2', {
-      body: { drawName: 'Etoile' },
+      body: { drawName: 'Etoile', useSmartEnsemble: false, useAIOrchestration: false },
     });
   });
 

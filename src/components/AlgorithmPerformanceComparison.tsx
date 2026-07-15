@@ -52,11 +52,10 @@ ALGORITHM_COLORS["LSTM"] = ALGORITHMS["LSTM Network"].color;
 ALGORITHM_COLORS["Transformer"] = ALGORITHMS["Transformer (Attention)"].color;
 
 export const AlgorithmPerformanceComparison = () => {
-  const [selectedDraw, setSelectedDraw] = useState<string>("all");
+  const allDraws = Object.values(DRAW_SCHEDULE).flat();
+  const [selectedDraw, setSelectedDraw] = useState<string>(allDraws.length > 0 ? allDraws[0].name : "Etoile");
   const { data: comparisonData, isLoading: isLoadingComparison } = useAlgorithmComparison(selectedDraw);
   const { data: trendsData, isLoading: isLoadingTrends } = useAlgorithmTrends(selectedDraw, 100);
-
-  const allDraws = Object.values(DRAW_SCHEDULE).flat();
 
   const getTrendIcon = (trend: "improving" | "stable" | "declining") => {
     if (trend === "improving") return <TrendingUp className="w-4 h-4 text-success" />;
@@ -171,10 +170,9 @@ export const AlgorithmPerformanceComparison = () => {
             </div>
             <Select value={selectedDraw} onValueChange={setSelectedDraw}>
               <SelectTrigger className="w-[200px] h-11">
-                <SelectValue placeholder="Tous les tirages" />
+                <SelectValue placeholder="Sélectionner un tirage" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous les tirages</SelectItem>
                 {allDraws.map((draw) => (
                   <SelectItem key={draw.name} value={draw.name}>
                     {draw.name}
@@ -199,9 +197,7 @@ export const AlgorithmPerformanceComparison = () => {
             <div>
               <p className="text-sm font-medium opacity-80">Algorithme</p>
               <p className="text-3xl font-bold mt-1 tracking-tight">{bestAlgorithm.model_used}</p>
-              {selectedDraw !== "all" && (
-                <p className="text-sm font-medium opacity-80 mt-1">{bestAlgorithm.draw_name}</p>
-              )}
+              <p className="text-sm font-medium opacity-80 mt-1">{bestAlgorithm.draw_name}</p>
             </div>
             <div>
               <p className="text-sm font-medium opacity-80">Précision Moyenne</p>
@@ -382,7 +378,6 @@ export const AlgorithmPerformanceComparison = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[200px]">Algorithme</TableHead>
-                  {selectedDraw === "all" && <TableHead>Tirage</TableHead>}
                   <TableHead className="text-center">Précision Moy.</TableHead>
                   <TableHead className="text-center">Matches Moy.</TableHead>
                   <TableHead className="text-center">Consistance</TableHead>
@@ -402,11 +397,6 @@ export const AlgorithmPerformanceComparison = () => {
                         <span>{alg.model_used}</span>
                       </div>
                     </TableCell>
-                    {selectedDraw === "all" && (
-                      <TableCell className="text-sm text-muted-foreground">
-                        {alg.draw_name}
-                      </TableCell>
-                    )}
                     <TableCell className="text-center">
                       <Badge variant={alg.avg_accuracy >= 25 ? "default" : alg.avg_accuracy >= 20 ? "secondary" : "outline"}>
                         {alg.avg_accuracy}%

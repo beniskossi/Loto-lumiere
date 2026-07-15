@@ -24,6 +24,20 @@ import {
 
 const DRAW_NAMES = Object.values(DRAW_SCHEDULE).flatMap(schedule => schedule.map(draw => draw.name));
 
+export interface WeightAdjustment {
+  previous: number;
+  new: number;
+}
+
+export interface ParameterAdjustmentValue {
+  previous: string | number | boolean;
+  new: string | number | boolean;
+}
+
+export interface ParameterAdjustments {
+  [param: string]: ParameterAdjustmentValue;
+}
+
 export const AdaptiveOrchestrationPanel = () => {
   const [selectedDraw, setSelectedDraw] = useState<string>(DRAW_NAMES[0] || "Etoile");
   const { data: history, isLoading } = useOrchestrationHistory(selectedDraw, 10);
@@ -41,9 +55,9 @@ export const AdaptiveOrchestrationPanel = () => {
   // Préparation des données pour le graphe de poids
   const weightsChartData = useMemo(() => {
     if (!latestRecord || !latestRecord.weight_adjustments) return [];
-    return Object.entries(latestRecord.weight_adjustments).map(([algo, weights]: [string, any]) => {
-      const prev = typeof weights?.previous === 'number' ? weights.previous : 0;
-      const next = typeof weights?.new === 'number' ? weights.new : 0;
+    return Object.entries(latestRecord.weight_adjustments as Record<string, WeightAdjustment>).map(([algo, w]) => {
+      const prev = typeof w?.previous === 'number' ? w.previous : 0;
+      const next = typeof w?.new === 'number' ? w.new : 0;
       return {
         name: algo.replace(" Network", "").replace(" (Attention)", ""),
         Précédent: parseFloat(prev.toFixed(3)),
@@ -270,9 +284,9 @@ export const AdaptiveOrchestrationPanel = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
-                          {Object.entries(record.weight_adjustments).map(([algo, weights]: [string, any]) => {
-                            const change = weights.new - weights.previous;
-                            const changePercent = weights.previous > 0 ? (change / weights.previous) * 100 : 0;
+                          {Object.entries(record.weight_adjustments as Record<string, WeightAdjustment>).map(([algo, w]) => {
+                            const change = w.new - w.previous;
+                            const changePercent = w.previous > 0 ? (change / w.previous) * 100 : 0;
                             
                             return (
                               <div 
@@ -282,7 +296,7 @@ export const AdaptiveOrchestrationPanel = () => {
                                 <div className="flex-1">
                                   <div className="font-medium text-[11px] text-foreground/90">{algo}</div>
                                   <div className="text-[10px] text-muted-foreground font-mono">
-                                    Poids: {typeof weights?.previous === 'number' ? weights.previous.toFixed(2) : '0.00'} → {typeof weights?.new === 'number' ? weights.new.toFixed(2) : '0.00'}
+                                    Poids: {typeof w?.previous === 'number' ? w.previous.toFixed(2) : '0.00'} → {typeof w?.new === 'number' ? w.new.toFixed(2) : '0.00'}
                                   </div>
                                 </div>
                                 
@@ -309,19 +323,23 @@ export const AdaptiveOrchestrationPanel = () => {
                             <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
                               Ajustements des paramètres
                             </div>
-                            {Object.entries(record.parameter_adjustments).map(([algo, adjustments]: [string, any]) => (
-                               <div key={algo} className="flex flex-col py-1 px-3 rounded bg-accent/5 border border-accent/10 text-xs mt-1">
-                                  <div className="font-medium text-[10px] text-foreground">{algo}</div>
-                                  <div className="text-[10px] text-muted-foreground">
-                                    {Object.entries(adjustments).map(([param, vals]: [string, any]) => (
-                                        <div key={param} className="flex items-center justify-between mt-0.5">
-                                          <span className="font-mono text-primary/80">{param} :</span>
-                                          <span className="font-mono">{vals.previous} → {vals.new}</span>
-                                        </div>
-                                    ))}
-                                  </div>
-                               </div>
-                            ))}
+                            {Object.entries(record.parameter_adjustments as Record<string, ParameterAdjustments>).map(([algo, adj]) => {
+                               return (
+                                 <div key={algo} className="flex flex-col py-1 px-3 rounded bg-accent/5 border border-accent/10 text-xs mt-1">
+                                    <div className="font-medium text-[10px] text-foreground">{algo}</div>
+                                    <div className="text-[10px] text-muted-foreground">
+                                      {Object.entries(adj).map(([param, v]) => {
+                                          return (
+                                            <div key={param} className="flex items-center justify-between mt-0.5">
+                                              <span className="font-mono text-primary/80">{param} :</span>
+                                              <span className="font-mono">{v.previous} → {v.new}</span>
+                                            </div>
+                                          );
+                                      })}
+                                    </div>
+                                 </div>
+                               );
+                            })}
                           </div>
                         )}
 

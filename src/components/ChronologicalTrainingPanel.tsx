@@ -8,11 +8,6 @@ import { Brain, History, RefreshCw, Activity, ArrowRight, Play, CheckCircle2 } f
 import { supabase } from "@/integrations/supabase/client";
 
 export const ChronologicalTrainingPanel = () => {
-  const [selectedDrawName, setSelectedDrawName] = useState<string>("");
-  const [isTraining, setIsTraining] = useState(false);
-  const [trainingResults, setTrainingResults] = useState<any[] | null>(null);
-  const { toast } = useToast();
-
   // Extract unique draw names from the schedule
   const uniqueDrawNames = Array.from(
     new Set(
@@ -21,6 +16,11 @@ export const ChronologicalTrainingPanel = () => {
         .map((draw) => draw.name)
     )
   ).sort();
+
+  const [selectedDrawName, setSelectedDrawName] = useState<string>(uniqueDrawNames.length > 0 ? uniqueDrawNames[0] : "");
+  const [isTraining, setIsTraining] = useState(false);
+  const [trainingResults, setTrainingResults] = useState<any[] | null>(null);
+  const { toast } = useToast();
 
   const handleStartTraining = async () => {
     if (!selectedDrawName) {
