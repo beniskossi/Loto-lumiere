@@ -9,7 +9,7 @@ import { generateDeterministicFallback, selectBalancedNumbers, log, Deterministi
 // Réexporter les algorithmes avancés
 export { transformerAlgorithm } from "./transformer.ts";
 export { stackingEnsemble } from "./stacking.ts";
-export { doubleGapSequenceAlgorithm, gapCadenceAlgorithm } from "./new-algorithms.ts";
+export { doubleGapSequenceAlgorithm, gapCadenceAlgorithm, seasonalRecurrenceAlgorithm } from "./new-algorithms.ts";
 
 const EPSILON = 1e-10;
 

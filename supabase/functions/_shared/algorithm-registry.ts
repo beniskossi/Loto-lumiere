@@ -17,6 +17,7 @@ import {
   lstmAlgorithm,
   doubleGapSequenceAlgorithm,
   gapCadenceAlgorithm,
+  seasonalRecurrenceAlgorithm,
   generateFallbackPrediction 
 } from "./algorithms.ts";
 import { transformerAlgorithm } from "./transformer.ts";
@@ -80,6 +81,15 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 1.4,
     enabled: true,
   }],
+  ["Seasonal Recurrence", {
+    name: "Seasonal Recurrence",
+    category: "statistical" as AlgorithmCategory,
+    minDataRequired: 30,
+    maxDataUsed: 500,
+    resourceIntensity: "medium",
+    weight: 1.1,
+    enabled: true,
+  }],
   ["Stacking Ensemble", {
     name: "Stacking Ensemble",
     category: "ensemble" as AlgorithmCategory,
@@ -100,6 +110,7 @@ const ALGORITHM_FUNCTIONS: Map<string, AlgorithmFunction> = new Map([
   ["Transformer (Attention)", transformerAlgorithm],
   ["Double Gap Sequence", doubleGapSequenceAlgorithm],
   ["Gap Cadence", gapCadenceAlgorithm],
+  ["Seasonal Recurrence", seasonalRecurrenceAlgorithm],
   ["Stacking Ensemble", stackingEnsemble],
 ]);
 

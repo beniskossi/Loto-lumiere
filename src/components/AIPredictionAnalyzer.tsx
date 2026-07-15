@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 interface AIPredictionAnalyzerProps {
-  predictions: any[];
+  predictions: Record<string, unknown>[];
   drawName: string;
 }
 

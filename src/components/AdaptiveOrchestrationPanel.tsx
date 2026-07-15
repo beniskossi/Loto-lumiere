@@ -41,21 +41,29 @@ export const AdaptiveOrchestrationPanel = () => {
   // Préparation des données pour le graphe de poids
   const weightsChartData = useMemo(() => {
     if (!latestRecord || !latestRecord.weight_adjustments) return [];
-    return Object.entries(latestRecord.weight_adjustments).map(([algo, weights]: [string, any]) => ({
-      name: algo.replace(" Network", "").replace(" (Attention)", ""),
-      Précédent: parseFloat(weights.previous.toFixed(3)),
-      Nouveau: parseFloat(weights.new.toFixed(3)),
-    }));
+    return Object.entries(latestRecord.weight_adjustments).map(([algo, weights]: [string, any]) => {
+      const prev = typeof weights?.previous === 'number' ? weights.previous : 0;
+      const next = typeof weights?.new === 'number' ? weights.new : 0;
+      return {
+        name: algo.replace(" Network", "").replace(" (Attention)", ""),
+        Précédent: parseFloat(prev.toFixed(3)),
+        Nouveau: parseFloat(next.toFixed(3)),
+      };
+    });
   }, [latestRecord]);
 
   // Préparation des données de tendance
   const trendChartData = useMemo(() => {
     if (!history || history.length === 0) return [];
-    return [...history].reverse().map((record) => ({
-      date: new Date(record.adjustment_date).toLocaleDateString("fr-FR", { month: "short", day: "numeric" }),
-      Précision: parseFloat((record.trigger_metrics?.avg_accuracy_overall || 0).toFixed(1)),
-      "Amélioration Attendue": parseFloat((record.expected_improvement || 0).toFixed(1)),
-    }));
+    return [...history].reverse().map((record) => {
+      const precision = typeof record.trigger_metrics?.avg_accuracy_overall === 'number' ? record.trigger_metrics.avg_accuracy_overall : parseFloat(record.trigger_metrics?.avg_accuracy_overall || '0') || 0;
+      const improvement = typeof record.expected_improvement === 'number' ? record.expected_improvement : parseFloat(record.expected_improvement || '0') || 0;
+      return {
+        date: new Date(record.adjustment_date).toLocaleDateString("fr-FR", { month: "short", day: "numeric" }),
+        Précision: parseFloat(precision.toFixed(1)),
+        "Amélioration Attendue": parseFloat(improvement.toFixed(1)),
+      };
+    });
   }, [history]);
 
   return (
@@ -220,7 +228,7 @@ export const AdaptiveOrchestrationPanel = () => {
             <div className="space-y-3.5">
               {history.map((record) => {
                 const adjustmentCount = Object.keys(record.weight_adjustments || {}).length;
-                const avgImprovement = record.expected_improvement || 0;
+                const avgImprovement = typeof record.expected_improvement === 'number' ? record.expected_improvement : parseFloat(record.expected_improvement || '0') || 0;
                 
                 return (
                   <div key={record.id} className="p-4 rounded-xl border border-border/40 bg-card/30 hover:bg-card/50 transition-colors space-y-3">
@@ -254,7 +262,7 @@ export const AdaptiveOrchestrationPanel = () => {
                             Modèles : <span className="font-semibold text-foreground">{record.trigger_metrics?.total_algorithms || 0}</span>
                           </div>
                           <div className="text-muted-foreground">
-                            Précision : <span className="font-semibold text-foreground">{(record.trigger_metrics?.avg_accuracy_overall || 0).toFixed(1)}%</span>
+                            Précision : <span className="font-semibold text-foreground">{(typeof record.trigger_metrics?.avg_accuracy_overall === 'number' ? record.trigger_metrics.avg_accuracy_overall : parseFloat(record.trigger_metrics?.avg_accuracy_overall || '0') || 0).toFixed(1)}%</span>
                           </div>
                           <div className="text-muted-foreground">
                             Gain attendu : <span className="font-semibold text-emerald-500 font-mono">+{avgImprovement.toFixed(1)}%</span>
@@ -274,7 +282,7 @@ export const AdaptiveOrchestrationPanel = () => {
                                 <div className="flex-1">
                                   <div className="font-medium text-[11px] text-foreground/90">{algo}</div>
                                   <div className="text-[10px] text-muted-foreground font-mono">
-                                    {weights.previous.toFixed(2)} → {weights.new.toFixed(2)}
+                                    {typeof weights?.previous === 'number' ? weights.previous.toFixed(2) : '0.00'} → {typeof weights?.new === 'number' ? weights.new.toFixed(2) : '0.00'}
                                   </div>
                                 </div>
                                 
@@ -289,7 +297,7 @@ export const AdaptiveOrchestrationPanel = () => {
                                   ) : (
                                     <Minus className="h-2.5 w-2.5 mr-0.5" />
                                   )}
-                                  {changePercent > 0 ? '+' : ''}{changePercent.toFixed(1)}%
+                                  {changePercent > 0 ? '+' : ''}{(typeof changePercent === 'number' && !isNaN(changePercent)) ? changePercent.toFixed(1) : '0.0'}%
                                 </Badge>
                               </div>
                             );

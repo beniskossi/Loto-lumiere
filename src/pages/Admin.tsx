@@ -145,7 +145,7 @@ const Admin = () => {
     }
   };
 
-  const [exportDataset, setExportDataset] = useState<any[]>([]);
+  const [exportDataset, setExportDataset] = useState<Record<string, unknown>[]>([]);
   const [isPreparingExport, setIsPreparingExport] = useState(false);
 
   useEffect(() => {
@@ -318,7 +318,7 @@ const Admin = () => {
 
       // Dedupliquer les données par rapport aux clés uniques
       const uniqueDataMap = new Map();
-      data.forEach((r: any) => {
+      data.forEach((r: Record<string, unknown>) => {
         if (r.draw_name && r.draw_date) {
           const key = `${r.draw_name}_${r.draw_date}`;
           uniqueDataMap.set(key, r);
@@ -334,9 +334,10 @@ const Admin = () => {
         title: "✓ Import réussi",
         description: `${data.length} résultat(s) importé(s) ou mis à jour`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("JSON import error:", error);
-      const errorMessage = error?.message || error?.details || (error && typeof error === "object" ? JSON.stringify(error) : String(error));
+      const err = error as Error;
+      const errorMessage = err?.message || (error && typeof error === "object" ? JSON.stringify(error) : String(error));
       toast({
         title: "Erreur",
         description: errorMessage || "Échec de l'import",
@@ -668,35 +669,11 @@ const Admin = () => {
               </div>
             </TabsTrigger>
             
-            <TabsTrigger value="performance" className="gap-3 justify-start py-3 px-4 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap xl:whitespace-normal group border border-transparent data-[state=active]:border-primary/15">
+            <TabsTrigger value="ai_engine" className="gap-3 justify-start py-3 px-4 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap xl:whitespace-normal group border border-transparent data-[state=active]:border-primary/15">
               <div className="p-2 rounded-md bg-purple-500/10 text-purple-500 group-data-[state=active]:bg-purple-500 group-data-[state=active]:text-white transition-colors"><TrendingUp className="w-4 h-4" /></div>
               <div className="flex flex-col items-start">
-                <span className="font-display font-semibold text-sm">Performance</span>
-                <span className="text-xs font-sans font-normal opacity-70 hidden xl:block">Évaluation des modèles</span>
-              </div>
-            </TabsTrigger>
-            
-            <TabsTrigger value="training" className="gap-3 justify-start py-3 px-4 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap xl:whitespace-normal group border border-transparent data-[state=active]:border-primary/15">
-              <div className="p-2 rounded-md bg-orange-500/10 text-orange-500 group-data-[state=active]:bg-orange-500 group-data-[state=active]:text-white transition-colors"><Activity className="w-4 h-4" /></div>
-              <div className="flex flex-col items-start">
-                <span className="font-display font-semibold text-sm">Entraînement</span>
-                <span className="text-xs font-sans font-normal opacity-70 hidden xl:block">Cycles chronologiques</span>
-              </div>
-            </TabsTrigger>
-            
-            <TabsTrigger value="config" className="gap-3 justify-start py-3 px-4 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap xl:whitespace-normal group border border-transparent data-[state=active]:border-primary/15">
-              <div className="p-2 rounded-md bg-rose-500/10 text-rose-500 group-data-[state=active]:bg-rose-500 group-data-[state=active]:text-white transition-colors"><Settings className="w-4 h-4" /></div>
-              <div className="flex flex-col items-start">
-                <span className="font-display font-semibold text-sm">Configuration</span>
-                <span className="text-xs font-sans font-normal opacity-70 hidden xl:block">Paramètres du moteur</span>
-              </div>
-            </TabsTrigger>
-            
-            <TabsTrigger value="orchestration" className="gap-3 justify-start py-3 px-4 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap xl:whitespace-normal group border border-transparent data-[state=active]:border-primary/15">
-              <div className="p-2 rounded-md bg-cyan-500/10 text-cyan-500 group-data-[state=active]:bg-cyan-500 group-data-[state=active]:text-white transition-colors"><Gauge className="w-4 h-4" /></div>
-              <div className="flex flex-col items-start">
-                <span className="font-display font-semibold text-sm">Orchestration</span>
-                <span className="text-xs font-sans font-normal opacity-70 hidden xl:block">Ajustement adaptatif</span>
+                <span className="font-display font-semibold text-sm">Moteur IA & Algorithmes</span>
+                <span className="text-xs font-sans font-normal opacity-70 hidden xl:block">Orchestration, Évaluation & Config</span>
               </div>
             </TabsTrigger>
           </TabsList>
@@ -996,30 +973,41 @@ const Admin = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="performance" className="space-y-6 mt-0">
-              <Suspense fallback={<PanelFallback />}>
-                <AlgorithmPerformanceComparison />
-                <AlgorithmEvaluationPanel />
-              </Suspense>
-            </TabsContent>
-
-            <TabsContent value="training" className="space-y-6 mt-0">
-              <Suspense fallback={<PanelFallback />}>
-                <ChronologicalTrainingPanel />
-              </Suspense>
-            </TabsContent>
-
-            <TabsContent value="config" className="space-y-6 mt-0">
-              <Suspense fallback={<PanelFallback />}>
-                <PredictionConfigPanel />
-                <AlgorithmManagement />
-              </Suspense>
-            </TabsContent>
-
-            <TabsContent value="orchestration" className="space-y-6 mt-0">
-              <Suspense fallback={<PanelFallback />}>
-                <AdaptiveOrchestrationPanel />
-              </Suspense>
+            <TabsContent value="ai_engine" className="mt-0">
+              <Tabs defaultValue="performance" className="w-full">
+                <TabsList className="mb-6 bg-card/65 border border-border/50 shadow-sm flex flex-row flex-nowrap overflow-x-auto no-scrollbar justify-start whitespace-nowrap w-full max-w-full">
+                  <TabsTrigger value="performance" className="flex-shrink-0">Performance & Évaluation</TabsTrigger>
+                  <TabsTrigger value="training" className="flex-shrink-0">Entraînement Chronologique</TabsTrigger>
+                  <TabsTrigger value="orchestration" className="flex-shrink-0">Orchestration Adaptative</TabsTrigger>
+                  <TabsTrigger value="config" className="flex-shrink-0">Configuration Algorithmique</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="performance" className="space-y-6 mt-0">
+                  <Suspense fallback={<PanelFallback />}>
+                    <AlgorithmPerformanceComparison />
+                    <AlgorithmEvaluationPanel />
+                  </Suspense>
+                </TabsContent>
+                
+                <TabsContent value="training" className="space-y-6 mt-0">
+                  <Suspense fallback={<PanelFallback />}>
+                    <ChronologicalTrainingPanel />
+                  </Suspense>
+                </TabsContent>
+                
+                <TabsContent value="orchestration" className="space-y-6 mt-0">
+                  <Suspense fallback={<PanelFallback />}>
+                    <AdaptiveOrchestrationPanel />
+                  </Suspense>
+                </TabsContent>
+                
+                <TabsContent value="config" className="space-y-6 mt-0">
+                  <Suspense fallback={<PanelFallback />}>
+                    <PredictionConfigPanel />
+                    <AlgorithmManagement />
+                  </Suspense>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           </div>
         </Tabs>

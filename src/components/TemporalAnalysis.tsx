@@ -5,11 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Calendar, Clock, Sun, Moon, TrendingUp, TrendingDown, 
   Activity, Repeat, BarChart3, ArrowUpRight, ArrowDownRight,
-  Minus
+  Minus, ArrowRightLeft
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NumberBall } from "@/components/NumberBall";
 import { useTemporalAnalysis, TemporalAnalysisData, DayPattern, MonthPattern, TimeSlotPattern, SeasonalTrend, TemporalCycle } from "@/hooks/useTemporalAnalysis";
+import { SeasonalRecurrencePanel } from "@/components/SeasonalRecurrencePanel";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -84,7 +85,7 @@ export const TemporalAnalysis = ({ drawName }: TemporalAnalysisProps) => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-secondary/30 backdrop-blur-sm">
+        <TabsList className="grid w-full grid-cols-5 bg-secondary/30 backdrop-blur-sm">
           <TabsTrigger value="overview" className="text-xs md:text-sm">
             <Activity className="w-4 h-4 md:mr-2" />
             <span className="hidden md:inline">Aperçu</span>
@@ -100,6 +101,10 @@ export const TemporalAnalysis = ({ drawName }: TemporalAnalysisProps) => {
           <TabsTrigger value="cycles" className="text-xs md:text-sm">
             <Repeat className="w-4 h-4 md:mr-2" />
             <span className="hidden md:inline">Cycles</span>
+          </TabsTrigger>
+          <TabsTrigger value="recurrence" className="text-xs md:text-sm">
+            <ArrowRightLeft className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Lags (Saisons)</span>
           </TabsTrigger>
         </TabsList>
 
@@ -118,6 +123,10 @@ export const TemporalAnalysis = ({ drawName }: TemporalAnalysisProps) => {
 
           <TabsContent key="cycles" value="cycles" className="mt-6">
             <CyclesTab data={data} />
+          </TabsContent>
+          
+          <TabsContent key="recurrence" value="recurrence" className="mt-6">
+            <SeasonalRecurrencePanel drawName={drawName} />
           </TabsContent>
         </AnimatePresence>
       </Tabs>

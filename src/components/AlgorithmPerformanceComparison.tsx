@@ -113,7 +113,7 @@ export const AlgorithmPerformanceComparison = () => {
       });
     }
     return acc;
-  }, [] as any[]) || [];
+  }, [] as Record<string, unknown>[]) || [];
 
   // Préparer les données pour le graphique de barres (comparaison globale)
   const barChartData = comparisonData.slice(0, 10).map(alg => ({

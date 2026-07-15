@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useDrawResults } from "./useDrawResults";
+import { useDrawResults, DrawResult } from "./useDrawResults";
 import { toast } from "sonner";
 import { useHapticFeedback } from "./useHapticFeedback";
 
@@ -18,7 +18,7 @@ export interface CadenceAlert {
 }
 
 // Helper: Calculate Double Gap Sequence score (same logic as DoubleGapAnalyzer)
-function calculateDoubleGapSequenceScore(results: any[]): Map<number, number> {
+function calculateDoubleGapSequenceScore(results: DrawResult[]): Map<number, number> {
   const scores = new Map<number, number>();
   for (let n = 1; n <= 90; n++) {
     const indices: number[] = [];
@@ -52,7 +52,7 @@ function calculateDoubleGapSequenceScore(results: any[]): Map<number, number> {
 }
 
 // Helper: Calculate Gap Cadence score (same logic as DoubleGapAnalyzer)
-function calculateGapCadenceScore(results: any[]): Map<number, number> {
+function calculateGapCadenceScore(results: DrawResult[]): Map<number, number> {
   const scores = new Map<number, number>();
   for (let n = 1; n <= 90; n++) {
     const indices: number[] = [];

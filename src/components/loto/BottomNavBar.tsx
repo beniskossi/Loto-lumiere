@@ -10,10 +10,10 @@ interface BottomNavBarProps {
 }
 
 const tabs: { id: TabId; label: string; icon: React.ElementType; highlight?: boolean }[] = [
-  { id: "accueil", label: "Synthèse Globale", icon: Home },
-  { id: "predictions", label: "Moteur Prédictif", icon: Target, highlight: true },
-  { id: "analyses", label: "Matrices & Écarts", icon: Search },
-  { id: "forensic", label: "Audit d'Intégrité", icon: ShieldCheck },
+  { id: "accueil", label: "Synthèse", icon: Home },
+  { id: "predictions", label: "Prédictions", icon: Target, highlight: true },
+  { id: "analyses", label: "Analyses", icon: Search },
+  { id: "forensic", label: "Audit", icon: ShieldCheck },
 ];
 
 export const BottomNavBar = ({ activeTab, onTabChange }: BottomNavBarProps) => {

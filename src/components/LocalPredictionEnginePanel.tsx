@@ -9,6 +9,7 @@ import { NumberBall } from "./NumberBall";
 import { useLocalPredictionEngine } from "@/hooks/useLocalPredictionEngine";
 import { Cpu, Sliders, Play, RefreshCw, BarChart2, Info, Check, GitBranch, Binary, BarChart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { InteractiveMathSandbox } from "./InteractiveMathSandbox";
 
 interface LocalPredictionEnginePanelProps {
   drawName: string;
@@ -472,6 +473,10 @@ export const LocalPredictionEnginePanel = ({ drawName }: LocalPredictionEnginePa
                 )}
               </AnimatePresence>
             </Card>
+          )}
+
+          {hasData && !isLoading && !isComputing && (
+            <InteractiveMathSandbox scores={scores} params={params} drawCount={drawCount} />
           )}
 
         </div>

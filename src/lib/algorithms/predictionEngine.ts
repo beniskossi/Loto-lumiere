@@ -7,6 +7,10 @@ export interface ScoreBreakdown {
   markovScore: number;    // Conditional probability based on the last draw
   momentumScore: number;  // Score based on mean-reversion and balance models
   combinedScore: number;  // Weighted combination of the above
+  // Raw metrics for XAI
+  rawFrequency?: number;
+  currentGap?: number;
+  avgGap?: number;
 }
 
 export interface PredictionEngineOptions {
@@ -112,6 +116,7 @@ export class LocalPredictionEngine {
 
     // Calculate F2 (Poisson-Gap Recurrence Score)
     const gapScores = new Array(maxNum + 1).fill(0);
+    const avgGaps = new Array(maxNum + 1).fill(0);
     for (let num = 1; num <= maxNum; num++) {
       const appearances = allAppearancesIndices[num];
       let avgGap = sortedDraws.length / Math.max(1, appearances.length);
@@ -123,6 +128,7 @@ export class LocalPredictionEngine {
         }
         avgGap = sumGaps / (appearances.length - 1);
       }
+      avgGaps[num] = avgGap;
 
       const currentGap = gaps[num];
       // Probability of occurrence: P(X >= 1) = 1 - e^(-lambda * currentGap / avgGap)
@@ -252,6 +258,9 @@ export class LocalPredictionEngine {
         markovScore: normMarkov,
         momentumScore: normMomentum,
         combinedScore: combined,
+        rawFrequency: allAppearancesIndices[num]?.length || 0,
+        currentGap: gaps[num],
+        avgGap: avgGaps[num],
       });
     }
 

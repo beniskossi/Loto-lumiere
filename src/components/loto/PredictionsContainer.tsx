@@ -72,7 +72,7 @@ export const PredictionsContainer = ({
         onValueChange={(v) => setActiveSubTab(v)}
         className="w-full"
       >
-        <TabsList className="flex flex-row w-full h-auto bg-muted/40 p-1.5 rounded-xl mb-6 overflow-x-auto no-scrollbar justify-start gap-1">
+        <TabsList className="flex flex-row flex-nowrap w-full h-auto bg-muted/40 p-1.5 rounded-xl mb-6 overflow-x-auto no-scrollbar justify-start gap-1">
           <TabsTrigger
             value="official"
             className="flex-1 min-w-[140px] gap-2 py-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs sm:text-sm font-medium whitespace-nowrap"

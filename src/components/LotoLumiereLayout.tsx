@@ -23,6 +23,7 @@ import { AccueilTab } from "./loto/AccueilTab";
 import { BottomNavBar, TabId } from "./loto/BottomNavBar";
 import { ScrollToTop } from "./loto/ScrollToTop";
 import { CadenceAlertNotificationCenter } from "./CadenceAlertNotificationCenter";
+import { Footer } from "./Footer";
 
 // Lazy-loaded tab components — only loaded when user navigates to them
 const PredictionsContainer = lazy(() => import("./loto/PredictionsContainer").then(m => ({ default: m.PredictionsContainer })));
@@ -193,6 +194,7 @@ export const LotoLumiereLayout = () => {
             {renderTabContent()}
           </motion.div>
         </AnimatePresence>
+        <Footer />
       </main>
 
       {/* Bottom Navigation */}

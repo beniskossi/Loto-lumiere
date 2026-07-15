@@ -50,10 +50,11 @@ export const AlgorithmEvaluationPanel = () => {
         title: "✓ Évaluation terminée",
         description: `${data.evaluations.length} algorithmes évalués`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'évaluer les algorithmes",
+        description: err.message || "Impossible d'évaluer les algorithmes",
         variant: "destructive",
       });
     } finally {

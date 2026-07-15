@@ -1,89 +1,46 @@
-import { Link } from "react-router-dom";
-import { Settings, Heart, BarChart3, History as HistoryIcon, Home, LayoutDashboard, FileSearch } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { Shield, Sparkles } from "lucide-react";
 
 export const Footer = () => {
-  const { user } = useAuth();
-  const { isAdmin } = useAdminRole(user?.id);
-
   return (
-    <footer className="bg-gradient-card border-t border-border/50 mt-12">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <h3 className="font-bold text-foreground mb-3">Loto Lumière</h3>
-            <p className="text-sm text-muted-foreground">
-              Application d'analyse avancée des résultats de loterie avec statistiques 
-              et prédictions intelligentes.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-foreground mb-3">Liens Rapides</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
-                  <Home className="w-4 h-4" />
-                  Accueil
-                </Link>
-              </li>
-              <li>
-                <Link to="/dashboard" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
-                  <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link to="/statistiques" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  Statistiques
-                </Link>
-              </li>
-              <li>
-                <Link to="/consulter" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
-                  <FileSearch className="w-4 h-4" />
-                  Consulter
-                </Link>
-              </li>
-              <li>
-                <Link to="/historique" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
-                  <HistoryIcon className="w-4 h-4" />
-                  Historique
-                </Link>
-              </li>
-              {isAdmin && (
-                <li>
-                  <Link to="/admin" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    Administration
-                  </Link>
-                </li>
-              )}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-foreground mb-3">À Propos</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              PWA moderne avec support hors ligne, statistiques en temps réel et prédictions ML.
-            </p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Heart className="w-3 h-3 text-destructive" />
-              <span>Fait avec passion</span>
+    <footer className="w-full border-t border-border/35 bg-background/30 backdrop-blur-md mt-16 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex flex-col items-center justify-between gap-4 md:flex-row text-center md:text-left">
+          {/* Brand and Description */}
+          <div className="flex flex-col md:flex-row items-center gap-2.5 text-muted-foreground">
+            <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs sm:text-sm">
+              <Sparkles className="w-3.5 h-3.5 text-primary animate-pulse" />
+              <span>LOTO LUMIÈRE</span>
             </div>
+            <span className="hidden md:inline text-border/60">|</span>
+            <p className="text-[11px] sm:text-xs">
+              Analyse stochastique & prédictions algorithmiques de loterie.
+            </p>
+          </div>
+
+          {/* Responsible Gaming Badge & Text */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 bg-amber-500/5 border border-amber-500/10 px-3.5 py-1.5 rounded-xl max-w-sm sm:max-w-none">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+              <Shield className="w-3.5 h-3.5" />
+              Responsabilité
+            </span>
+            <span className="hidden sm:inline text-amber-500/30">•</span>
+            <p className="text-[10px] text-amber-500/90 font-medium text-center sm:text-left">
+              Le jeu comporte des risques (dépendance, isolement). Appelez le 09 74 75 13 13.
+            </p>
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-border/50 text-center">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Loto Lumière. Tous droits réservés.
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            ⚠️ La loterie est un jeu de hasard. Jouez de manière responsable.
-          </p>
+        {/* Divider and Copyright */}
+        <div className="mt-6 pt-5 border-t border-border/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] font-mono text-muted-foreground/75">
+          <p>© {new Date().getFullYear()} LOTO LUMIÈRE. Tous droits réservés.</p>
+          <div className="flex items-center gap-4">
+            <span>Version 2.4.0 (Stable)</span>
+            <span>•</span>
+            <span>Mode Hors-ligne Actif</span>
+          </div>
         </div>
       </div>
     </footer>
   );
 };
+
