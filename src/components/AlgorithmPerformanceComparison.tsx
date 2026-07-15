@@ -22,6 +22,11 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
 } from "recharts";
 import {
   TrendingUp,
@@ -122,6 +127,28 @@ export const AlgorithmPerformanceComparison = () => {
     matches: alg.avg_matches,
     consistency: alg.consistency_score,
   }));
+
+  // Préparer les données pour le radar chart (Top 3 algorithmes)
+  const top3Algorithms = comparisonData.slice(0, 3);
+  const radarData = [
+    { metric: "Précision" },
+    { metric: "Consistance" },
+    { metric: "Bons (3+)" },
+    { metric: "Excellents (4+)" },
+    { metric: "Matches Moy." }
+  ];
+
+  top3Algorithms.forEach(alg => {
+    const algName = alg.model_used.split(" ")[0];
+    const goodPlusRate = ((alg.good_predictions + alg.excellent_predictions + alg.perfect_predictions) / alg.total_predictions) * 100;
+    const excellentPlusRate = ((alg.excellent_predictions + alg.perfect_predictions) / alg.total_predictions) * 100;
+
+    radarData[0][algName] = alg.avg_accuracy;
+    radarData[1][algName] = alg.consistency_score;
+    radarData[2][algName] = Number(goodPlusRate.toFixed(1));
+    radarData[3][algName] = Number((excellentPlusRate * 10).toFixed(1)); // Boosted for visibility
+    radarData[4][algName] = Number((alg.avg_matches * 20).toFixed(1)); // Scaled to 100
+  });
 
   const uniqueModels = [...new Set(trendsData?.map(t => t.model_used) || [])];
 
@@ -255,41 +282,91 @@ export const AlgorithmPerformanceComparison = () => {
       </Card>
 
       {/* Graphique de comparaison globale */}
-      <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2">
-            <div className="p-2 bg-accent/10 rounded-full">
-              <Target className="w-5 h-5 text-accent" />
-            </div>
-            Comparaison Globale des Performances
-          </CardTitle>
-          <CardDescription>
-            Top 10 des algorithmes par précision, matches et consistance
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={barChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="name"
-                tick={{ fill: "hsl(var(--foreground))", fontSize: 11 }}
-              />
-              <YAxis tick={{ fill: "hsl(var(--foreground))" }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--popover))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
-              />
-              <Legend />
-              <Bar dataKey="accuracy" fill="hsl(var(--primary))" name="Précision (%)" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="consistency" fill="hsl(var(--accent))" name="Consistance (%)" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <div className="p-1.5 bg-accent/10 rounded-full">
+                <Target className="w-4 h-4 text-accent" />
+              </div>
+              Comparaison Globale des Performances
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Top 10 par précision et consistance
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={barChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: "hsl(var(--foreground))", fontSize: 10 }}
+                />
+                <YAxis tick={{ fill: "hsl(var(--foreground))", fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "12px"
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: "11px" }} />
+                <Bar dataKey="accuracy" fill="hsl(var(--primary))" name="Précision (%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="consistency" fill="hsl(var(--accent))" name="Consistance (%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <div className="p-1.5 bg-primary/10 rounded-full">
+                <Activity className="w-4 h-4 text-primary" />
+              </div>
+              Empreinte de Performance (Top 3)
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Analyse multidimensionnelle des meilleurs modèles
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                <PolarGrid stroke="hsl(var(--border))" />
+                <PolarAngleAxis dataKey="metric" tick={{ fill: "hsl(var(--foreground))", fontSize: 10 }} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "12px"
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: "11px" }} />
+                {top3Algorithms.map((alg, index) => {
+                  const algName = alg.model_used.split(" ")[0];
+                  // Utiliser des couleurs distinctes pour le top 3 (Primary, Accent, Success/Destructive)
+                  const color = index === 0 ? "hsl(var(--primary))" : index === 1 ? "hsl(var(--accent))" : "hsl(var(--emerald-500))";
+                  return (
+                    <Radar
+                      key={algName}
+                      name={algName}
+                      dataKey={algName}
+                      stroke={color}
+                      fill={color}
+                      fillOpacity={0.3}
+                    />
+                  );
+                })}
+              </RadarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Tableau détaillé */}
       <Card className="bg-gradient-card border-border/50">

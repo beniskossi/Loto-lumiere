@@ -216,15 +216,16 @@ serve(async (req) => {
           { previous: a.previousWeight, new: a.newWeight, confidence: a.confidence }
         ])
       ),
-      parameter_adjustments: Object.fromEntries(
-        orchestrationResult.parameterAdjustments.map(a => [
-          `${a.algorithm}.${a.parameter}`,
-          { previous: a.previousValue, new: a.newValue }
-        ])
-      ),
+      parameter_adjustments: orchestrationResult.parameterAdjustments.reduce((acc: Record<string, any>, a) => {
+        if (!acc[a.algorithm]) {
+          acc[a.algorithm] = {};
+        }
+        acc[a.algorithm][a.parameter] = { previous: a.previousValue, new: a.newValue };
+        return acc;
+      }, {}),
       expected_improvement: orchestrationResult.expectedImprovement,
       adjustment_strategy: orchestrationResult.strategy,
-      notes: orchestrationResult.notes.join(' | '),
+      notes: orchestrationResult.notes.join('\n'),
     };
 
     // Chercher une entrée en attente

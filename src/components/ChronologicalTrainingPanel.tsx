@@ -131,27 +131,57 @@ export const ChronologicalTrainingPanel = () => {
             </h4>
             <div className="grid gap-3">
               {trainingResults.map((result, idx) => (
-                <div key={idx} className="p-3 bg-background rounded-lg border border-border/50 shadow-sm flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="p-1.5 bg-muted rounded">
-                      <Brain className="w-4 h-4 text-muted-foreground" />
+                <div key={idx} className="p-3 bg-background rounded-lg border border-border/50 shadow-sm flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 bg-muted rounded">
+                        <Brain className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{result.algorithm_name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {result.training_metrics?.learned_pattern || "Pondération ajustée."}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{result.algorithm_name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {result.training_metrics?.learned_pattern || "Pondération ajustée."}
-                      </p>
+                    <div className="flex items-center gap-4 text-xs font-mono bg-muted/30 px-3 py-1.5 rounded-md border border-border/30">
+                      <div className="text-muted-foreground">
+                        Poids spéc. tirage: <span className="text-foreground">{result.previous_weight?.toFixed(3)}</span>
+                      </div>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                      <div className={result.new_weight > result.previous_weight ? "text-success font-bold" : "text-warning font-bold"}>
+                        {result.new_weight?.toFixed(3)}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs font-mono bg-muted/30 px-3 py-1.5 rounded-md border border-border/30">
-                    <div className="text-muted-foreground">
-                      Poids: <span className="text-foreground">{result.previous_weight?.toFixed(3)}</span>
+                  
+                  {result.training_metrics?.patterns_stats && (
+                    <div className="pl-9 pr-2 py-2 border-t border-border/30 mt-1">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Motifs Statistiques Détectés</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-[11px] font-mono">
+                        <div className="bg-secondary/20 p-1.5 rounded flex flex-col">
+                          <span className="text-muted-foreground text-[9px]">Répétition (N→N)</span>
+                          <span className="font-semibold">{(result.training_metrics.patterns_stats.repRate * 100).toFixed(1)}%</span>
+                        </div>
+                        <div className="bg-secondary/20 p-1.5 rounded flex flex-col">
+                          <span className="text-muted-foreground text-[9px]">Suite Pos (N→N+1)</span>
+                          <span className="font-semibold">{(result.training_metrics.patterns_stats.p1Rate * 100).toFixed(1)}%</span>
+                        </div>
+                        <div className="bg-secondary/20 p-1.5 rounded flex flex-col">
+                          <span className="text-muted-foreground text-[9px]">Suite Nég (N→N-1)</span>
+                          <span className="font-semibold">{(result.training_metrics.patterns_stats.m1Rate * 100).toFixed(1)}%</span>
+                        </div>
+                        <div className="bg-secondary/20 p-1.5 rounded flex flex-col">
+                          <span className="text-muted-foreground text-[9px]">Miroir (12→21)</span>
+                          <span className="font-semibold">{(result.training_metrics.patterns_stats.mirrorRate * 100).toFixed(1)}%</span>
+                        </div>
+                        <div className="bg-secondary/20 p-1.5 rounded flex flex-col">
+                          <span className="text-muted-foreground text-[9px]">Ombre (N→N+45)</span>
+                          <span className="font-semibold">{(result.training_metrics.patterns_stats.shadowRate * 100).toFixed(1)}%</span>
+                        </div>
+                      </div>
                     </div>
-                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                    <div className={result.new_weight > result.previous_weight ? "text-success" : "text-warning"}>
-                      {result.new_weight?.toFixed(3)}
-                    </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

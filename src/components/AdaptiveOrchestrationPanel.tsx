@@ -282,7 +282,7 @@ export const AdaptiveOrchestrationPanel = () => {
                                 <div className="flex-1">
                                   <div className="font-medium text-[11px] text-foreground/90">{algo}</div>
                                   <div className="text-[10px] text-muted-foreground font-mono">
-                                    {typeof weights?.previous === 'number' ? weights.previous.toFixed(2) : '0.00'} → {typeof weights?.new === 'number' ? weights.new.toFixed(2) : '0.00'}
+                                    Poids: {typeof weights?.previous === 'number' ? weights.previous.toFixed(2) : '0.00'} → {typeof weights?.new === 'number' ? weights.new.toFixed(2) : '0.00'}
                                   </div>
                                 </div>
                                 
@@ -304,8 +304,29 @@ export const AdaptiveOrchestrationPanel = () => {
                           })}
                         </div>
 
+                        {record.parameter_adjustments && Object.keys(record.parameter_adjustments).length > 0 && (
+                          <div className="pt-2 border-t border-border/20 mt-2 space-y-1">
+                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                              Ajustements des paramètres
+                            </div>
+                            {Object.entries(record.parameter_adjustments).map(([algo, adjustments]: [string, any]) => (
+                               <div key={algo} className="flex flex-col py-1 px-3 rounded bg-accent/5 border border-accent/10 text-xs mt-1">
+                                  <div className="font-medium text-[10px] text-foreground">{algo}</div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {Object.entries(adjustments).map(([param, vals]: [string, any]) => (
+                                        <div key={param} className="flex items-center justify-between mt-0.5">
+                                          <span className="font-mono text-primary/80">{param} :</span>
+                                          <span className="font-mono">{vals.previous} → {vals.new}</span>
+                                        </div>
+                                    ))}
+                                  </div>
+                               </div>
+                            ))}
+                          </div>
+                        )}
+
                         {record.notes && (
-                          <p className="text-[11px] text-muted-foreground italic bg-muted/40 p-2 rounded border-l-2 border-primary/40 mt-1">
+                          <p className="text-[11px] text-muted-foreground italic bg-muted/40 p-2 rounded border-l-2 border-primary/40 mt-1 whitespace-pre-line">
                             {record.notes}
                           </p>
                         )}
