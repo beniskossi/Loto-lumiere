@@ -55,13 +55,13 @@ serve(async (req) => {
     
     log("info", "Starting adaptive orchestration", { drawName, drawDate, forceAdjustment });
 
-    // 1. Récupérer les performances récentes (5 derniers tirages par algorithme)
+    // 1. Récupérer les performances récentes pour l'évaluation élargie et le backtest (jusqu'à 50 tirages x 8 algorithmes)
     const { data: performances, error: perfError } = await supabase
       .from('algorithm_performance')
       .select('*')
       .eq('draw_name', drawName)
       .order('draw_date', { ascending: false })
-      .limit(30); // 5 tirages x 6 algorithmes
+      .limit(400); // 50 tirages x 8 algorithmes de façon à avoir une fenêtre élargie de 30+ tirages + 10 de backtest
 
     if (perfError) {
       throw new Error(`Performance fetch error: ${perfError.message}`);
@@ -120,15 +120,12 @@ serve(async (req) => {
     });
 
     // 4. Exécuter l'orchestration
-    let orchestrationResult = runOrchestration(
+    const orchestrationResult = runOrchestration(
       performanceByAlgo,
       currentWeights,
       currentParams,
       { forceAdjustment, minDataPoints: 10 }
     );
-
-    // Valider les résultats
-    orchestrationResult = validateOrchestrationResult(orchestrationResult);
 
     log("info", "Orchestration completed", {
       strategy: orchestrationResult.strategy,
@@ -200,6 +197,7 @@ serve(async (req) => {
         param_adjustments: orchestrationResult.parameterAdjustments.length,
         applied_weights: appliedWeightCount,
         applied_params: appliedParamCount,
+        backtest_result: orchestrationResult.backtestResult, // Enregistrement complet du backtest Walk-Forward pour traçabilité
       },
       algorithms_analyzed: orchestrationResult.metrics.map(m => ({
         name: m.name,

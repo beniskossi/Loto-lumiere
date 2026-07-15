@@ -30,9 +30,8 @@ Ta tâche est de déterminer les pondérations optimales (somme = 1.0) pour comb
 ${JSON.stringify(modelMetrics, null, 2)}
 
 Tiens compte de :
-1. "Stacking Ensemble" et "Double Gap Sequence" ont des potentiels très élevés.
-2. Les algorithmes avec des confiances > 85% méritent plus de poids.
-3. Conserve de la diversité.`;
+1. Les algorithmes avec des confiances > 85% méritent plus de poids.
+2. Conserve de la diversité.`;
 
   const ORCHESTRATION_TOOL = {
     type: "function" as const,

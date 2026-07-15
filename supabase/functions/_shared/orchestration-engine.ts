@@ -39,6 +39,12 @@ export interface OrchestrationResult {
   strategy: string;
   expectedImprovement: number;
   notes: string[];
+  backtestResult?: {
+    currentScore: number;
+    proposedScore: number;
+    degradation: boolean;
+    improvement: number;
+  };
 }
 
 // ============= CONSTANTS =============
@@ -369,7 +375,7 @@ export function suggestParameterAdjustments(
 // ============= MAIN ORCHESTRATION =============
 
 /**
- * Exécute l'orchestration complète
+ * Exécute l'orchestration complète avec filtrage statistique du bruit et backtest Walk-Forward
  */
 export function runOrchestration(
   performanceData: Map<string, Array<{
@@ -385,30 +391,73 @@ export function runOrchestration(
     minDataPoints?: number;
   } = {}
 ): OrchestrationResult {
-  const minDataPoints = options.minDataPoints || 10;
   const notes: string[] = [];
   
-  // Extraire toutes les performances pour dériver les paramètres
-  const allPerformances = Array.from(performanceData.values()).flat();
-  const orchestrationParams = deriveOrchestrationParams(allPerformances);
+  // 1. Déterminer la taille de la fenêtre de Backtest (Out-of-Sample)
+  let maxDraws = 0;
+  for (const [_, perfs] of performanceData) {
+    if (perfs.length > maxDraws) {
+      maxDraws = perfs.length;
+    }
+  }
   
-  // Calculer les métriques pour chaque algorithme
+  // Déterminer la taille du backtest N (généralement 10 si on a >= 40 tirages de dispo)
+  const N = Math.max(5, Math.min(10, Math.floor(maxDraws * 0.25)));
+  notes.push(`[SPLIT] Historique max détecté : ${maxDraws} tirages. Fenêtre de validation Walk-Forward : ${N} tirages.`);
+
+  // Extraire toutes les performances In-Sample pour dériver les hyperparamètres globaux
+  const allInSamplePerformances: Array<{ accuracy_score: number }> = [];
+  for (const [_, perfs] of performanceData) {
+    const inSample = perfs.slice(N);
+    allInSamplePerformances.push(...inSample);
+  }
+  
+  const orchestrationParams = deriveOrchestrationParams(allInSamplePerformances);
+  
+  // 2. Calculer les métriques avec test de significativité binomiale (Z-Score) sur la fenêtre In-Sample élargie
   const metrics: AlgorithmMetrics[] = [];
+  const p0 = 5 / 90; // probabilité de base aléatoire (~5.556%)
   
   for (const [algoName, performances] of performanceData) {
-    if (performances.length < minDataPoints && !options.forceAdjustment) {
-      notes.push(`${algoName}: données insuffisantes (${performances.length}/${minDataPoints})`);
+    // Fenêtre In-Sample de minimum 30 tirages (si dispo)
+    const inSample = performances.slice(N);
+    
+    if (inSample.length < 5 && !options.forceAdjustment) {
+      notes.push(`${algoName}: données in-sample insuffisantes (${inSample.length}/5)`);
       continue;
     }
     
-    const metric = calculateAlgorithmMetrics(algoName, performances, orchestrationParams);
-    metrics.push(metric);
+    // Calcul de base des métriques
+    const metric = calculateAlgorithmMetrics(algoName, inSample, orchestrationParams);
     
-    log("info", `Metrics calculated for ${algoName}`, {
-      avgAccuracy: metric.avgAccuracy.toFixed(2),
-      trend: metric.trend.toFixed(2),
-      consistency: metric.consistency.toFixed(1),
+    // Test de significativité (Z-Score vs Hasard Pur ~5.56%)
+    const D = inSample.length;
+    const totalPredicted = 5 * D;
+    const totalMatches = inSample.reduce((sum, p) => sum + p.matches_count, 0);
+    const expectedMatches = totalPredicted * p0;
+    const variance = totalPredicted * p0 * (1 - p0);
+    const stdDev = Math.sqrt(variance);
+    const zScore = stdDev > 0 ? (totalMatches - expectedMatches) / stdDev : 0;
+    const isSignificant = zScore > 1.645; // Seuil unilatéral à 95% de confiance
+    
+    log("info", `Significance test for ${algoName}`, {
+      zScore: zScore.toFixed(3),
+      isSignificant,
+      matches: totalMatches,
+      draws: D
     });
+    
+    // Si l'écart de performance n'est pas statistiquement significatif (Z-Score <= 1.645),
+    // on traite cela comme du bruit blanc / hasard. On force la tendance et le momentum à 0.
+    if (!isSignificant) {
+      metric.trend = 0;
+      metric.momentum = 0;
+      notes.push(`[IA] ${algoName} : Écart non significatif (Z-Score: ${zScore.toFixed(2)}). Tendance forcée à neutre (filtre de bruit).`);
+    } else {
+      notes.push(`[IA] ${algoName} : Performance statistiquement valide (Z-Score: ${zScore.toFixed(2)}).`);
+    }
+    
+    metrics.push(metric);
   }
   
   if (metrics.length === 0) {
@@ -422,35 +471,103 @@ export function runOrchestration(
     };
   }
   
-  // Déterminer la stratégie
+  // 3. Déterminer la stratégie globale basée sur les métriques filtrées du bruit
   const strategy = determineStrategy(metrics, orchestrationParams);
-  notes.push(`Stratégie: ${strategy.strategy} (${strategy.description})`);
+  notes.push(`Stratégie choisie : ${strategy.strategy} (${strategy.description})`);
   
-  log("info", "Orchestration strategy determined", {
-    strategy: strategy.strategy,
-    aggressiveness: strategy.aggressiveness,
-  });
+  // 4. Calculer les propositions d'ajustements de poids (In-Sample)
+  const proposedAdjustments = calculateWeightAdjustments(metrics, currentWeights, strategy, orchestrationParams);
   
-  // Calculer les ajustements de poids
-  const weightAdjustments = calculateWeightAdjustments(metrics, currentWeights, strategy, orchestrationParams);
-  
-  // Calculer les ajustements de paramètres
+  // 5. Calculer les propositions d'ajustements de paramètres (In-Sample)
   const parameterAdjustments = suggestParameterAdjustments(metrics, currentParams, orchestrationParams);
   
-  // Estimer l'amélioration attendue
+  // 6. Nouveau : Validation Walk-Forward (Out-of-Sample)
+  // Construire la map des poids proposés
+  const proposedWeights = new Map<string, number>(currentWeights);
+  for (const adj of proposedAdjustments) {
+    proposedWeights.set(adj.algorithm, adj.newWeight);
+  }
+  
+  // Identifier toutes les dates de tirage présentes dans la fenêtre de backtest (les N tirages les plus récents)
+  const backtestDrawDatesSet = new Set<string>();
+  for (const [_, perfs] of performanceData) {
+    const backtestPerfs = perfs.slice(0, N);
+    for (const p of backtestPerfs) {
+      backtestDrawDatesSet.add(p.draw_date);
+    }
+  }
+  const backtestDrawDates = Array.from(backtestDrawDatesSet).sort();
+  
+  let totalCurrentAcc = 0;
+  let totalProposedAcc = 0;
+  let validDrawsCount = 0;
+  
+  for (const date of backtestDrawDates) {
+    let currentWeightedSum = 0;
+    let proposedWeightedSum = 0;
+    let currentWeightsSum = 0;
+    let proposedWeightsSum = 0;
+    
+    for (const [algoName, perfs] of performanceData) {
+      const drawPerf = perfs.find(p => p.draw_date === date);
+      if (drawPerf) {
+        const currW = currentWeights.get(algoName) ?? 1.0;
+        const propW = proposedWeights.get(algoName) ?? 1.0;
+        const acc = drawPerf.accuracy_score;
+        
+        currentWeightedSum += currW * acc;
+        currentWeightsSum += currW;
+        
+        proposedWeightedSum += propW * acc;
+        proposedWeightsSum += propW;
+      }
+    }
+    
+    if (currentWeightsSum > 0 && proposedWeightsSum > 0) {
+      totalCurrentAcc += currentWeightedSum / currentWeightsSum;
+      totalProposedAcc += proposedWeightedSum / proposedWeightsSum;
+      validDrawsCount++;
+    }
+  }
+  
+  const avgCurrentBacktestAcc = validDrawsCount > 0 ? totalCurrentAcc / validDrawsCount : 0;
+  const avgProposedBacktestAcc = validDrawsCount > 0 ? totalProposedAcc / validDrawsCount : 0;
+  
+  const backtestResult = {
+    currentScore: parseFloat(avgCurrentBacktestAcc.toFixed(3)),
+    proposedScore: parseFloat(avgProposedBacktestAcc.toFixed(3)),
+    degradation: avgProposedBacktestAcc < avgCurrentBacktestAcc,
+    improvement: parseFloat((avgProposedBacktestAcc - avgCurrentBacktestAcc).toFixed(3)),
+  };
+  
+  log("info", "Walk-forward backtest completed", backtestResult);
+  
+  // 7. Application conditionnelle des ajustements de poids
+  let finalWeightAdjustments = proposedAdjustments;
+  if (backtestResult.degradation && proposedAdjustments.length > 0) {
+    finalWeightAdjustments = [];
+    notes.push(`[BACKTEST] Rejet des ajustements : Dégradation de l'ensemble détectée en Walk-Forward (Proposé : ${backtestResult.proposedScore.toFixed(2)}% vs Actuel : ${backtestResult.currentScore.toFixed(2)}%).`);
+  } else if (proposedAdjustments.length > 0) {
+    notes.push(`[BACKTEST] Validation réussie : Gain de performance en Walk-Forward (Proposé : ${backtestResult.proposedScore.toFixed(2)}% vs Actuel : ${backtestResult.currentScore.toFixed(2)}%).`);
+  } else {
+    notes.push(`[BACKTEST] Pas d'ajustement de poids proposé à valider.`);
+  }
+  
+  // Estimer l'amélioration attendue finale
   const avgTrend = metrics.reduce((sum, m) => sum + m.trend, 0) / metrics.length;
-  const adjustmentImpact = weightAdjustments.reduce((sum, a) => 
+  const adjustmentImpact = finalWeightAdjustments.reduce((sum, a) => 
     sum + Math.abs(a.newWeight - a.previousWeight) * a.confidence, 0
   );
   const expectedImprovement = Math.max(0, avgTrend + adjustmentImpact * 2);
   
   return validateOrchestrationResult({
-    weightAdjustments,
+    weightAdjustments: finalWeightAdjustments,
     parameterAdjustments,
     metrics,
     strategy: strategy.strategy,
     expectedImprovement,
     notes,
+    backtestResult,
   }, orchestrationParams);
 }
 
