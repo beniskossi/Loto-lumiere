@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateAndCleanPredictions } from "@/utils/predictionValidation";
 
 export interface AdvancedPrediction {
   numbers: number[];
@@ -75,12 +76,7 @@ export const useAdvancedPrediction = (drawName: string, options: AdvancedPredict
 
         // Validate and clean data
         if (data && data.predictions) {
-          data.predictions = data.predictions.map((pred: AdvancedPrediction) => ({
-            ...pred,
-            numbers: pred.numbers
-              .filter((n: number) => typeof n === 'number' && n >= 1 && n <= 90)
-              .sort((a: number, b: number) => a - b)
-          }));
+          data.predictions = validateAndCleanPredictions<AdvancedPrediction>(data.predictions);
         }
 
         return data;

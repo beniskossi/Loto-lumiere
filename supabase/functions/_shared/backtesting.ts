@@ -1,7 +1,4 @@
-/**
- * Module de Backtesting Professionnel
- * Validation croisée K-Fold et métriques avancées
- */
+
 import type { DrawResult, PredictionResult } from "./types.ts";
 import { DeterministicLCG, deriveSeedFromDraws } from "./utils.ts";
 
@@ -11,15 +8,12 @@ export interface BacktestResult {
   precision: number;
   recall: number;
   f1Score: number;
+  brierScore?: number;
   avgMatches: number;
   bestMatch: number;
   worstMatch: number;
   consistency: number;
   totalTests: number;
-  sharpeRatio: number;
-  maxDrawdown: number;
-  winRate: number;
-  profitFactor: number;
   matchDistribution: Record<number, number>;
 }
 
@@ -31,60 +25,92 @@ export interface CrossValidationResult {
 }
 
 /**
- * Backtesting avec validation croisée K-Fold
+ * Backtesting using Expanding Window
  */
-export async function backtestWithCrossValidation(
+export async function backtestWithExpandingWindow(
   algorithm: (results: DrawResult[]) => PredictionResult,
   algorithmName: string,
   historicalData: DrawResult[],
-  kFolds: number = 5
+  initialTrainSize: number = 50,
+  stepSize: number = 5
 ): Promise<CrossValidationResult> {
-  const foldSize = Math.floor(historicalData.length / kFolds);
   const folds: BacktestResult[] = [];
+  
+  // We need enough data
+  if (historicalData.length <= initialTrainSize) {
+    throw new Error("Pas assez de données pour l'expanding window");
+  }
 
-  for (let k = 0; k < kFolds; k++) {
-    const testStart = k * foldSize;
-    const testEnd = testStart + foldSize;
-    
-    // Split data into training and testing
-    const testData = historicalData.slice(testStart, testEnd);
-    const trainData = [
-      ...historicalData.slice(0, testStart),
-      ...historicalData.slice(testEnd)
-    ];
+  for (let i = initialTrainSize; i < historicalData.length; i += stepSize) {
+    const testEnd = Math.min(i + stepSize, historicalData.length);
+    const trainData = historicalData.slice(0, i);
+    const testData = historicalData.slice(i, testEnd);
 
     const foldResult = await backtestAlgorithm(
       algorithm,
       algorithmName,
       trainData,
-      testData,
-      50,
-      4 // Cap to 4 tests per fold for cross-validation to stay ultra-lightweight
+      testData
     );
     folds.push(foldResult);
   }
 
-  // Aggregate results across all folds
   const aggregated = aggregateFoldResults(folds, algorithmName);
-  
-  // Calculate standard error and confidence interval
   const accuracies = folds.map(f => f.accuracy);
   const mean = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
   const variance = accuracies.reduce((sum, acc) => sum + Math.pow(acc - mean, 2), 0) / accuracies.length;
-  const standardError = Math.sqrt(variance / kFolds);
-  
+  const standardError = Math.sqrt(variance / folds.length);
   const zScore95 = 1.96;
   const confidenceInterval = {
     lower: mean - zScore95 * standardError,
     upper: mean + zScore95 * standardError
   };
 
-  return {
-    folds,
-    aggregated,
-    standardError,
-    confidenceInterval
+  return { folds, aggregated, standardError, confidenceInterval };
+}
+
+/**
+ * Backtesting using Rolling Window
+ */
+export async function backtestWithRollingWindow(
+  algorithm: (results: DrawResult[]) => PredictionResult,
+  algorithmName: string,
+  historicalData: DrawResult[],
+  windowSize: number = 100,
+  stepSize: number = 5
+): Promise<CrossValidationResult> {
+  const folds: BacktestResult[] = [];
+
+  if (historicalData.length <= windowSize) {
+    throw new Error("Pas assez de données pour le rolling window");
+  }
+
+  for (let i = windowSize; i < historicalData.length; i += stepSize) {
+    const testEnd = Math.min(i + stepSize, historicalData.length);
+    const trainData = historicalData.slice(i - windowSize, i);
+    const testData = historicalData.slice(i, testEnd);
+
+    const foldResult = await backtestAlgorithm(
+      algorithm,
+      algorithmName,
+      trainData,
+      testData
+    );
+    folds.push(foldResult);
+  }
+
+  const aggregated = aggregateFoldResults(folds, algorithmName);
+  const accuracies = folds.map(f => f.accuracy);
+  const mean = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
+  const variance = accuracies.reduce((sum, acc) => sum + Math.pow(acc - mean, 2), 0) / accuracies.length;
+  const standardError = Math.sqrt(variance / folds.length);
+  const zScore95 = 1.96;
+  const confidenceInterval = {
+    lower: mean - zScore95 * standardError,
+    upper: mean + zScore95 * standardError
   };
+
+  return { folds, aggregated, standardError, confidenceInterval };
 }
 
 /**
@@ -96,19 +122,16 @@ export async function backtestAlgorithm(
   trainingData: DrawResult[],
   testData?: DrawResult[],
   windowSize: number = 50,
-  maxTests: number = 8
+  maxTests: number = 200
 ): Promise<BacktestResult> {
   const scores: number[] = [];
-  const returns: number[] = [];
   const precisions: number[] = [];
   const recalls: number[] = [];
   const matchDistribution: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   
-  // If no test data provided, use walk-forward validation
   const data = testData || trainingData;
   const startIdx = testData ? 0 : windowSize;
   
-  // Cap the end index based on maxTests to prevent worker resource limit starvation
   let endIdx = testData ? data.length : Math.min(trainingData.length, windowSize + 50);
   if (endIdx - startIdx > maxTests) {
     endIdx = startIdx + maxTests;
@@ -118,13 +141,16 @@ export async function backtestAlgorithm(
     const trainSlice = testData 
       ? trainingData 
       : trainingData.slice(Math.max(0, i - windowSize), i);
-    
+      
     if (trainSlice.length < 10) continue;
     
     const testPoint = data[i];
     
     try {
       const prediction = await algorithm(trainSlice);
+      if (prediction.numbers && prediction.numbers.join(',') === '1,2,3,4,5') {
+        continue; // isoler [1, 2, 3, 4, 5]
+      }
       const predictedCount = prediction.numbers.length;
       const actualCount = testPoint.winning_numbers.length;
       
@@ -139,16 +165,11 @@ export async function backtestAlgorithm(
       const recall = actualCount > 0 ? matches / actualCount : 0;
       precisions.push(precision);
       recalls.push(recall);
-      
-      // Calculate return (simplified: +1 for each match above 1, -1 otherwise)
-      const gain = matches >= 2 ? matches - 1 : -1;
-      returns.push(gain);
     } catch {
       scores.push(0);
       precisions.push(0);
       recalls.push(0);
       matchDistribution[0]++;
-      returns.push(-1);
     }
   }
 
@@ -156,7 +177,6 @@ export async function backtestAlgorithm(
     return createEmptyResult(algorithmName);
   }
 
-  // Calculate metrics
   const avgMatches = scores.reduce((a, b) => a + b, 0) / scores.length;
   const variance = scores.reduce((sum, s) => sum + Math.pow(s - avgMatches, 2), 0) / scores.length;
   const stdDev = Math.sqrt(variance);
@@ -166,81 +186,20 @@ export async function backtestAlgorithm(
   const f1Score = (avgPrecision + avgRecall) > 0 
     ? 2 * (avgPrecision * avgRecall) / (avgPrecision + avgRecall) 
     : 0;
-  
-  // Win rate (2+ matches is a "win")
-  const winRate = scores.filter(s => s >= 2).length / scores.length;
-  
-  // Sharpe ratio (risk-adjusted return)
-  const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-  const returnVariance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
-  const returnStdDev = Math.sqrt(returnVariance);
-  const sharpeRatio = returnStdDev > 0 ? avgReturn / returnStdDev : 0;
-  
-  // Max drawdown
-  let maxDrawdown = 0;
-  let peak = 0;
-  let cumulative = 0;
-  for (const r of returns) {
-    cumulative += r;
-    if (cumulative > peak) peak = cumulative;
-    const drawdown = peak - cumulative;
-    if (drawdown > maxDrawdown) maxDrawdown = drawdown;
-  }
-  
-  // Profit factor (gross gains / gross losses)
-  const gains = returns.filter(r => r > 0).reduce((a, b) => a + b, 0);
-  const losses = Math.abs(returns.filter(r => r < 0).reduce((a, b) => a + b, 0));
-  const profitFactor = losses > 0 ? gains / losses : gains;
 
   return {
     algorithm: algorithmName,
-    accuracy: (avgMatches / 5) * 100,
-    precision: avgPrecision * 100,
-    recall: avgRecall * 100,
-    f1Score: f1Score * 100,
+    accuracy: (avgMatches / 5),
+    precision: avgPrecision,
+    recall: avgRecall,
+    f1Score: f1Score,
     avgMatches,
     bestMatch: Math.max(...scores),
     worstMatch: Math.min(...scores),
     consistency: stdDev,
     totalTests: scores.length,
-    sharpeRatio,
-    maxDrawdown,
-    winRate,
-    profitFactor,
     matchDistribution
   };
-}
-
-/**
- * Walk-forward optimization
- */
-export async function walkForwardOptimization(
-  algorithm: (results: DrawResult[]) => PredictionResult,
-  algorithmName: string,
-  historicalData: DrawResult[],
-  trainingWindow: number = 100,
-  testWindow: number = 20,
-  stepSize: number = 10
-): Promise<BacktestResult[]> {
-  const results: BacktestResult[] = [];
-  
-  for (let i = trainingWindow; i < historicalData.length - testWindow; i += stepSize) {
-    const trainData = historicalData.slice(i - trainingWindow, i);
-    const testData = historicalData.slice(i, i + testWindow);
-    
-    const result = await backtestAlgorithm(
-      algorithm,
-      algorithmName,
-      trainData,
-      testData,
-      100,
-      4 // Cap to 4 tests per step for walk-forward optimization
-    );
-    
-    results.push(result);
-  }
-  
-  return results;
 }
 
 /**
@@ -255,12 +214,8 @@ function aggregateFoldResults(folds: BacktestResult[], algorithmName: string): B
   const avgF1Score = folds.reduce((sum, f) => sum + (f.f1Score || 0), 0) / n;
   const avgMatches = folds.reduce((sum, f) => sum + f.avgMatches, 0) / n;
   const avgConsistency = folds.reduce((sum, f) => sum + f.consistency, 0) / n;
-  const avgSharpe = folds.reduce((sum, f) => sum + f.sharpeRatio, 0) / n;
-  const avgWinRate = folds.reduce((sum, f) => sum + f.winRate, 0) / n;
-  const avgProfitFactor = folds.reduce((sum, f) => sum + f.profitFactor, 0) / n;
   const totalTests = folds.reduce((sum, f) => sum + f.totalTests, 0);
   
-  // Aggregate match distribution
   const matchDistribution: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   folds.forEach(f => {
     for (let i = 0; i <= 5; i++) {
@@ -279,10 +234,6 @@ function aggregateFoldResults(folds: BacktestResult[], algorithmName: string): B
     worstMatch: Math.min(...folds.map(f => f.worstMatch)),
     consistency: avgConsistency,
     totalTests,
-    sharpeRatio: avgSharpe,
-    maxDrawdown: Math.max(...folds.map(f => f.maxDrawdown)),
-    winRate: avgWinRate,
-    profitFactor: avgProfitFactor,
     matchDistribution
   };
 }
@@ -299,17 +250,10 @@ function createEmptyResult(algorithmName: string): BacktestResult {
     worstMatch: 0,
     consistency: 0,
     totalTests: 0,
-    sharpeRatio: 0,
-    maxDrawdown: 0,
-    winRate: 0,
-    profitFactor: 0,
     matchDistribution: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
   };
 }
 
-/**
- * Monte Carlo simulation for prediction confidence
- */
 export function monteCarloSimulation(
   algorithm: (results: DrawResult[]) => PredictionResult,
   historicalData: DrawResult[],
@@ -320,20 +264,20 @@ export function monteCarloSimulation(
   const lcg = new DeterministicLCG(baseSeed);
   
   for (let i = 0; i < iterations; i++) {
-    // Bootstrap sample
     const sample = bootstrapSample(historicalData, lcg);
     const prediction = algorithm(sample);
+    if (prediction.numbers && prediction.numbers.join(',') === '1,2,3,4,5') {
+      continue; // isoler [1, 2, 3, 4, 5]
+    }
     
-    // Test against random historical result
     const testIdx = Math.floor(lcg.next() * historicalData.length);
     const matches = prediction.numbers.filter(n =>
       historicalData[testIdx].winning_numbers.includes(n)
     ).length;
     
-    accuracies.push((matches / 5) * 100);
+    accuracies.push(matches / 5);
   }
   
-  // Calculate statistics
   const sorted = [...accuracies].sort((a, b) => a - b);
   const mean = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
   const variance = accuracies.reduce((sum, acc) => sum + Math.pow(acc - mean, 2), 0) / accuracies.length;

@@ -41,9 +41,8 @@ serve(async (req) => {
     let isAdmin = false;
 
     const isServiceRole = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const isAnonKey = token === Deno.env.get("SUPABASE_ANON_KEY") || token.includes("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9");
 
-    if (isServiceRole || isAnonKey) {
+    if (isServiceRole) {
       user = { id: "00000000-0000-0000-0000-000000000000", email: "admin@local.test" };
       isAdmin = true;
     } else {

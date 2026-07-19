@@ -84,29 +84,29 @@ export const ProfessionalConfidenceIndicator = ({
       color = 'text-success';
       bgColor = 'bg-success/10';
       icon = ShieldCheck;
-      label = 'Confiance Élevée';
-      description = 'Prédiction fiable basée sur des données solides';
+      label = 'Consensus Élevé';
+      description = 'Forte convergence des modèles d\'analyse sur ces données';
     } else if (normalizedConfidence >= 0.55) {
       level = 'medium';
       color = 'text-amber-500';
       bgColor = 'bg-amber-500/10';
       icon = Shield;
-      label = 'Confiance Modérée';
-      description = 'Prédiction avec incertitude modérée';
+      label = 'Consensus Modéré';
+      description = 'Divergences mineures entre les modèles stochastiques';
     } else if (normalizedConfidence >= 0.35) {
       level = 'low';
       color = 'text-orange-500';
       bgColor = 'bg-orange-500/10';
       icon = ShieldAlert;
-      label = 'Confiance Faible';
-      description = 'Données insuffisantes, prudence recommandée';
+      label = 'Consensus Faible';
+      description = 'Modèles divergents ou volume d\'historique restreint';
     } else {
       level = 'very-low';
       color = 'text-destructive';
       bgColor = 'bg-destructive/10';
       icon = ShieldAlert;
-      label = 'Confiance Très Faible';
-      description = 'Prédiction exploratoire uniquement';
+      label = 'Consensus Très Faible';
+      description = 'Génération purement exploratoire ou aléatoire';
     }
 
     // Calculate margin of error (based on confidence interval)
@@ -267,11 +267,11 @@ export const ProfessionalConfidenceIndicator = ({
                 <Sparkles className={cn("w-3 h-3 mt-0.5", analysis.color)} />
                 <p className="text-muted-foreground">
                   {analysis.level === 'high' ? (
-                    "Cette prédiction bénéficie d'un fort consensus algorithmique et de données de qualité. Les numéros suggérés sont statistiquement optimisés."
+                    "Cette analyse indique une forte convergence des modèles statistiques de la suite sur l'historique fourni. Rappel amical : chaque tirage reste indépendant et régi par le hasard pur, aucune certitude mathématique ne peut être obtenue."
                   ) : analysis.level === 'medium' ? (
-                    "Confiance modérée. Considérez cette prédiction comme une suggestion éclairée, mais gardez une approche prudente."
+                    "Convergence moyenne. Les différents modèles statistiques présentent quelques écarts. Utile comme aide d'exploration analytique pour vos grilles, sans garantie de résultat."
                   ) : (
-                    "Données limitées ou divergence algorithmique. Cette prédiction est exploratoire et ne doit pas être suivie aveuglément."
+                    "Convergence faible en raison d'une divergence algorithmique ou d'un historique restreint. Cette suggestion doit être considérée comme purement expérimentale et exploratoire."
                   )}
                 </p>
               </div>

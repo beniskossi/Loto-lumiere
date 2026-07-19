@@ -1,6 +1,6 @@
 import { useState, useMemo, lazy, Suspense, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, LogOut, Shield } from "lucide-react";
+import { Sparkles, LogOut, Shield, Home, Target, Search, TrendingUp, FlaskConical, User } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,7 @@ import { OnboardingWizard } from "@/components/OnboardingWizard";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
+import { cn } from "@/lib/utils";
 
 // Eagerly load AccueilTab (home screen), lazy load the rest
 import { AccueilTab } from "./loto/AccueilTab";
@@ -28,7 +29,8 @@ import { Footer } from "./Footer";
 // Lazy-loaded tab components — only loaded when user navigates to them
 const PredictionsContainer = lazy(() => import("./loto/PredictionsContainer").then(m => ({ default: m.PredictionsContainer })));
 const AnalysesContainer = lazy(() => import("./loto/AnalysesContainer").then(m => ({ default: m.AnalysesContainer })));
-const ForensicAuditPanel = lazy(() => import("@/components/ForensicAuditPanel").then(m => ({ default: m.ForensicAuditPanel })));
+const PerformancesContainer = lazy(() => import("./loto/PerformancesContainer").then(m => ({ default: m.PerformancesContainer })));
+const CompteContainer = lazy(() => import("./loto/CompteContainer").then(m => ({ default: m.CompteContainer })));
 
 const TabFallback = () => (
   <div className="space-y-4">
@@ -37,6 +39,14 @@ const TabFallback = () => (
     <Skeleton className="h-32 w-full" />
   </div>
 );
+
+const navigationTabs: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: "accueil", label: "Aujourd'hui", icon: Home },
+  { id: "predictions", label: "Grilles", icon: Target },
+  { id: "analyses", label: "Analyses & Labo", icon: FlaskConical },
+  { id: "performances", label: "Performances", icon: TrendingUp },
+  { id: "compte", label: "Compte", icon: User },
+];
 
 export const LotoLumiereLayout = () => {
   const navigate = useNavigate();
@@ -95,10 +105,16 @@ export const LotoLumiereLayout = () => {
             <AnalysesContainer key={selectedDraw} drawName={selectedDraw} />
           </Suspense>
         );
-      case "forensic":
+      case "performances":
         return (
           <Suspense fallback={<TabFallback />}>
-            <ForensicAuditPanel />
+            <PerformancesContainer key={selectedDraw} drawName={selectedDraw} />
+          </Suspense>
+        );
+      case "compte":
+        return (
+          <Suspense fallback={<TabFallback />}>
+            <CompteContainer />
           </Suspense>
         );
       default:
@@ -107,13 +123,8 @@ export const LotoLumiereLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Background ambient blobs for immersive cosmic vibe */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px] dark:bg-primary/8" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-accent/5 blur-[150px] dark:bg-accent/8" />
-      </div>
-
+    <div className="min-h-screen bg-[#0d1017] relative flex flex-col md:flex-row text-foreground font-sans">
+      
       {/* Onboarding */}
       <AnimatePresence>
         {showOnboarding && <OnboardingWizard onComplete={completeOnboarding} />}
@@ -122,86 +133,154 @@ export const LotoLumiereLayout = () => {
       {/* Pull to Refresh Indicator */}
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl transition-all duration-300">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate("/")}>
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-sm group-hover:shadow-primary/20 transition-all duration-500">
-                <Sparkles className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="font-display font-extrabold text-xl tracking-tight text-foreground">LOTO LUMIÈRE</h1>
-                <p className="font-mono text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">Suite d'Analyse Pro</p>
-              </div>
+      {/* Sticky Left Sidebar Navigation on Desktop */}
+      <aside className="hidden md:flex flex-col w-64 bg-[#121620] border-r border-border/40 fixed top-0 bottom-0 left-0 z-40 overflow-y-auto">
+        {/* Sidebar Brand/Logo */}
+        <div className="flex h-16 items-center gap-3 px-6 border-b border-border/30 shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+            <Sparkles className="w-4.5 h-4.5 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="font-display font-extrabold text-sm tracking-tight text-slate-100">LOTO LUMIÈRE</h1>
+            <p className="font-mono text-[9px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Suite d'Analyse Pro</p>
+          </div>
+        </div>
+
+        {/* Sidebar Navigation Links */}
+        <nav className="flex-1 px-4 py-6 space-y-1">
+          {navigationTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-150 text-left",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm font-bold"
+                    : "text-slate-400 hover:bg-[#1a1f2e] hover:text-slate-200"
+                )}
+              >
+                <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-primary-foreground" : "text-slate-400")} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Analyst Profile Card */}
+        <div className="p-4 border-t border-border/30 bg-[#161b27]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+              <User className="w-5 h-5 text-primary" />
             </div>
-
-            {/* Draw Selector */}
-            <Select value={selectedDraw} onValueChange={setSelectedDraw}>
-              <SelectTrigger className="w-[140px] h-9 bg-secondary/50 border-border/30 rounded-xl text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {allDraws.map((draw) => (
-                  <SelectItem key={draw.name} value={draw.name}>
-                    {draw.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Actions */}
-            <div className="flex items-center gap-1">
-              <CadenceAlertNotificationCenter drawName={selectedDraw} />
-              {isAdmin && (
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => navigate("/admin")}
-                  className="text-muted-foreground hover:text-foreground w-9 h-9"
-                  title="Administration"
-                >
-                  <Shield className="w-4 h-4" />
-                </Button>
-              )}
-              <ThemeToggle />
-              {user && (
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={handleLogout}
-                  className="text-muted-foreground hover:text-foreground w-9 h-9"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-slate-200 truncate">{user?.email || "Analyste"}</p>
+              <p className="text-[10px] text-slate-400 font-medium">Session Active</p>
             </div>
           </div>
         </div>
-      </header>
+      </aside>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 pb-24">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {renderTabContent()}
-          </motion.div>
-        </AnimatePresence>
-        <Footer />
-      </main>
+      {/* Main Container */}
+      <div className="flex-1 flex flex-col md:pl-64 min-w-0">
+        
+        {/* Sticky Header */}
+        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/80 backdrop-blur-xl transition-all duration-300">
+          <div className="px-4 md:px-6 h-16 flex items-center justify-between">
+            
+            {/* Brand Logo on Mobile only */}
+            <div className="flex items-center gap-3 cursor-pointer md:hidden" onClick={() => navigate("/")}>
+              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <h1 className="font-display font-extrabold text-sm tracking-tight text-slate-100">LOTO LUMIÈRE</h1>
+            </div>
 
-      {/* Bottom Navigation */}
-      <BottomNavBar activeTab={activeTab} onTabChange={handleTabChange} />
-      
-      {/* Scroll to Top */}
+            {/* Desktop Section Info */}
+            <div className="hidden md:flex items-center gap-2 text-sm text-slate-400 font-medium">
+              <span>Rapport d'analyse active :</span>
+              <span className="text-primary font-bold">{selectedDraw}</span>
+            </div>
+
+            {/* Right Side Control Bar */}
+            <div className="flex items-center gap-3">
+              {/* Draw Selector Dropdown */}
+              <div className="flex items-center gap-1.5">
+                <span className="hidden sm:inline text-xs text-slate-400 font-medium">Tirage :</span>
+                <Select value={selectedDraw} onValueChange={setSelectedDraw}>
+                  <SelectTrigger className="w-[130px] h-9 bg-secondary/40 border-border/30 rounded-xl text-sm font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#121620] border-border/30">
+                    {allDraws.map((draw) => (
+                      <SelectItem key={draw.name} value={draw.name}>
+                        {draw.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="h-4 w-px bg-border/40 hidden sm:block" />
+
+              <div className="flex items-center gap-1.5">
+                <CadenceAlertNotificationCenter drawName={selectedDraw} />
+                {isAdmin && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => navigate("/admin")}
+                    className="text-slate-400 hover:text-slate-200 w-9 h-9 hover:bg-[#1a1f2e] rounded-xl"
+                    title="Administration"
+                  >
+                    <Shield className="w-4.5 h-4.5" />
+                  </Button>
+                )}
+                <ThemeToggle />
+                {user && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={handleLogout}
+                    className="text-slate-400 hover:text-slate-200 w-9 h-9 hover:bg-[#1a1f2e] rounded-xl"
+                    title="Déconnexion"
+                  >
+                    <LogOut className="w-4.5 h-4.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </header>
+
+        {/* View Content Port */}
+        <main className="flex-grow p-4 md:p-6 pb-24 md:pb-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15 }}
+            >
+              {renderTabContent()}
+            </motion.div>
+          </AnimatePresence>
+          <Footer />
+        </main>
+
+      </div>
+
+      {/* Bottom Navigation on Mobile Viewport */}
+      <div className="md:hidden">
+        <BottomNavBar activeTab={activeTab} onTabChange={handleTabChange} />
+      </div>
+
       <ScrollToTop />
     </div>
   );
+
 };

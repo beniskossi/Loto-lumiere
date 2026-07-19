@@ -32,7 +32,7 @@ Deno.test("Transformer Algorithm - Sufficient Data", () => {
   
   assertExists(prediction);
   assertEquals(prediction.numbers.length, 5);
-  assertEquals(prediction.algorithm, "Transformer (Attention)");
+  assertEquals(prediction.algorithm, "Attention Spatiale");
   assertEquals(prediction.category, "transformer");
   
   // Verify attention mechanism factors

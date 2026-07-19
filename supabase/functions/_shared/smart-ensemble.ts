@@ -28,7 +28,7 @@ interface ModelConfig {
 // Configuration des algorithmes avec leurs exigences de données (XGBoost retiré, nouveaux algorithmes ajoutés)
 const MODEL_CONFIGS: ModelConfig[] = [
   { name: "FrequencyPro", fn: frequencyProAlgorithm, minDataRequired: 5, resourceIntensity: "low" },
-  { name: "Random Forest", fn: randomForestAlgorithm, minDataRequired: 40, resourceIntensity: "low" },
+  { name: "Arbres Heuristiques", fn: randomForestAlgorithm, minDataRequired: 40, resourceIntensity: "low" },
   { name: "LSTM", fn: lstmAlgorithm, minDataRequired: 80, resourceIntensity: "medium" },
   { name: "Transformer", fn: transformerAlgorithm, minDataRequired: 300, resourceIntensity: "high" },
   { name: "Double Gap Sequence", fn: doubleGapSequenceAlgorithm, minDataRequired: 10, resourceIntensity: "low" },
@@ -50,7 +50,7 @@ export class SmartEnsemble {
     const initialModels = [
       { name: "Transformer", weight: 0.20 },
       { name: "LSTM", weight: 0.18 },
-      { name: "Random Forest", weight: 0.15 },
+      { name: "Arbres Heuristiques", weight: 0.15 },
       { name: "FrequencyPro", weight: 0.15 },
       { name: "Double Gap Sequence", weight: 0.17 },
       { name: "Gap Cadence", weight: 0.15 },

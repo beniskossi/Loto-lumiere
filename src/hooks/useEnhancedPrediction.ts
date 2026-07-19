@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateAndCleanPredictions } from "@/utils/predictionValidation";
 
 export interface EnhancedScoreBreakdown {
   frequency: number;
@@ -83,12 +84,7 @@ export const useEnhancedPrediction = (drawName: string, enabled: boolean = true)
 
         // Valider et nettoyer les données
         if (data && data.predictions) {
-          data.predictions = data.predictions.map((pred: EnhancedPrediction) => ({
-            ...pred,
-            numbers: pred.numbers
-              .filter((n: number) => typeof n === 'number' && n >= 1 && n <= 90)
-              .sort((a: number, b: number) => a - b)
-          }));
+          data.predictions = validateAndCleanPredictions<any>(data.predictions);
         }
 
         return data;

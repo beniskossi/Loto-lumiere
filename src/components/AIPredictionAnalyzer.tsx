@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { NumberBall } from "./NumberBall";
-import { useAIPredictionAnalyzer, type AIAnalysisResult } from "@/hooks/useAIPredictionAnalyzer";
+import { useAIPredictionAnalyzer, type AIAnalysisResult, type PredictionInput } from "@/hooks/useAIPredictionAnalyzer";
 import { 
   Sparkles, Brain, Loader2, Info, TrendingUp, 
   Flame, Snowflake, Link, BarChart3, Clock, 
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 interface AIPredictionAnalyzerProps {
-  predictions: Record<string, unknown>[];
+  predictions: PredictionInput[];
   drawName: string;
 }
 

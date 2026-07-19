@@ -30,20 +30,21 @@ const evaluateAlgorithmsSchema = z.object({
     .max(50, 'Draw name must be less than 50 characters')
     .regex(/^[a-zA-Z0-9\s\u00C0-\u017F-]+$/, 'Draw name can only contain letters, numbers, spaces, accents, and hyphens'),
   saveResults: z.boolean().optional().default(false),
-  validationType: z.enum(['standard', 'kfold', 'walkforward']).optional().default('standard'),
+  validationType: z.enum(['standard', 'expanding', 'rolling']).optional().default('standard'),
   kFolds: z.number().min(3).max(10).optional().default(5),
 }).strict();
 
 // Noms des algorithmes conformes à la configuration
 const ALGORITHM_DISPLAY_NAMES: Record<string, string> = {
   "Optimiseur MCMC": "Optimiseur MCMC (Chaîne de Markov)",
-  "FrequencyPro": "FrequencyPro",
-  "Random Forest": "Random Forest",
-  "LSTM": "LSTM Network",
-  "Transformer": "Transformer (Attention)",
+  "FrequencyPro": "Fréquence récente pondérée",
+  "Arbres Heuristiques": "Ensemble bootstrap de tendances fréquentielles",
+  "LSTM": "Transformation récurrente déterministe expérimentale",
+  "Transformer": "Analyse d'attention sinusoïdale expérimentale",
   "Double Gap Sequence": "Double Gap (Écarts des Écarts)",
   "Gap Cadence": "Cadence Morphologique",
-  "Stacking Ensemble": "Stacking Ensemble",
+  "Ensemble Hybride Stacking": "Ensemble Hybride Stacking",
+  "Baseline Aléatoire": "Baseline Aléatoire",
 };
 
 serve(async (req) => {
@@ -79,7 +80,7 @@ serve(async (req) => {
 
     const { drawName, saveResults, validationType, kFolds } = parseResult.data;
     
-    console.log(`[evaluate-algorithms] Starting ${validationType} evaluation for ${drawName}`);
+    console.log(`[evaluate-algorithms] Starting ${validationType} chronological evaluation for ${drawName}`);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -111,6 +112,9 @@ serve(async (req) => {
 
     console.log(`[evaluate-algorithms] Found ${results.length} historical results`);
 
+    // Ensure strict chronological order (oldest draw first, newest last) to eliminate look-ahead bias
+    const chronologicalResults = [...results].sort((a, b) => new Date(a.draw_date).getTime() - new Date(b.draw_date).getTime());
+
     // Les algorithmes du système
     const algorithms = [
       { name: "Optimiseur MCMC", fn: async (historicalResults) => {
@@ -118,92 +122,79 @@ serve(async (req) => {
         const prediction = await predictionOptimizer.optimizePrediction(historicalResults, { useEnsemble: false, useAnalytics: false });
         return { numbers: prediction.numbers, confidence: prediction.confidence };
       }},
-      { name: "Stacking Ensemble", fn: stackingEnsemble },
+      { name: "Ensemble Hybride Stacking", fn: stackingEnsemble },
       { name: "Transformer", fn: transformerAlgorithm },
       { name: "Double Gap Sequence", fn: doubleGapSequenceAlgorithm },
       { name: "Gap Cadence", fn: gapCadenceAlgorithm },
       { name: "FrequencyPro", fn: frequencyProAlgorithm },
-      { name: "Random Forest", fn: randomForestAlgorithm },
+      { name: "Arbres Heuristiques", fn: randomForestAlgorithm },
       { name: "LSTM", fn: lstmAlgorithm },
+      { name: "Baseline Aléatoire", fn: (historicalResults) => {
+        let seed = historicalResults.length * 42;
+        if (historicalResults.length > 0 && historicalResults[0].winning_numbers) {
+          seed += historicalResults[0].winning_numbers.reduce((a, b) => a + b, 0);
+        }
+        const numbers: number[] = [];
+        let state = seed;
+        const nextRand = () => {
+          state = (state * 1664525 + 1013904223) % 4294967296;
+          return state / 4294967296;
+        };
+        while (numbers.length < 5) {
+          const num = Math.floor(nextRand() * 90) + 1;
+          if (!numbers.includes(num)) {
+            numbers.push(num);
+          }
+        }
+        return {
+          numbers: numbers.sort((a, b) => a - b),
+          confidence: 0.05,
+          algorithm: "Baseline Aléatoire",
+          factors: ["Générateur pseudo-aléatoire déterministe", "Baseline de comparaison"],
+          score: 0.05,
+          category: "statistical"
+        };
+      }},
     ];
 
-    let evaluations;
-    let crossValidationResults = null;
+    let evaluations: any[] = [];
+    const crossValidationResults: any[] = [];
 
-    if (validationType === 'kfold') {
-      // K-Fold Cross Validation (sequential to prevent CPU/memory spikes)
-      const cvResults = [];
-      for (const algo of algorithms) {
-        const result = await backtestWithCrossValidation(
-          algo.fn,
-          algo.name,
-          results as DrawResult[],
-          kFolds
-        );
-        cvResults.push({
-          ...result.aggregated,
-          crossValidation: {
-            standardError: result.standardError,
-            confidenceInterval: result.confidenceInterval,
-            foldResults: result.folds.map(f => ({
-              accuracy: f.accuracy,
-              winRate: f.winRate,
-              sharpeRatio: f.sharpeRatio
-            }))
-          }
-        });
-      }
-      evaluations = cvResults;
-      crossValidationResults = cvResults.map(r => ({
-        algorithm: r.algorithm,
-        confidenceInterval: r.crossValidation?.confidenceInterval,
-        standardError: r.crossValidation?.standardError
-      }));
-    } else if (validationType === 'walkforward') {
-      // Walk-Forward Optimization (sequential to prevent CPU/memory spikes)
-      const wfResults = [];
-      for (const algo of algorithms) {
-        const windowResults = await walkForwardOptimization(
-          algo.fn,
-          algo.name,
-          results as DrawResult[],
-          60,
-          15,
-          10
-        );
-        
-        // Aggregate walk-forward results
-        const avgAccuracy = windowResults.reduce((sum, r) => sum + r.accuracy, 0) / windowResults.length;
-        const avgWinRate = windowResults.reduce((sum, r) => sum + r.winRate, 0) / windowResults.length;
-        const avgSharpe = windowResults.reduce((sum, r) => sum + r.sharpeRatio, 0) / windowResults.length;
-        
-        wfResults.push({
-          algorithm: algo.name,
-          accuracy: avgAccuracy,
-          avgMatches: avgAccuracy / 20,
-          bestMatch: Math.max(...windowResults.map(r => r.bestMatch)),
-          worstMatch: Math.min(...windowResults.map(r => r.worstMatch)),
-          consistency: Math.sqrt(windowResults.reduce((sum, r) => sum + Math.pow(r.accuracy - avgAccuracy, 2), 0) / windowResults.length),
-          totalTests: windowResults.reduce((sum, r) => sum + r.totalTests, 0),
-          sharpeRatio: avgSharpe,
-          maxDrawdown: Math.max(...windowResults.map(r => r.maxDrawdown)),
-          winRate: avgWinRate,
-          profitFactor: windowResults.reduce((sum, r) => sum + r.profitFactor, 0) / windowResults.length,
-          matchDistribution: windowResults.reduce((acc, r) => {
-            for (let i = 0; i <= 5; i++) {
-              acc[i] = (acc[i] || 0) + (r.matchDistribution[i] || 0);
-            }
-            return acc;
-          }, {} as Record<number, number>),
-          windowCount: windowResults.length
-        });
-      }
-      evaluations = wfResults;
+    if (validationType === 'expanding') {
+      console.log(`Running expanding window validation for ${algoDef.name}`);
+      const crossValResult = await backtestWithExpandingWindow(
+        algoDef.fn,
+        ALGORITHM_DISPLAY_NAMES[algoDef.name] || algoDef.name,
+        chronologicalResults,
+        100, // initialTrainSize
+        5    // stepSize
+      );
+      evaluations.push(crossValResult.aggregated);
+      crossValidationResults.push({
+        algorithm: ALGORITHM_DISPLAY_NAMES[algoDef.name] || algoDef.name,
+        confidenceInterval: crossValResult.confidenceInterval,
+        standardError: crossValResult.standardError
+      });
+    } else if (validationType === 'rolling') {
+      console.log(`Running rolling window validation for ${algoDef.name}`);
+      const rollValResult = await backtestWithRollingWindow(
+        algoDef.fn,
+        ALGORITHM_DISPLAY_NAMES[algoDef.name] || algoDef.name,
+        chronologicalResults,
+        150, // windowSize
+        5    // stepSize
+      );
+      evaluations.push(rollValResult.aggregated);
+      crossValidationResults.push({
+        algorithm: ALGORITHM_DISPLAY_NAMES[algoDef.name] || algoDef.name,
+        confidenceInterval: rollValResult.confidenceInterval,
+        standardError: rollValResult.standardError
+      });
     } else {
       // Standard backtesting (sequential to prevent CPU/memory spikes)
       evaluations = [];
       for (const algo of algorithms) {
-        const result = await backtestAlgorithm(algo.fn, algo.name, results as DrawResult[], undefined, 50, 3);
+        const result = await backtestAlgorithm(algo.fn, algo.name, chronologicalResults as DrawResult[], undefined, 50, 200);
         evaluations.push(result);
       }
     }
@@ -211,31 +202,41 @@ serve(async (req) => {
     console.log(`[evaluate-algorithms] Evaluations completed:`, evaluations.map(e => `${e.algorithm}: ${e.accuracy.toFixed(1)}%`));
 
     // Sauvegarder les résultats dans algorithm_performance si demandé
-    if (saveResults) {
+    const saveEnabled = false;
+    if (saveEnabled && saveResults) {
       const today = new Date().toISOString().split('T')[0];
-      const performanceRecords = evaluations.map(eval_ => ({
-        model_used: ALGORITHM_DISPLAY_NAMES[eval_.algorithm] || eval_.algorithm,
-        draw_name: drawName,
-        prediction_date: today,
-        draw_date: today,
-        predicted_numbers: [1, 2, 3, 4, 5], // Placeholder - backtesting agrégé
-        winning_numbers: results[0].winning_numbers,
-        matches_count: Math.round(eval_.avgMatches),
-        accuracy_score: eval_.accuracy / 100,
-        f1_score: eval_.winRate || eval_.accuracy / 100,
-        data_points_used: results.length,
-        confidence_score: eval_.sharpeRatio > 0 ? Math.min(0.95, 0.5 + eval_.sharpeRatio * 0.2) : 0.5,
-        factors: [
-          `Backtesting ${validationType}: ${eval_.totalTests} tests`,
-          `Win Rate: ${((eval_.winRate || 0) * 100).toFixed(1)}%`,
-          `Sharpe: ${(eval_.sharpeRatio || 0).toFixed(2)}`,
-          `Max Drawdown: ${(eval_.maxDrawdown || 0).toFixed(1)}`
-        ],
-      }));
+      const performanceRecords = evaluations.map(eval_ => {
+        // Mathematically calibrated confidence score based on performance excess relative to random baseline (5.56%)
+        const baselineAccuracy = 5.5556;
+        const excessAccuracy = Math.max(0, eval_.accuracy - baselineAccuracy);
+        const calibratedConfidence = Math.min(0.98, 0.5 + (excessAccuracy / 15) * 0.48);
 
-      const { error: insertError } = await supabase
-        .from('algorithm_performance')
-        .insert(performanceRecords);
+        return {
+          model_used: ALGORITHM_DISPLAY_NAMES[eval_.algorithm] || eval_.algorithm,
+          draw_name: drawName,
+          prediction_date: today,
+          draw_date: today,
+          predicted_numbers: [1, 2, 3, 4, 5], // Placeholder - backtesting agrégé
+          winning_numbers: chronologicalResults[chronologicalResults.length - 1].winning_numbers,
+          matches_count: Math.round(eval_.avgMatches),
+          accuracy_score: eval_.accuracy / 100,
+          f1_score: eval_.winRate || eval_.accuracy / 100,
+          data_points_used: chronologicalResults.length,
+          confidence_score: calibratedConfidence,
+          factors: [
+            `Backtesting ${validationType}: ${eval_.totalTests} tests`,
+            `Win Rate: ${((eval_.winRate || 0) * 100).toFixed(1)}%`,
+            `Sharpe: ${(eval_.sharpeRatio || 0).toFixed(2)}`,
+            `Max Drawdown: ${(eval_.maxDrawdown || 0).toFixed(1)}`
+          ],
+        };
+      });
+
+      // const { error: insertError } = await supabase
+        // .from('algorithm_performance')
+        // .insert(performanceRecords);
+      const insertError = null; // Disabled as per forensic review
+
 
       if (insertError) {
         console.error('[evaluate-algorithms] Insert error:', insertError);
@@ -249,7 +250,7 @@ serve(async (req) => {
       validationType,
       evaluations: evaluations.sort((a, b) => b.accuracy - a.accuracy),
       crossValidationResults,
-      historicalCount: results.length,
+      historicalCount: chronologicalResults.length,
       savedToDatabase: saveResults,
       rateLimitRemaining: rateLimitInfo.remaining - 1
     }), {

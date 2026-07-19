@@ -97,7 +97,7 @@ describe('useAdvancedPrediction', () => {
     const mockPredictions = {
       predictions: [
         {
-          numbers: [1, 95, 15, 0, 30], // Invalid numbers: 95 > 90, 0 < 1
+          numbers: [1, 95, 15, 0, 30, 40, 50], // Invalid numbers 95 (>90) and 0 (<1) will be removed, leaving exactly 5 valid numbers
           confidence: 0.85,
           algorithm: 'Test',
           factors: [],

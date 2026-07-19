@@ -147,3 +147,18 @@ AS $$
     'last_draw_date', (SELECT MAX(draw_date) FROM public.draw_results)
   );
 $$;
+
+-- ============================================================================
+-- ROW LEVEL SECURITY FOR USER PROFILES
+-- ============================================================================
+
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON public.user_profiles;
+CREATE POLICY "Profiles are viewable by everyone" ON public.user_profiles
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON public.user_profiles;
+CREATE POLICY "Users can update own profile" ON public.user_profiles 
+  FOR UPDATE USING (auth.uid() = id OR (SELECT COALESCE(role, 'user') FROM public.user_profiles WHERE id = auth.uid()) = 'admin');
+

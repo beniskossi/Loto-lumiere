@@ -1,12 +1,12 @@
 // Noms unifiés des 6 algorithmes optimaux
 export const ALGORITHM_NAMES = {
   FREQUENCY_PRO: "FrequencyPro",
-  RANDOM_FOREST: "Random Forest",
-  LSTM: "LSTM Network",
-  TRANSFORMER: "Transformer (Attention)",
+  RANDOM_FOREST: "Arbres Heuristiques",
+  LSTM: "Séquences Récurrentes",
+  TRANSFORMER: "Attention Spatiale",
   DOUBLE_GAP_SEQUENCE: "Double Gap Sequence",
   GAP_CADENCE: "Gap Cadence",
-  STACKING: "Stacking Ensemble",
+  STACKING: "Ensemble Hybride Stacking",
 } as const;
 
 // Catégories correspondant aux 6 algorithmes valides

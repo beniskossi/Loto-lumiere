@@ -95,7 +95,7 @@ Deno.test("Prediction Engine - Algorithm Selection Logic", async () => {
   );
 });
 
-Deno.test("Prediction Engine - Stacking Ensemble Selection", async () => {
+Deno.test("Prediction Engine - Ensemble Hybride Stacking Selection", async () => {
   const mockResults = generateMockDrawResults(200);
   const result = await generatePredictions(mockResults, {
     drawName: "Etoile", // Tirage avec numéros machine

@@ -40,7 +40,8 @@ import {
   Tooltip, 
   Legend,
   LineChart,
-  Line
+  Line,
+  Cell
 } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -720,7 +721,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                   Signaux de Cadence Majeurs Détectés
                 </CardTitle>
               </div>
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20">
+              <Badge  className="bg-amber-500/10 text-amber-400 border-amber-500/20">
                 {cadenceAlerts.length} {cadenceAlerts.length > 1 ? "Signaux" : "Signal"}
               </Badge>
             </div>
@@ -737,7 +738,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                 >
                   {alert.number && (
                     <div className="shrink-0 pt-0.5">
-                      <NumberBall number={alert.number} size="sm" variant="active" />
+                      <NumberBall number={alert.number} size="sm"  />
                     </div>
                   )}
                   <div className="space-y-1 min-w-0 flex-1">
@@ -828,7 +829,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                     />
                     <Bar dataKey="frequence" fill="#a855f7" radius={[4, 4, 0, 0]}>
                       {chartDistributionData.map((entry, index) => (
-                        <Area key={`cell-${index}`} fillOpacity={0.8} />
+                        <Cell key={`cell-${index}`} fillOpacity={0.8} />
                       ))}
                     </Bar>
                   </RechartBarChart>
@@ -862,7 +863,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-xs font-semibold uppercase text-muted-foreground flex items-center justify-between">
                     <span>Motif Majeur Détecté</span>
-                    <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400">
+                    <Badge  className="text-[9px] border-amber-500/30 text-amber-400">
                       Top 1 Probabilité
                     </Badge>
                   </CardTitle>
@@ -976,7 +977,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                         </div>
                       ))}
                       {tranche.count > 24 && (
-                        <Badge variant="secondary" className="text-[10px] self-center">
+                        <Badge  className="text-[10px] self-center">
                           + {tranche.count - 24} autres
                         </Badge>
                       )}
@@ -1039,7 +1040,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                       <Timer className="w-4 h-4 mr-1.5" />
                       Analyser
                     </Button>
-                    <Button onClick={handleSuggestOptimized} variant="outline" className="border-purple-500/30 hover:bg-purple-500/10 flex-1 sm:flex-none">
+                    <Button onClick={handleSuggestOptimized}  className="border-purple-500/30 hover:bg-purple-500/10 flex-1 sm:flex-none">
                       <Sparkles className="w-4 h-4 mr-1.5 text-purple-400" />
                       Suggérer IA
                     </Button>
@@ -1426,7 +1427,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                                 const isMatch = draw.winningNumbers.includes(num);
                                 return (
                                   <div key={num} className={cn("relative rounded-full", isMatch && "ring-2 ring-emerald-500 ring-offset-1 ring-offset-background")}>
-                                    <NumberBall number={num} size="xs" variant={isMatch ? "active" : "default"} />
+                                    <NumberBall number={num} size="xs" />
                                   </div>
                                 );
                               })}
@@ -1443,7 +1444,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                                 const isMatch = draw.winningNumbers.includes(num);
                                 return (
                                   <div key={num} className={cn("relative rounded-full", isMatch && "ring-2 ring-emerald-500 ring-offset-1 ring-offset-background")}>
-                                    <NumberBall number={num} size="xs" variant={isMatch ? "active" : "default"} />
+                                    <NumberBall number={num} size="xs" />
                                   </div>
                                 );
                               })}
@@ -1460,7 +1461,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                                 const isMatch = draw.winningNumbers.includes(num);
                                 return (
                                   <div key={num} className={cn("relative rounded-full", isMatch && "ring-2 ring-emerald-400 ring-offset-1 ring-offset-background")}>
-                                    <NumberBall number={num} size="xs" variant={isMatch ? "active" : "default"} />
+                                    <NumberBall number={num} size="xs" />
                                   </div>
                                 );
                               })}

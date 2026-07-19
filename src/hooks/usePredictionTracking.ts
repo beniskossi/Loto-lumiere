@@ -71,3 +71,71 @@ export const useTrackPrediction = () => {
     },
   });
 };
+
+export const useCreateAndTrackPrediction = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      drawName,
+      predictedNumbers,
+      confidenceScore,
+      modelUsed,
+      notes,
+    }: {
+      userId: string;
+      drawName: string;
+      predictedNumbers: number[];
+      confidenceScore: number;
+      modelUsed: string;
+      notes?: string;
+    }) => {
+      // 1. Insert into predictions
+      const { data: predData, error: predError } = await supabase
+        .from("predictions")
+        .insert({
+          draw_name: drawName,
+          prediction_date: new Date().toISOString(),
+          predicted_numbers: predictedNumbers,
+          confidence_score: confidenceScore,
+          model_used: modelUsed,
+        })
+        .select()
+        .single();
+
+      if (predError) throw predError;
+
+      // 2. Insert into user_prediction_tracking
+      const { data: trackData, error: trackError } = await supabase
+        .from("user_prediction_tracking")
+        .insert({
+          user_id: userId,
+          prediction_id: predData.id,
+          notes: notes || null,
+        })
+        .select()
+        .single();
+
+      if (trackError) throw trackError;
+      return trackData;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tracked-predictions"] });
+      queryClient.invalidateQueries({ queryKey: ["prediction-log"] });
+      toast({
+        title: "✓ Enregistré sur le serveur",
+        description: "La grille a été ajoutée à votre historique personnel.",
+      });
+    },
+    onError: (error) => {
+      console.error("Error saving prediction:", error);
+      toast({
+        title: "Erreur d'enregistrement",
+        description: "Impossible de sauvegarder la grille sur le serveur.",
+        variant: "destructive",
+      });
+    },
+  });
+};

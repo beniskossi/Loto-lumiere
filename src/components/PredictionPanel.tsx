@@ -192,10 +192,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
 
                   {latestPrediction.confidence_score && (
                     <div className="space-y-3 mt-4">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span>Niveau de confiance</span>
-                        <span className="font-bold">{latestPrediction.confidence_score.toFixed(1)}%</span>
-                      </div>
+                      
                       <Progress 
                         value={latestPrediction.confidence_score} 
                         className="h-2 bg-white/20"

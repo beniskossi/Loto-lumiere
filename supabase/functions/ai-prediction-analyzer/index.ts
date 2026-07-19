@@ -41,9 +41,8 @@ serve(async (req) => {
     
     let user;
     const isServiceRole = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const isAnonKey = token === Deno.env.get("SUPABASE_ANON_KEY") || token.includes("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9");
 
-    if (isServiceRole || isAnonKey) {
+    if (isServiceRole) {
       user = { id: "00000000-0000-0000-0000-000000000000", email: "user@local.test" };
     } else {
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
@@ -85,7 +84,7 @@ serve(async (req) => {
       predictions = [{
         numbers: body.numbers,
         confidence: 0.85,
-        algorithm: "Stacking Ensemble",
+        algorithm: "Ensemble Hybride Stacking",
         category: "ML"
       }];
     }

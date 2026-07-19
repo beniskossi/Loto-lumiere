@@ -473,7 +473,7 @@ const CyclesTab = ({ data }: { data: TemporalAnalysisData }) => (
                     cycle.confidence <= 0.5 && "border-muted-foreground/50"
                   )}
                 >
-                  {Math.round(cycle.confidence * 100)}% confiance
+                  
                 </Badge>
               </div>
 

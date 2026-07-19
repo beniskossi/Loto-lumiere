@@ -553,7 +553,7 @@ export class PredictionOptimizer {
       alternatives.push({
         numbers: conservative.numbers,
         confidence: conservative.confidence * 0.9,
-        algorithm: "Optimiseur (Conservateur)",
+        algorithm: "Optimiseur (Fréquences stables)",
         factors: ["Stratégie conservatrice"],
         score: conservative.confidence * 0.85,
         category: "ensemble"
@@ -567,7 +567,7 @@ export class PredictionOptimizer {
       alternatives.push({
         numbers: aggressive.numbers,
         confidence: aggressive.confidence * 0.9,
-        algorithm: "Optimiseur (Agressif)",
+        algorithm: "Optimiseur (Signaux expérimentaux)",
         factors: ["Stratégie agressive"],
         score: aggressive.confidence * 0.85,
         category: "ensemble"

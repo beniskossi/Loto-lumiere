@@ -42,7 +42,7 @@ export const useUpdateAlgorithmConfig = () => {
     }) => {
       const { data, error } = await supabase
         .from("algorithm_config")
-        .update(updates)
+        .update(updates as any)
         .eq("id", id)
         .select()
         .single();

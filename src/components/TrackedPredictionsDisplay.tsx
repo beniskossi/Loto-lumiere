@@ -102,7 +102,7 @@ export const TrackedPredictionsDisplay = () => {
                 </p>
                 {tracked.predictions.confidence_score && (
                   <Badge variant="secondary" className="mt-1">
-                    {Math.round(tracked.predictions.confidence_score * 100)}% confiance
+                    
                   </Badge>
                 )}
               </div>

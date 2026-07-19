@@ -224,7 +224,7 @@ export const DrawResultsImporter = ({
     try {
       const parsed = JSON.parse(text);
       
-      const extractRecords = (obj: Record<string, unknown> | unknown[] | null): Record<string, unknown>[] => {
+      const extractRecords = (obj: any): Record<string, unknown>[] => {
         let records: Record<string, unknown>[] = [];
         if (Array.isArray(obj)) {
           for (const item of obj) {

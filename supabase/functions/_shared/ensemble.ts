@@ -26,7 +26,7 @@ export function ensemblePrediction(results: DrawResult[], drawName?: string): Pr
     isUltraPrecise: false 
   });
 
-  // Si Stacking Ensemble est sélectionné, l'utiliser
+  // Si Ensemble Hybride Stacking est sélectionné, l'utiliser
   if (selection.selectedAlgorithm === "StackingEnsemble") {
     return stackingEnsemble(results);
   }

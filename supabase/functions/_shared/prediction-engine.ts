@@ -166,8 +166,8 @@ async function executePredictions(
       predictions = [optimizedPrediction];
     }
   }
-  // Mode Stacking Ensemble
-  else if (selectedAlgorithm === "Stacking Ensemble" || options.useStackingEnsemble) {
+  // Mode Ensemble Hybride Stacking
+  else if (selectedAlgorithm === "Ensemble Hybride Stacking" || options.useStackingEnsemble) {
     optimizedPrediction = stackingEnsemble(results);
     
     if (options.multiAlgorithm) {
@@ -227,9 +227,9 @@ async function performAdvancedAnalysis(
     // Moyenne bayésienne si bon consensus
     if (consensus.agreementScore > 0.3) {
       const priorPerformance = new Map([
-        ["Transformer (Attention)", 0.28],
-        ["LSTM Network", 0.24],
-        ["Random Forest", 0.24],
+        ["Attention Spatiale", 0.28],
+        ["Séquences Récurrentes", 0.24],
+        ["Arbres Heuristiques", 0.24],
         ["FrequencyPro", 0.24]
       ]);
       
@@ -455,10 +455,10 @@ export function generateExplanations(
 
   // Descriptions des algorithmes
   const algorithmDescriptions: Record<string, string> = {
-    "Stacking Ensemble": "Méta-algorithme combinant les modèles pour une prédiction optimisée",
-    "Transformer (Attention)": "Réseau d'attention pour capturer les dépendances longue distance",
-    "LSTM Network": "Réseau récurrent spécialisé dans les séquences temporelles",
-    "Random Forest": "Ensemble d'arbres de décision pour robustesse",
+    "Ensemble Hybride Stacking": "Méta-algorithme combinant les modèles pour une prédiction optimisée",
+    "Attention Spatiale": "Réseau d'attention pour capturer les dépendances longue distance",
+    "Séquences Récurrentes": "Réseau récurrent spécialisé dans les séquences temporelles",
+    "Arbres Heuristiques": "Ensemble d'arbres de décision pour robustesse",
     "FrequencyPro": "Analyse fréquentielle pondérée avec détection de tendances"
   };
 

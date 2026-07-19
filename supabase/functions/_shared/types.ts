@@ -15,7 +15,7 @@ export interface DrawResult {
 // Les catégories d'algorithmes (XGBoost / Gradient boosting retiré)
 export type AlgorithmCategory = 
   | "statistical"   // FrequencyPro - Analyse statistique
-  | "forest"        // Random Forest - Ensemble d'arbres
+  | "forest"        // Arbres Heuristiques - Ensemble d'arbres
   | "recurrent"     // LSTM - Réseaux récurrents
   | "transformer"   // Transformer - Attention mechanism
   | "ensemble";     // Stacking/Smart Ensemble
@@ -25,6 +25,7 @@ export type AlgorithmCategory =
 export interface PredictionResult {
   numbers: number[];
   confidence: number;
+  probabilities?: Record<number, number>;
   algorithm: string;
   factors: string[];
   score: number;
@@ -90,9 +91,9 @@ export interface AlgorithmMetrics {
 
 // ====================== ANALYSE BAYÉSIENNE ======================
 
-export interface BayesianWeight {
+export interface NormalizedWeight {
   algorithm: string;
-  posteriorProbability: number;
+  normalizedModelWeight: number;
   likelihood: number;
   prior: number;
   evidenceContribution: number;
@@ -109,7 +110,7 @@ export interface ConsensusMetrics {
 export interface BayesianResult {
   numbers: number[];
   confidence: number;
-  weights: BayesianWeight[];
+  weights: NormalizedWeight[];
 }
 
 // ====================== PÉRIODICITÉ ======================
@@ -242,12 +243,12 @@ export const LOTTERY_CONSTANTS = {
 
 export const ALGORITHM_NAMES = {
   FREQUENCY_PRO: "FrequencyPro",
-  RANDOM_FOREST: "Random Forest",
-  LSTM: "LSTM Network",
-  TRANSFORMER: "Transformer (Attention)",
+  RANDOM_FOREST: "Arbres Heuristiques",
+  LSTM: "Séquences Récurrentes",
+  TRANSFORMER: "Attention Spatiale",
   DOUBLE_GAP_SEQUENCE: "Double Gap Sequence",
   GAP_CADENCE: "Gap Cadence",
-  STACKING: "Stacking Ensemble",
+  STACKING: "Ensemble Hybride Stacking",
   SMART_ENSEMBLE: "Smart Ensemble",
   BAYESIAN: "Bayesian Ensemble",
 } as const;

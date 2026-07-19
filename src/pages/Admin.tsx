@@ -219,7 +219,7 @@ const Admin = () => {
         insertData.machine_numbers = validation.data.machine_numbers;
       }
 
-      const { error } = await supabase.from("draw_results").insert(insertData);
+      const { error } = await supabase.from("draw_results").insert(insertData as any);
 
       if (error) throw error;
 

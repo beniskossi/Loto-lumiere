@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { Home, Target, Brain, Search, Timer, ShieldCheck, Database } from "lucide-react";
+import { Home, Target, Search, TrendingUp, FlaskConical, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type TabId = "accueil" | "predictions" | "analyses" | "forensic";
+export type TabId = "accueil" | "predictions" | "analyses" | "performances" | "compte";
 
 interface BottomNavBarProps {
   activeTab: TabId;
@@ -10,10 +10,11 @@ interface BottomNavBarProps {
 }
 
 const tabs: { id: TabId; label: string; icon: React.ElementType; highlight?: boolean }[] = [
-  { id: "accueil", label: "Synthèse", icon: Home },
-  { id: "predictions", label: "Prédictions", icon: Target, highlight: true },
-  { id: "analyses", label: "Analyses", icon: Search },
-  { id: "forensic", label: "Audit", icon: ShieldCheck },
+  { id: "accueil", label: "Aujourd'hui", icon: Home },
+  { id: "predictions", label: "Grilles", icon: Target, highlight: true },
+  { id: "analyses", label: "Analyses & Labo", icon: FlaskConical },
+  { id: "performances", label: "Performances", icon: TrendingUp },
+  { id: "compte", label: "Compte", icon: User },
 ];
 
 export const BottomNavBar = ({ activeTab, onTabChange }: BottomNavBarProps) => {

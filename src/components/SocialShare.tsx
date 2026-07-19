@@ -32,7 +32,7 @@ export const SocialShare = ({
   const [copied, setCopied] = useState(false);
   const { user } = useAuth();
 
-  const shareText = `${title}\n${description}\n${numbers.length > 0 ? `Numéros: ${numbers.join(', ')}` : ''}\n${drawName ? `Tirage: ${drawName}` : ''}${confidence ? ` (${(confidence * 100).toFixed(1)}% confiance)` : ''}\n\n#LotoLumiere #Prediction`;
+  const shareText = `${title}\n${description}\n${numbers.length > 0 ? `Numéros: ${numbers.join(', ')}` : ''}\n${drawName ? `Tirage: ${drawName}` : ''}\n\n#LotoLumiere #Prediction`;
 
   const trackShare = async (platform: string) => {
     if (!user || !predictionId) return;

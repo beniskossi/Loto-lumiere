@@ -6,7 +6,7 @@
 import type { 
   DrawResult, 
   PredictionResult,
-  BayesianWeight,
+  NormalizedWeight,
   BayesianResult,
   ConsensusMetrics,
   PeriodicityPattern,
@@ -31,7 +31,7 @@ export function calculateBayesianModelAverage(
   predictions: Map<string, PredictionResult>,
   priorPerformance: Map<string, number>
 ): BayesianResult {
-  const weights: BayesianWeight[] = [];
+  const weights: NormalizedWeight[] = [];
   const numberPosteriors = new Map<number, number>();
   
   // Initialiser tous les numéros
@@ -58,7 +58,7 @@ export function calculateBayesianModelAverage(
     
     weights.push({
       algorithm,
-      posteriorProbability: posterior,
+      normalizedModelWeight: posterior,
       likelihood,
       prior,
       evidenceContribution: likelihood * prior
@@ -83,7 +83,7 @@ export function calculateBayesianModelAverage(
   return {
     numbers: selectedNumbers,
     confidence,
-    weights: weights.sort((a, b) => b.posteriorProbability - a.posteriorProbability)
+    weights: weights.sort((a, b) => b.normalizedModelWeight - a.normalizedModelWeight)
   };
 }
 
@@ -133,11 +133,11 @@ function evaluateCombination(numbers: number[], targetSum: number): number {
 }
 
 function calculateBayesianConfidence(
-  weights: BayesianWeight[],
+  weights: NormalizedWeight[],
   posteriors: Map<number, number>,
   selected: number[]
 ): number {
-  const topWeightSum = weights.slice(0, 2).reduce((sum, w) => sum + w.posteriorProbability, 0);
+  const topWeightSum = weights.slice(0, 2).reduce((sum, w) => sum + w.normalizedModelWeight, 0);
   const concentrationScore = Math.min(1, topWeightSum / 0.6);
   
   const selectedPosteriors = selected.map(n => posteriors.get(n) || 0);

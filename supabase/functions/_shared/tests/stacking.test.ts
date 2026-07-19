@@ -33,13 +33,13 @@ function generateMockDrawResults(count: number): DrawResult[] {
   return results;
 }
 
-Deno.test("Stacking Ensemble - Sufficient Data", () => {
+Deno.test("Ensemble Hybride Stacking - Sufficient Data", () => {
   const mockResults = generateMockDrawResults(100);
   const prediction = stackingEnsemble(mockResults);
   
   assertExists(prediction);
   assertEquals(prediction.numbers.length, 5);
-  assertEquals(prediction.algorithm, "Stacking Ensemble");
+  assertEquals(prediction.algorithm, "Ensemble Hybride Stacking");
   assertEquals(prediction.category, "ensemble");
   
   // Verify ensemble-specific factors
@@ -47,7 +47,7 @@ Deno.test("Stacking Ensemble - Sufficient Data", () => {
   assertEquals(prediction.factors.some(f => f.includes("Meta-learner")), true);
 });
 
-Deno.test("Stacking Ensemble - Insufficient Data", () => {
+Deno.test("Ensemble Hybride Stacking - Insufficient Data", () => {
   const mockResults = generateMockDrawResults(5);
   const prediction = stackingEnsemble(mockResults);
   
@@ -55,7 +55,7 @@ Deno.test("Stacking Ensemble - Insufficient Data", () => {
   assertEquals(prediction.confidence, 0.2);
 });
 
-Deno.test("Stacking Ensemble - Higher Confidence than Base Models", () => {
+Deno.test("Ensemble Hybride Stacking - Higher Confidence than Base Models", () => {
   const mockResults = generateMockDrawResults(200);
   const prediction = stackingEnsemble(mockResults);
   
@@ -64,7 +64,7 @@ Deno.test("Stacking Ensemble - Higher Confidence than Base Models", () => {
   assertEquals(prediction.score >= 0.8, true);
 });
 
-Deno.test("Stacking Ensemble - Meta-Learner Optimization", () => {
+Deno.test("Ensemble Hybride Stacking - Meta-Learner Optimization", () => {
   const mockResults = generateMockDrawResults(150);
   const prediction = stackingEnsemble(mockResults);
   
@@ -77,7 +77,7 @@ Deno.test("Stacking Ensemble - Meta-Learner Optimization", () => {
   assertEquals(uniqueNumbers.size, 5);
 });
 
-Deno.test("Stacking Ensemble - Execution Time", () => {
+Deno.test("Ensemble Hybride Stacking - Execution Time", () => {
   const mockResults = generateMockDrawResults(100);
   
   const startTime = Date.now();

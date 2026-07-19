@@ -2,9 +2,9 @@
 import type { PredictionResult } from "./types.ts";
 import { log } from "./utils.ts";
 
-interface BayesianWeight {
+interface NormalizedWeight {
   algorithm: string;
-  posteriorProbability: number;
+  normalizedModelWeight: number;
   likelihood: number;
   prior: number;
   evidenceContribution: number;
@@ -25,8 +25,8 @@ interface ConsensusMetrics {
 export function calculateBayesianModelAverage(
   predictions: Map<string, PredictionResult>,
   priorPerformance: Map<string, number>
-): { numbers: number[]; confidence: number; weights: BayesianWeight[] } {
-  const weights: BayesianWeight[] = [];
+): { numbers: number[]; confidence: number; weights: NormalizedWeight[] } {
+  const weights: NormalizedWeight[] = [];
   const numberPosteriors: Map<number, number> = new Map();
   
   // Initialiser tous les numéros
@@ -54,7 +54,7 @@ export function calculateBayesianModelAverage(
     
     weights.push({
       algorithm,
-      posteriorProbability: posterior,
+      normalizedModelWeight: posterior,
       likelihood,
       prior,
       evidenceContribution: likelihood * prior
@@ -79,15 +79,15 @@ export function calculateBayesianModelAverage(
   // Calculer la confiance bayésienne
   const confidence = calculateBayesianConfidence(weights, numberPosteriors, selectedNumbers);
   
-  log("info", "Bayesian Model Average calculated", {
-    topWeights: weights.slice(0, 3).map(w => ({ algo: w.algorithm, posterior: w.posteriorProbability.toFixed(3) })),
+  log("info", "weighted model consensus calculated", {
+    topWeights: weights.slice(0, 3).map(w => ({ algo: w.algorithm, posterior: w.normalizedModelWeight.toFixed(3) })),
     confidence
   });
   
   return {
     numbers: selectedNumbers,
     confidence,
-    weights: weights.sort((a, b) => b.posteriorProbability - a.posteriorProbability)
+    weights: weights.sort((a, b) => b.normalizedModelWeight - a.normalizedModelWeight)
   };
 }
 
@@ -145,12 +145,12 @@ function evaluateCombination(numbers: number[], targetSum: number): number {
 }
 
 function calculateBayesianConfidence(
-  weights: BayesianWeight[],
+  weights: NormalizedWeight[],
   posteriors: Map<number, number>,
   selected: number[]
 ): number {
   // 1. Concentration du poids sur les modèles dominants
-  const topWeightSum = weights.slice(0, 2).reduce((sum, w) => sum + w.posteriorProbability, 0);
+  const topWeightSum = weights.slice(0, 2).reduce((sum, w) => sum + w.normalizedModelWeight, 0);
   const concentrationScore = Math.min(1, topWeightSum / 0.6);
   
   // 2. Force des probabilités postérieures des numéros sélectionnés
@@ -234,7 +234,7 @@ export function calculateConsensusMetrics(
   const divergenceIndex = entropy / maxEntropy;
   
   // Calculer l'intervalle de confiance (bootstrap simplifié)
-  const confidenceInterval = calculateBootstrapCI(predictions);
+  const confidenceInterval = normalApproximationOfModelScores(predictions);
   
   return {
     agreementScore,
@@ -245,7 +245,7 @@ export function calculateConsensusMetrics(
   };
 }
 
-function calculateBootstrapCI(
+function normalApproximationOfModelScores(
   predictions: Map<string, PredictionResult>
 ): [number, number] {
   const confidences = Array.from(predictions.values()).map(p => p.confidence);

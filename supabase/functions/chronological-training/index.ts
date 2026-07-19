@@ -152,7 +152,7 @@ serve(async (req) => {
       const drawSpecific = params.draw_specific || {};
       const currentDrawStats = drawSpecific[drawName] || { weight: config.weight, lessons: [], patterns: {} };
       
-      let simulatedScore = 0.5; // Baseline
+      let heuristicScore = 0.5; // Baseline
       let learnedPattern = "";
       
       const algoName = config.algorithm_name.toLowerCase();
@@ -160,28 +160,29 @@ serve(async (req) => {
       // Evaluate algorithms on real data
       if (algoName.includes("freq") || algoName.includes("poisson")) {
         // Reward continu basé sur une sigmoïde pour la fréquence
-        simulatedScore = 0.3 + 0.5 * (1 / (1 + Math.exp(-30 * (freqRate - 0.25))));
+        heuristicScore = 0.3 + 0.5 * (1 / (1 + Math.exp(-30 * (freqRate - 0.25))));
         learnedPattern = `Taux de réussite des numéros chauds: ${(freqRate*100).toFixed(1)}%.`;
       } else if (algoName.includes("gap") || algoName.includes("ecart")) {
         // Reward inverse continu : moins il y a de répétitions, plus les gaps fonctionnent
-        simulatedScore = 0.4 + 0.3 * (1 - (1 / (1 + Math.exp(-50 * (repRate - 0.08)))));
+        heuristicScore = 0.4 + 0.3 * (1 - (1 / (1 + Math.exp(-50 * (repRate - 0.08)))));
         learnedPattern = `Taux de répétition mesuré: ${(repRate*100).toFixed(1)}%.`;
       } else if (algoName.includes("markov") || algoName.includes("pattern")) {
         // Reward continu pour la force des patterns de transition
         const patternPower = p1Rate + m1Rate + mirrorRate + shadowRate;
-        simulatedScore = 0.45 + 0.35 * (1 / (1 + Math.exp(-40 * (patternPower - 0.18))));
+        heuristicScore = 0.45 + 0.35 * (1 / (1 + Math.exp(-40 * (patternPower - 0.18))));
         learnedPattern = `Force des transitions détectée: ${(patternPower*100).toFixed(1)}%.`;
       } else {
         // Fallback for other models: adjust slightly based on dataset size
-        simulatedScore = 0.5 + Math.min(0.1, results.length / 5000); 
+        heuristicScore = 0.5 + Math.min(0.1, results.length / 5000); 
         learnedPattern = `Analyse validée sur ${results.length} tirages historiques.`;
       }
 
       // Calculate adjustment
-      const performanceDelta = simulatedScore - 0.5;
+      const performanceDelta = heuristicScore - 0.5;
       const adjustmentFactor = performanceDelta * 0.2; // Max 10% change per training
-      const newSpecificWeight = Math.min(2, Math.max(0.1, currentDrawStats.weight * (1 + adjustmentFactor)));
-      const improvement = ((newSpecificWeight - currentDrawStats.weight) / currentDrawStats.weight) * 100;
+      const previousWeight = currentDrawStats.weight;
+      const newSpecificWeight = Math.min(2, Math.max(0.1, previousWeight * (1 + adjustmentFactor)));
+      const improvement = ((newSpecificWeight - previousWeight) / previousWeight) * 100;
       
       // Always update if there's a meaningful change or new lessons
       if (Math.abs(improvement) > 0.1 || detectedLessons.length > 0) {
@@ -209,14 +210,14 @@ serve(async (req) => {
 
         trainingHistory.push({
           algorithm_name: config.algorithm_name,
-          previous_weight: currentDrawStats.weight,
+          previous_weight: previousWeight,
           new_weight: newSpecificWeight,
           previous_parameters: params,
           new_parameters: newParams,
           performance_improvement: improvement,
           training_metrics: {
             drawName: drawName,
-            simulated_score: simulatedScore,
+            heuristic_score: heuristicScore,
             total_evaluations: results.length,
             learned_pattern: learnedPattern,
             patterns_stats: currentDrawStats.patterns

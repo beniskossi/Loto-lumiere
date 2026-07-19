@@ -5,6 +5,8 @@ import { selectBalancedNumbers, log } from "./utils.ts";
 const EPSILON = 1e-10;
 
 export function transformerAlgorithm(results: DrawResult[]): PredictionResult {
+  // Toujours trier localement (du plus récent au plus ancien) pour l'heuristique
+  results = [...results].sort((a, b) => new Date(b.draw_date).getTime() - new Date(a.draw_date).getTime());
   if (results.length < 10) {
     return {
       numbers: [1, 2, 3, 4, 5],
@@ -41,10 +43,10 @@ export function transformerAlgorithm(results: DrawResult[]): PredictionResult {
 
     return {
       numbers: prediction,
-      confidence: 0.89,
-      algorithm: "Transformer (Attention)",
+      confidence: 0.45,
+      algorithm: "Analyse d'attention sinusoïdale expérimentale",
       factors: [`${numHeads} attention heads`, "Positional encoding", `${seqLength} séquences`],
-      score: 0.89 * 0.89,
+      score: 0.45 * 0.8,
       category: "transformer",
     };
   } catch (error) {
@@ -118,7 +120,8 @@ function decodeAttention(attention: number[][], embedDim: number): Record<number
 
   attention.forEach(att => {
     for (let num = 1; num <= 90; num++) {
-      const idx = num % embedDim;
+      // Avoid structural bias from modulo mapping
+      const idx = (num * 7 + 13) % embedDim;
       scores[num] += Math.abs(att[idx]);
     }
   });

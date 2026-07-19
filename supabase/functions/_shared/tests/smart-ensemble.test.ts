@@ -56,7 +56,7 @@ Deno.test("SmartEnsemble - Medium Data (100 draws) Runs Multiple Algorithms", as
   
   assertExists(prediction);
   assertEquals(prediction.numbers.length, 5);
-  // Should run FrequencyPro, Random Forest, LSTM, Double Gap, Gap Cadence (5 algorithms)
+  // Should run FrequencyPro, Arbres Heuristiques, LSTM, Double Gap, Gap Cadence (5 algorithms)
   assertEquals(prediction.algorithm.includes("5/6 Modèles"), true);
   assertEquals(prediction.confidence >= 0.5, true);
 });
@@ -133,7 +133,7 @@ Deno.test("SmartEnsemble - Has All Model Weights", () => {
   
   assertEquals(weights.size, 6);
   assertEquals(weights.has("FrequencyPro"), true);
-  assertEquals(weights.has("Random Forest"), true);
+  assertEquals(weights.has("Arbres Heuristiques"), true);
   assertEquals(weights.has("LSTM"), true);
   assertEquals(weights.has("Transformer"), true);
   assertEquals(weights.has("Double Gap Sequence"), true);

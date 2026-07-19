@@ -297,7 +297,7 @@ export const FractalPatternAnalyzer = ({ drawName }: FractalPatternAnalyzerProps
         const drawObj = chronoDraws[i - 1];
         resultsList.push({
           drawIndex: i,
-          drawLabel: drawObj ? `${drawObj.draw_number || i}` : `T-${timeSeries.length - i}`,
+          drawLabel: drawObj ? `${drawObj.draw_name || (drawObj as any).draw_number || i}` : `T-${timeSeries.length - i}`,
           H: localH,
           PI: localPI
         });
@@ -413,12 +413,12 @@ export const FractalPatternAnalyzer = ({ drawName }: FractalPatternAnalyzerProps
                   L'exposant de Hurst $H$ quantifie le degré d'autocorrélation à long terme d'une série temporelle. Le calcul est rigoureusement déterministe et s'articule comme suit :
                 </p>
                 <div className="bg-background/80 p-4 rounded-xl font-mono space-y-2 border border-border/30 overflow-x-auto text-[11px]">
-                  <div>1. Partitionner la série de taille $N$ en sous-intervalles de taille $d$ : $X_{t, j}$ pour $t \in [1, d]$.</div>
-                  <div>2. Soustraire la moyenne locale : $Y_{t, j} = X_{t, j} - \mu_j$ où $\mu_j = \frac{1}{d} \sum_{i=1}^{d} X_{i, j}$.</div>
-                  <div>3. Intégrer les écarts cumulés : $Z_{t, j} = \sum_{k=1}^{t} Y_{k, j}$.</div>
-                  <div>4. Calculer l'amplitude locale : $R_j(d) = \max(Z_{1,j}, \dots, Z_{d,j}) - \min(Z_{1,j}, \dots, Z_{d,j})$.</div>
-                  <div>5. Diviser par l'écart-type local $S_j(d)$ pour obtenir le Rescaled Range $(R/S)_d = \frac{1}{m}\sum R_j(d)/S_j(d)$.</div>
-                  <div>6. Effectuer une régression linéaire : $\ln(E[R(d)/S(d)]) = H \cdot \ln(d) + \ln(C)$.</div>
+                  <div>{"1. Partitionner la série de taille $N$ en sous-intervalles de taille $d$ : $X_{t, j}$ pour $t \\in [1, d]$."}</div>
+                  <div>{"2. Soustraire la moyenne locale : $Y_{t, j} = X_{t, j} - \\mu_j$ où \\mu_j = \\frac{1}{d} \\sum_{i=1}^{d} X_{i, j}$."}</div>
+                  <div>{"3. Intégrer les écarts cumulés : $Z_{t, j} = \\sum_{k=1}^{t} Y_{k, j}$."}</div>
+                  <div>{"4. Calculer l'amplitude locale : $R_j(d) = \\max(Z_{1,j}, \\dots, Z_{d,j}) - \\min(Z_{1,j}, \\dots, Z_{d,j})$."}</div>
+                  <div>{"5. Diviser par l'écart-type local $S_j(d)$ pour obtenir le Rescaled Range $(R/S)_d = \\frac{1}{m}\\sum R_j(d)/S_j(d)$."}</div>
+                  <div>{"6. Effectuer une régression linéaire : \\ln(E[R(d)/S(d)]) = H \\cdot \\ln(d) + \\ln(C)$."}</div>
                 </div>
                 <p>
                   Le coefficient de détermination $R^2$ mesure l'alignement des points de calcul sur la loi de puissance fractale théorique. Plus $R^2$ est proche de 1, plus la régularité fractale de la série est confirmée.

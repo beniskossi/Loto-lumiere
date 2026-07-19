@@ -30,8 +30,8 @@ export const usePaginatedQuery = <T>(
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      let query = supabase
-        .from(table)
+      let query: any = supabase
+        .from(table as any)
         .select("*", { count: "exact" })
         .order(orderBy, { ascending })
         .range(from, to);

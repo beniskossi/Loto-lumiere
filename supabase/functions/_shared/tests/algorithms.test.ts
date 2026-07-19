@@ -65,13 +65,13 @@ Deno.test("FrequencyPro Algorithm - Insufficient Data", () => {
   assertEquals(prediction.confidence, 0.2);
 });
 
-Deno.test("Random Forest Algorithm - Sufficient Data", () => {
+Deno.test("Arbres Heuristiques Algorithm - Sufficient Data", () => {
   const mockResults = generateMockDrawResults(50);
   const prediction = randomForestAlgorithm(mockResults);
   
   assertExists(prediction);
   assertEquals(prediction.numbers.length, 5);
-  assertEquals(prediction.algorithm, "Random Forest");
+  assertEquals(prediction.algorithm, "Arbres Heuristiques");
   assertEquals(prediction.category, "forest");
   
   // Verify factors include expected elements
@@ -85,7 +85,7 @@ Deno.test("LSTM Algorithm - Sufficient Data", () => {
   
   assertExists(prediction);
   assertEquals(prediction.numbers.length, 5);
-  assertEquals(prediction.algorithm, "LSTM Network");
+  assertEquals(prediction.algorithm, "Séquences Récurrentes");
   assertEquals(prediction.category, "transformer");
   
   // Verify factors include LSTM-specific elements

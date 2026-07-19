@@ -12,12 +12,13 @@
 
 export type AlgorithmName = 
   | 'FrequencyPro'
-  | 'Random Forest'
-  | 'LSTM Network'
-  | 'Transformer (Attention)'
+  | 'Arbres Heuristiques'
+  | 'Séquences Récurrentes'
+  | 'Attention Spatiale'
   | 'Double Gap Sequence'
   | 'Gap Cadence'
-  | 'Stacking Ensemble';
+  | 'Ensemble Hybride Stacking'
+  | 'Baseline Aléatoire';
 
 export interface ParameterSchema {
   type: 'number' | 'string' | 'boolean';
@@ -42,7 +43,7 @@ export interface AlgorithmDefinition {
 export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
   'FrequencyPro': {
     name: 'FrequencyPro',
-    displayName: 'FrequencyPro',
+    displayName: 'Fréquence récente pondérée',
     description: 'Analyse fréquentielle pondérée avec décroissance exponentielle. Excellent pour capturer les tendances récentes.',
     category: 'statistical',
     defaultWeight: 0.7,
@@ -54,10 +55,10 @@ export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
     strengths: ['Interprétable', 'Rapide', 'Bon sur tendances récentes'],
     bestFor: 'Données avec patterns fréquenciels clairs'
   },
-  'Random Forest': {
-    name: 'Random Forest',
-    displayName: 'Decision Forest',
-    description: 'Ensemble d\'arbres de décision déterministes. Robuste, analyse d\'importance de caractéristiques non-linéaire.',
+  'Arbres Heuristiques': {
+    name: 'Arbres Heuristiques',
+    displayName: 'Ensemble bootstrap de tendances fréquentielles',
+    description: 'Modèle statistique de rééchantillonnage (bootstrap) qui agrège les tendances fréquentielles de différents sous-échantillons.',
     category: 'ensemble',
     defaultWeight: 0.8,
     color: 'hsl(200 70% 50%)',
@@ -65,13 +66,13 @@ export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
       num_trees: { type: 'number', default: 10, min: 5, max: 50 },
       max_depth: { type: 'number', default: 5, min: 3, max: 15 }
     },
-    strengths: ['Robuste au bruit', 'Analyse structurelle', 'Généralisation mathématique'],
+    strengths: ['Robuste au bruit', 'Analyse structurelle locale', 'Modélisation déterministe'],
     bestFor: 'Données avec interactions non-linéaires déterministes'
   },
-  'LSTM Network': {
-    name: 'LSTM Network',
-    displayName: 'LSTM Network',
-    description: 'Réseau de neurones récurrent avec mémoire à long terme. Idéal pour séquences temporelles.',
+  'Séquences Récurrentes': {
+    name: 'Séquences Récurrentes',
+    displayName: 'Transformation récurrente déterministe expérimentale',
+    description: 'Réseau de neurones récurrent avec mémoire à long terme simulé localement en JavaScript. Adapté pour l\'analyse de courtes séquences temporelles.',
     category: 'deep-learning',
     defaultWeight: 0.9,
     color: 'hsl(280 70% 55%)',
@@ -80,13 +81,13 @@ export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
       num_layers: { type: 'number', default: 2, min: 1, max: 4 },
       sequence_length: { type: 'number', default: 20, min: 10, max: 50 }
     },
-    strengths: ['Mémoire séquentielle', 'Bonne sur patterns longs'],
-    bestFor: 'Séries temporelles avec dépendances longues'
+    strengths: ['Mémoire séquentielle', 'Traitement léger local', 'Excellent sur séquences courtes'],
+    bestFor: 'Séries temporelles avec dépendances courtes'
   },
-  'Transformer (Attention)': {
-    name: 'Transformer (Attention)',
-    displayName: 'Transformer (Attention)',
-    description: 'Architecture d\'attention multi-têtes. État de l\'art pour capturer les relations complexes entre numéros.',
+  'Attention Spatiale': {
+    name: 'Attention Spatiale',
+    displayName: 'Analyse d\'attention sinusoïdale expérimentale',
+    description: 'Architecture d\'attention multi-têtes simulée localement pour capturer les relations complexes et proximales entre numéros.',
     category: 'deep-learning',
     defaultWeight: 1.1,
     color: 'hsl(330 70% 55%)',
@@ -95,7 +96,7 @@ export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
       embed_dim: { type: 'number', default: 32, min: 16, max: 64 },
       num_layers: { type: 'number', default: 2, min: 1, max: 4 }
     },
-    strengths: ['Attention sur relations', 'Parallélisable', 'Haut potentiel'],
+    strengths: ['Attention sur relations', 'Calcul matriciel simulé', 'Excellente modélisation proximale'],
     bestFor: 'Relations complexes entre numéros'
   },
   'Double Gap Sequence': {
@@ -124,9 +125,9 @@ export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
     strengths: ['Détection de patterns rythmiques', 'Morphologie', 'Explicabilité'],
     bestFor: 'Anticipation des vagues d\'apparition'
   },
-  'Stacking Ensemble': {
-    name: 'Stacking Ensemble',
-    displayName: 'Stacking Ensemble',
+  'Ensemble Hybride Stacking': {
+    name: 'Ensemble Hybride Stacking',
+    displayName: 'Ensemble Hybride Stacking',
     description: 'Meta-learner qui combine intelligemment les 5 autres algorithmes. Meilleure performance globale.',
     category: 'hybrid',
     defaultWeight: 1.2,
@@ -137,6 +138,17 @@ export const ALGORITHMS: Record<AlgorithmName, AlgorithmDefinition> = {
     },
     strengths: ['Meilleure précision', 'Robustesse', 'Auto-adaptation'],
     bestFor: 'Prédictions de haute confiance'
+  },
+  'Baseline Aléatoire': {
+    name: 'Baseline Aléatoire',
+    displayName: 'Baseline Aléatoire',
+    description: 'Sélection de numéros purement aléatoire servant de référence d\'évaluation neutre pour prouver la valeur ajoutée des modèles IA.',
+    category: 'statistical',
+    defaultWeight: 0.1,
+    color: 'hsl(0 0% 50%)',
+    parametersSchema: {},
+    strengths: ['Impartial', 'Indépendant des données', 'Référence de contrôle rationnelle'],
+    bestFor: 'Contrôle de performance neutre'
   }
 };
 

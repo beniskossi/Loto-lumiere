@@ -156,7 +156,7 @@ export const CadenceAlertNotificationCenter = ({ drawName }: CadenceAlertNotific
                         {alert.number && (
                           <div className="pt-1.5 flex items-center gap-1.5">
                             <span className="text-[9px] text-muted-foreground font-mono">Cible :</span>
-                            <NumberBall number={alert.number} size="xs" variant={isRead ? "default" : "active"} />
+                            <NumberBall number={alert.number} size="xs" className={isRead ? "opacity-60" : "opacity-100"} />
                           </div>
                         )}
                       </div>

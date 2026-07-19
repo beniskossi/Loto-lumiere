@@ -48,8 +48,8 @@ const ALGORITHM_COLORS: Record<string, string> = Object.fromEntries(
   Object.values(ALGORITHMS).map((a) => [a.name, a.color])
 );
 // Alias historiques
-ALGORITHM_COLORS["LSTM"] = ALGORITHMS["LSTM Network"].color;
-ALGORITHM_COLORS["Transformer"] = ALGORITHMS["Transformer (Attention)"].color;
+ALGORITHM_COLORS["LSTM"] = ALGORITHMS["Séquences Récurrentes"].color;
+ALGORITHM_COLORS["Transformer"] = ALGORITHMS["Attention Spatiale"].color;
 
 export const AlgorithmPerformanceComparison = () => {
   const allDraws = Object.values(DRAW_SCHEDULE).flat();

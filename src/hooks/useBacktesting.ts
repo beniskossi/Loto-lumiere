@@ -14,10 +14,10 @@ export interface BacktestResult {
   worstMatch: number;
   consistency: number;
   totalTests: number;
-  sharpeRatio?: number;
-  maxDrawdown?: number;
-  winRate?: number;
-  profitFactor?: number;
+  
+  
+  
+  
   matchDistribution?: Record<number, number>;
   crossValidation?: {
     standardError: number;
@@ -28,7 +28,7 @@ export interface BacktestResult {
 
 export interface BacktestConfig {
   drawName: string;
-  validationType?: 'standard' | 'kfold' | 'walkforward';
+  validationType?: 'standard' | 'expanding' | 'rolling';
   kFolds?: number;
   saveResults?: boolean;
 }
@@ -157,8 +157,8 @@ export const useBacktesting = (drawName?: string) => {
         worstMatch: stats.worstMatch,
         consistency: stdDev,
         totalTests: stats.count,
-        sharpeRatio: stdDev > 0 ? (avgAccuracy - 20) / stdDev : 0,
-        winRate: avgF1,
+        
+        
         avgConfidence,
       };
     }).sort((a, b) => b.avgAccuracy - a.avgAccuracy);

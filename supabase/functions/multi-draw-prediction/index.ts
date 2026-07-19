@@ -273,11 +273,11 @@ function determineStrategy(confidence: number, riskAssessment: Record<string, un
   const riskLevel = riskAssessment?.overallRisk || "medium";
   
   if (confidence > 0.8 && riskLevel === "low") {
-    return "Agressif - Haute confiance, faible risque";
+    return "Signaux expérimentaux - Haute confiance, faible risque";
   } else if (confidence > 0.7) {
-    return "Équilibré - Bonne confiance";
+    return "Fusion multi-signaux - Bonne confiance";
   } else if (confidence > 0.6) {
-    return "Conservateur - Confiance modérée";
+    return "Fréquences stables - Confiance modérée";
   } else {
     return "Prudent - Confiance faible";
   }

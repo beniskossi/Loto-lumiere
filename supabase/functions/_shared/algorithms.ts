@@ -38,8 +38,12 @@ export function generateFallbackPrediction(
  * Calcule une confiance harmonisée basée sur un score moyen
  */
 function computeConfidence(avgScore: number, maxConfidence: number = 0.85): number {
-  return Math.min(maxConfidence, Math.tanh(avgScore * 5) + 0.2);
+  // Using an empirical estimation instead of arbitrary tanh
+  // Typically base hit probability is around 0.05. We scale it reasonably based on frequency rank.
+  const estimatedProb = Math.min(maxConfidence, Math.max(0.05, avgScore * 10));
+  return estimatedProb;
 }
+  
 
 /**
  * Générateur pseudo-aléatoire avec seed
@@ -75,6 +79,8 @@ function sigmoid(x: number): number {
 // =====================================================
 
 export function frequencyProAlgorithm(results: DrawResult[]): PredictionResult {
+  // Toujours trier localement (du plus récent au plus ancien) pour l'heuristique
+  results = [...results].sort((a, b) => new Date(b.draw_date).getTime() - new Date(a.draw_date).getTime());
   if (results.length < 5) {
     return generateFallbackPrediction("FrequencyPro", "statistical");
   }
@@ -127,13 +133,15 @@ export function frequencyProAlgorithm(results: DrawResult[]): PredictionResult {
 }
 
 // =====================================================
-// ALGORITHME 2: Random Forest
+// ALGORITHME 2: Arbres Heuristiques
 // Ensemble d'arbres de décision
 // =====================================================
 
 export function randomForestAlgorithm(results: DrawResult[]): PredictionResult {
+  // Toujours trier localement (du plus récent au plus ancien) pour l'heuristique
+  results = [...results].sort((a, b) => new Date(b.draw_date).getTime() - new Date(a.draw_date).getTime());
   if (results.length < 5) {
-    return generateFallbackPrediction("Random Forest", "forest");
+    return generateFallbackPrediction("Arbres Heuristiques", "forest");
   }
 
   try {
@@ -164,7 +172,7 @@ export function randomForestAlgorithm(results: DrawResult[]): PredictionResult {
     return {
       numbers: prediction,
       confidence: 0.85,
-      algorithm: "Random Forest",
+      algorithm: "Arbres Heuristiques",
       factors: [
         `${numTrees} arbres`,
         "Bootstrap sampling",
@@ -174,8 +182,8 @@ export function randomForestAlgorithm(results: DrawResult[]): PredictionResult {
       category: "forest",
     };
   } catch (error) {
-    log("error", `Random Forest failed for ${results.length} results`, { error });
-    return generateFallbackPrediction("Random Forest", "forest");
+    log("error", `Arbres Heuristiques failed for ${results.length} results`, { error });
+    return generateFallbackPrediction("Arbres Heuristiques", "forest");
   }
 }
 
@@ -255,13 +263,15 @@ function buildDecisionTree(results: DrawResult[]): number[] {
 }
 
 // =====================================================
-// ALGORITHME 3: LSTM Network
+// ALGORITHME 3: Séquences Récurrentes
 // Réseau de neurones récurrent simplifié
 // =====================================================
 
 export function lstmAlgorithm(results: DrawResult[]): PredictionResult {
+  // Toujours trier localement (du plus récent au plus ancien) pour l'heuristique
+  results = [...results].sort((a, b) => new Date(b.draw_date).getTime() - new Date(a.draw_date).getTime());
   if (results.length < 5) {
-    return generateFallbackPrediction("LSTM Network", "recurrent");
+    return generateFallbackPrediction("Séquences Récurrentes", "recurrent");
   }
 
   try {
@@ -299,26 +309,37 @@ export function lstmAlgorithm(results: DrawResult[]): PredictionResult {
       hiddenState = outputGate.map((o, i) => o * Math.tanh(cellState[i]));
     });
 
+    
     // Génération de la prédiction
-    const prediction = hiddenState
+    let prediction = hiddenState
       .slice(0, 5)
       .map(h => Math.min(90, Math.max(1, Math.round((h + 1) * 45))))
       .sort((a, b) => a - b);
-
+      
+    prediction = Array.from(new Set(prediction));
+    let attempts = 0;
+    while(prediction.length < 5 && attempts < 100) {
+      const fallbackNum = Math.floor(Math.random() * 90) + 1;
+      if (!prediction.includes(fallbackNum)) {
+        prediction.push(fallbackNum);
+      }
+      attempts++;
+    }
+    prediction.sort((a, b) => a - b);
     return {
       numbers: prediction,
-      confidence: 0.87,
-      algorithm: "LSTM Network",
+      confidence: computeConfidence(0.5, 0.65),
+      algorithm: "Transformation récurrente déterministe expérimentale",
       factors: [
         "Réseau récurrent",
         "Cell + Hidden states",
         "Gates forget/input/output"
       ],
-      score: 0.87 * 0.87,
+      score: computeConfidence(0.5, 0.65) * 0.8,
       category: "recurrent",
     };
   } catch (error) {
     log("error", `LSTM failed for ${results.length} results`, { error });
-    return generateFallbackPrediction("LSTM Network", "recurrent");
+    return generateFallbackPrediction("Séquences Récurrentes", "recurrent");
   }
 }

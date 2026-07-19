@@ -183,12 +183,16 @@ export class ForensicEngine {
     records: PerformanceRecord[],
     currentWeight: number
   ): AlgorithmForensicMetrics {
+    // Sort records chronologically
+    records = [...records].sort(
+      (a, b) => new Date(a.draw_date).getTime() - new Date(b.draw_date).getTime()
+    );
     const totalPredictions = records.length;
     const totalMatches = records.reduce((sum, r) => sum + r.matches_count, 0);
     const averageMatches = totalMatches / totalPredictions;
     
     // Accuracy: pourcentage de numéros corrects
-    const accuracy = (averageMatches / 5) * 100;
+    const accuracy = (averageMatches / 5);
     
     // Precision et Recall
     const precision = this.calculatePrecision(records);
@@ -319,13 +323,13 @@ export class ForensicEngine {
         if (adjusted.decay_rate) adjusted.decay_rate = Math.max(0.01, adjusted.decay_rate * (1 - reduction));
         if (adjusted.top_candidates) adjusted.top_candidates = Math.max(5, Math.floor(adjusted.top_candidates * (1 - reduction)));
         break;
-      case 'Random Forest':
+      case 'Arbres Heuristiques':
         if (adjusted.max_depth) adjusted.max_depth = Math.max(3, Math.floor(adjusted.max_depth * (1 - reduction)));
         break;
-      case 'LSTM Network':
+      case 'Séquences Récurrentes':
         if (adjusted.learning_rate) adjusted.learning_rate = Math.max(0.0001, adjusted.learning_rate * (1 - reduction));
         break;
-      case 'Transformer (Attention)':
+      case 'Attention Spatiale':
         if (adjusted.dropout) adjusted.dropout = Math.min(0.5, adjusted.dropout * (1 + reduction));
         break;
       case 'Double Gap Sequence':
@@ -334,7 +338,7 @@ export class ForensicEngine {
       case 'Gap Cadence':
         if (adjusted.cadence_depth) adjusted.cadence_depth = Math.min(15, Math.floor(adjusted.cadence_depth * (1 + reduction)));
         break;
-      case 'Stacking Ensemble':
+      case 'Ensemble Hybride Stacking':
         if (adjusted.l2_penalty) adjusted.l2_penalty = Math.min(1.0, (adjusted.l2_penalty || 0.1) * (1 + reduction));
         if (adjusted.meta_learning_rate) adjusted.meta_learning_rate = Math.max(0.001, adjusted.meta_learning_rate * (1 - reduction));
         break;
@@ -358,15 +362,15 @@ export class ForensicEngine {
       case 'FrequencyPro':
         if (adjusted.decay_rate) adjusted.decay_rate = Math.min(0.2, adjusted.decay_rate * (1 + boost));
         break;
-      case 'Random Forest':
+      case 'Arbres Heuristiques':
         if (adjusted.num_trees) adjusted.num_trees = Math.min(50, Math.floor(adjusted.num_trees * (1 + boost)));
         if (adjusted.max_depth) adjusted.max_depth = Math.min(15, Math.floor(adjusted.max_depth * (1 + boost)));
         break;
-      case 'LSTM Network':
+      case 'Séquences Récurrentes':
         if (adjusted.epochs) adjusted.epochs = Math.min(200, Math.floor(adjusted.epochs * (1 + boost)));
         if (adjusted.sequence_length) adjusted.sequence_length = Math.max(10, Math.floor(adjusted.sequence_length * (1 - boost)));
         break;
-      case 'Transformer (Attention)':
+      case 'Attention Spatiale':
         if (adjusted.num_heads) adjusted.num_heads = Math.min(8, Math.floor(adjusted.num_heads + 1));
         break;
       case 'Double Gap Sequence':
@@ -375,7 +379,7 @@ export class ForensicEngine {
       case 'Gap Cadence':
         if (adjusted.cadence_depth) adjusted.cadence_depth = Math.max(2, Math.floor(adjusted.cadence_depth * (1 - boost)));
         break;
-      case 'Stacking Ensemble':
+      case 'Ensemble Hybride Stacking':
         if (adjusted.cv_folds) adjusted.cv_folds = Math.min(10, Math.floor(adjusted.cv_folds + 1));
         break;
     }
@@ -580,7 +584,7 @@ export class ForensicEngine {
     const historicalAverage = this.calculateAverageAccuracy(sorted);
 
     // Volatilité
-    const accuracies = sorted.map(r => (r.matches_count / 5) * 100);
+    const accuracies = sorted.map(r => (r.matches_count / 5));
     const mean = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
     const variance = accuracies.reduce((sum, a) => sum + Math.pow(a - mean, 2), 0) / accuracies.length;
     const volatility = Math.sqrt(variance);
@@ -689,7 +693,7 @@ export class ForensicEngine {
   private calculateAverageAccuracy(records: PerformanceRecord[]): number {
     if (records.length === 0) return 0;
     const totalMatches = records.reduce((sum, r) => sum + r.matches_count, 0);
-    return (totalMatches / (records.length * 5)) * 100;
+    return (totalMatches / (records.length * 5));
   }
 
   private calculatePrecision(records: PerformanceRecord[]): number {
@@ -717,6 +721,7 @@ export class ForensicEngine {
   }
 
   private calculateCalibrationError(records: PerformanceRecord[]): number {
+    // Expected Calibration Error (ECE) simplifiée
     const recordsWithConfidence = records.filter(
       r => r.confidence_score !== undefined && r.confidence_score !== null
     );
@@ -725,9 +730,13 @@ export class ForensicEngine {
     
     let totalError = 0;
     recordsWithConfidence.forEach(r => {
+      // Comparaison entre la probabilité moyenne annoncée (confidence_score)
+      // et la probabilité réelle de tirage observée (matches_count / 5)
       const predictedConfidence = r.confidence_score || 0;
       const actualAccuracy = r.matches_count / 5;
-      totalError += predictedConfidence - actualAccuracy;
+      
+      // La sur-confiance se produit quand predictedConfidence > actualAccuracy
+      totalError += (predictedConfidence - actualAccuracy);
     });
     
     return totalError / recordsWithConfidence.length;

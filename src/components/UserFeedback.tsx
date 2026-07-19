@@ -24,6 +24,7 @@ export const UserFeedback = () => {
         .from("user_prediction_feedback")
         .insert({
           user_id: user.id,
+          prediction_id: '00000000-0000-0000-0000-000000000000', // Default UUID for general feedback
           rating: rating || null,
           comments: feedback.trim(),
         });

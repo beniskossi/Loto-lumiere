@@ -50,7 +50,7 @@ export function selectBestAlgorithm(
   if (hasMachineNumbers) {
     return {
       selectedAlgorithm: "StackingEnsemble",
-      reason: "Tirage complexe avec numéros machine détectés - Stacking Ensemble recommandé"
+      reason: "Tirage complexe avec numéros machine détectés - Ensemble Hybride Stacking recommandé"
     };
   }
   
@@ -80,11 +80,11 @@ export function selectBestAlgorithm(
     };
   }
   
-  // Niveau 3: 30-59 tirages → Random Forest (seuil ↓ de 40)
+  // Niveau 3: 30-59 tirages → Arbres Heuristiques (seuil ↓ de 40)
   if (historicalCount >= 30) {
     return {
       selectedAlgorithm: "RandomForest",
-      reason: `Volume modéré (${historicalCount} tirages) - Random Forest pour robustesse et généralisation`
+      reason: `Volume modéré (${historicalCount} tirages) - Arbres Heuristiques pour robustesse et généralisation`
     };
   }
   
@@ -106,7 +106,7 @@ export function getAlgorithmInfo(algorithm: AlgorithmSelection["selectedAlgorith
 } {
   const info = {
     "Transformer": {
-      name: "Transformer (Attention)",
+      name: "Attention Spatiale",
       description: "Architecture d'attention multi-têtes pour capturer les relations complexes",
       strengths: [
         "Excellente gestion de grands volumes de données",
@@ -116,7 +116,7 @@ export function getAlgorithmInfo(algorithm: AlgorithmSelection["selectedAlgorith
       optimalRange: "250+ tirages"
     },
     "LSTM": {
-      name: "LSTM Network",
+      name: "Séquences Récurrentes",
       description: "Réseau de neurones récurrent avec mémoire à long/court terme",
       strengths: [
         "Capture des dépendances temporelles",
@@ -126,7 +126,7 @@ export function getAlgorithmInfo(algorithm: AlgorithmSelection["selectedAlgorith
       optimalRange: "80-149 tirages"
     },
     "RandomForest": {
-      name: "Random Forest",
+      name: "Arbres Heuristiques",
       description: "Ensemble d'arbres de décision avec bootstrap et vote majoritaire",
       strengths: [
         "Robustesse face au bruit",
@@ -146,7 +146,7 @@ export function getAlgorithmInfo(algorithm: AlgorithmSelection["selectedAlgorith
       optimalRange: "< 40 tirages"
     },
     "StackingEnsemble": {
-      name: "Stacking Ensemble",
+      name: "Ensemble Hybride Stacking",
       description: "Meta-learner combinant 5 algorithmes avec poids optimisés",
       strengths: [
         "Meilleure précision globale",

@@ -1,4 +1,4 @@
-// Stacking Ensemble - Meta-learning avec les meilleurs algorithmes de base
+// Ensemble Hybride Stacking - Meta-learning avec les meilleurs algorithmes de base
 import type { DrawResult, PredictionResult } from "./types.ts";
 import { transformerAlgorithm } from "./transformer.ts";
 import { lstmAlgorithm, randomForestAlgorithm, frequencyProAlgorithm } from "./algorithms.ts";
@@ -31,7 +31,7 @@ export function stackingEnsemble(results: DrawResult[]): PredictionResult {
     ];
 
     // Level 2: Meta-learner
-    const metaScores = trainMetaLearner(level1Models, results);
+    const metaScores = trainMetaLearner(results);
 
     // Combine predictions
     const finalScores: Record<number, number> = {};
@@ -55,9 +55,9 @@ export function stackingEnsemble(results: DrawResult[]): PredictionResult {
     return {
       numbers: prediction,
       confidence: Math.min(0.95, avgConfidence * 1.15),
-      algorithm: "Stacking Ensemble",
+      algorithm: "Ensemble Hybride Stacking",
       factors: ["6 modèles L1", "Meta-learner", "Poids optimisés"],
-      score: 0.95 * 0.95,
+      score: avgConfidence * avgConfidence,
       category: "ensemble",
     };
   } catch (error) {
@@ -72,26 +72,46 @@ export function stackingEnsemble(results: DrawResult[]): PredictionResult {
   }
 }
 
+
 function trainMetaLearner(
-  models: PredictionResult[],
   results: DrawResult[]
 ): number[] {
-  // Calculate performance of each model
-  const performances = models.map(model => {
-    let hits = 0;
-    const recentResults = results.slice(0, 10);
+  // Out-of-sample walk-forward for each model
+  // We will do a 5-step walk-forward
+  const walkForwardSteps = Math.min(5, results.length - 15);
+  if (walkForwardSteps <= 0) {
+    return [1/6, 1/6, 1/6, 1/6, 1/6, 1/6];
+  }
 
-    recentResults.forEach(result => {
+  const hits = [0, 0, 0, 0, 0, 0];
+
+  for (let i = 0; i < walkForwardSteps; i++) {
+    // For step i, the "future" result is results[i].
+    // The "past" training data is results.slice(i + 1).
+    const trainData = results.slice(i + 1);
+    const targetResult = results[i];
+
+    const modelsOOS = [
+      transformerAlgorithm(trainData),
+      lstmAlgorithm(trainData),
+      randomForestAlgorithm(trainData),
+      frequencyProAlgorithm(trainData),
+      doubleGapSequenceAlgorithm(trainData),
+      gapCadenceAlgorithm(trainData),
+    ];
+
+    modelsOOS.forEach((model, idx) => {
       const matches = model.numbers.filter(n =>
-        result.winning_numbers.includes(n)
+        targetResult.winning_numbers.includes(n)
       ).length;
-      hits += matches;
+      hits[idx] += matches;
     });
+  }
 
-    return hits / (recentResults.length * 5);
-  });
-
-  // Normalize to weights
+  const performances = hits.map(h => h / (walkForwardSteps * 5));
   const total = performances.reduce((a, b) => a + b, 0);
-  return performances.map(p => p / (total + EPSILON));
+  if (total === 0) {
+    return [1/6, 1/6, 1/6, 1/6, 1/6, 1/6];
+  }
+  return performances.map(p => p / total);
 }

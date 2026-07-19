@@ -36,8 +36,8 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 0.7,
     enabled: true,
   }],
-  ["Random Forest", {
-    name: "Random Forest",
+  ["Arbres Heuristiques", {
+    name: "Arbres Heuristiques",
     category: "forest" as AlgorithmCategory,
     minDataRequired: 30,
     maxDataUsed: 300,
@@ -45,8 +45,8 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 0.8,
     enabled: true,
   }],
-  ["LSTM Network", {
-    name: "LSTM Network",
+  ["Séquences Récurrentes", {
+    name: "Séquences Récurrentes",
     category: "recurrent" as AlgorithmCategory,
     minDataRequired: 60,
     maxDataUsed: 200,
@@ -54,8 +54,8 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 0.9,
     enabled: true,
   }],
-  ["Transformer (Attention)", {
-    name: "Transformer (Attention)",
+  ["Attention Spatiale", {
+    name: "Attention Spatiale",
     category: "transformer" as AlgorithmCategory,
     minDataRequired: 250,
     maxDataUsed: 500,
@@ -90,8 +90,8 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 1.1,
     enabled: true,
   }],
-  ["Stacking Ensemble", {
-    name: "Stacking Ensemble",
+  ["Ensemble Hybride Stacking", {
+    name: "Ensemble Hybride Stacking",
     category: "ensemble" as AlgorithmCategory,
     minDataRequired: 100,
     maxDataUsed: 500,
@@ -105,13 +105,13 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
 
 const ALGORITHM_FUNCTIONS: Map<string, AlgorithmFunction> = new Map([
   ["FrequencyPro", frequencyProAlgorithm],
-  ["Random Forest", randomForestAlgorithm],
-  ["LSTM Network", lstmAlgorithm],
-  ["Transformer (Attention)", transformerAlgorithm],
+  ["Arbres Heuristiques", randomForestAlgorithm],
+  ["Séquences Récurrentes", lstmAlgorithm],
+  ["Attention Spatiale", transformerAlgorithm],
   ["Double Gap Sequence", doubleGapSequenceAlgorithm],
   ["Gap Cadence", gapCadenceAlgorithm],
   ["Seasonal Recurrence", seasonalRecurrenceAlgorithm],
-  ["Stacking Ensemble", stackingEnsemble],
+  ["Ensemble Hybride Stacking", stackingEnsemble],
 ]);
 
 // ====================== CLASSE PRINCIPALE ======================
@@ -182,16 +182,16 @@ export class AlgorithmRegistryManager {
     const best = eligible[0];
     
     // Logique de sélection avancée
-    if (dataCount >= 300 && eligible.some(a => a.config.name === "Stacking Ensemble")) {
+    if (dataCount >= 300 && eligible.some(a => a.config.name === "Ensemble Hybride Stacking")) {
       return {
-        algorithm: "Stacking Ensemble",
-        reason: `Volume excellent (${dataCount} tirages) - Stacking Ensemble optimal`
+        algorithm: "Ensemble Hybride Stacking",
+        reason: `Volume excellent (${dataCount} tirages) - Ensemble Hybride Stacking optimal`
       };
     }
 
-    if (dataCount >= 250 && eligible.some(a => a.config.name === "Transformer (Attention)")) {
+    if (dataCount >= 250 && eligible.some(a => a.config.name === "Attention Spatiale")) {
       return {
-        algorithm: "Transformer (Attention)",
+        algorithm: "Attention Spatiale",
         reason: `Volume important (${dataCount} tirages) - Transformer attention recommandé`
       };
     }

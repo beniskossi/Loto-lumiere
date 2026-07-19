@@ -374,7 +374,7 @@ export const PredictionVsResultsComparison = () => {
                           }`}
                         >
                           <TrendingUp className="w-3 h-3 mr-1" />
-                          {(comparison.confidence_score * 100).toFixed(0)}% confiance
+                          Prédiction
                         </Badge>
                       )}
                       {/* Indicateur de statut */}

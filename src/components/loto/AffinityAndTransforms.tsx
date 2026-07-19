@@ -26,7 +26,7 @@ export const AffinityAndTransforms = ({ drawName }: AffinityAndTransformsProps) 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("draw_results")
-        .select("id, draw_name, draw_date, winning_numbers")
+        .select("id, draw_name, draw_date, winning_numbers, draw_time, draw_day")
         .eq("draw_name", drawName)
         .order("draw_date", { ascending: false })
         .limit(300);
@@ -38,6 +38,8 @@ export const AffinityAndTransforms = ({ drawName }: AffinityAndTransformsProps) 
         drawName: d.draw_name,
         date: d.draw_date,
         winningNumbers: d.winning_numbers,
+        drawTime: d.draw_time || "",
+        drawDay: d.draw_day || "",
       }));
     },
     enabled: !!drawName,

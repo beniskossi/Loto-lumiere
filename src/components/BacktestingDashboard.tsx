@@ -1,122 +1,123 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { useBacktesting } from "@/hooks/useBacktesting";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBacktesting, type BacktestResult } from "@/hooks/useBacktesting";
-import { DRAW_SCHEDULE, DAYS_ORDER } from "@/types/lottery";
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
-  Legend, ResponsiveContainer, BarChart, Bar, RadarChart,
-  PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Cell
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  LineChart,
+  Line,
+  Cell
 } from "recharts";
-import { 
-  BarChart3, TrendingUp, Award, Loader2, Target, 
-  Zap, Activity, FlaskConical, Timer, CheckCircle2
-} from "lucide-react";
+import { Award, Target, TrendingUp, Zap, BarChart3, Loader2 } from "lucide-react";
 
-export const BacktestingDashboard = () => {
-  const [selectedDraw, setSelectedDraw] = useState("Reveil");
-  const [latestResults, setLatestResults] = useState<BacktestResult[]>([]);
-  
+interface BacktestingDashboardProps {
+  drawName?: string;
+}
+
+const COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
+
+export function BacktestingDashboard({ drawName }: BacktestingDashboardProps) {
   const { 
     runBacktest, 
     isRunning, 
-    aggregateStats, 
-    trendData,
+    lastResults, 
+    historicalPerformance,
     isLoadingHistory,
-    lastResults
-  } = useBacktesting(selectedDraw);
+    aggregateStats,
+    trendData
+  } = useBacktesting(drawName);
 
-  const allDraws = DAYS_ORDER.flatMap(day => DRAW_SCHEDULE[day]);
-
-  // Sync latest results from hook
-  const displayResults = useMemo(() => {
-    return latestResults.length > 0 ? latestResults : (lastResults?.evaluations || []);
-  }, [latestResults, lastResults]);
+  const [validationType, setValidationType] = useState<'standard' | 'expanding' | 'rolling'>('standard');
 
   const handleRunBacktest = () => {
     runBacktest({
-      drawName: selectedDraw,
-      validationType: 'standard',
+      drawName: drawName || 'all',
+      validationType,
       saveResults: true
     });
   };
 
-  const radarData = useMemo(() => {
-    if (!displayResults.length) return [];
-    
-    return displayResults.slice(0, 6).map((result) => ({
-      algorithm: result.algorithm.replace(/\s+/g, "\n"),
-      precision: result.accuracy,
-      consistance: Math.max(0, 100 - result.consistency * 20),
-      meilleur: (result.bestMatch / 5) * 100,
-      moyenne: (result.avgMatches / 5) * 100,
-    }));
-  }, [displayResults]);
+  const displayResults = lastResults?.evaluations || aggregateStats || [];
+  
+  const comparisonData = displayResults.slice(0, 5).map(r => ({
+    name: r.algorithm.replace("Optimiseur ", "").replace(/[()]/g, "").substring(0, 15),
+    accuracy: r.accuracy,
+    precision: r.precision,
+    consistency: r.consistency,
+    f1Score: r.f1Score || r.accuracy,
+    matches: r.avgMatches
+  }));
 
-  const comparisonData = useMemo(() => {
-    if (!displayResults.length) return [];
-    
-    return displayResults.map((result) => ({
-      name: result.algorithm,
-      accuracy: result.accuracy,
-      avgMatches: result.avgMatches,
-      consistency: Math.max(0, 100 - result.consistency * 20),
-    }));
-  }, [displayResults]);
-
-  const COLORS = [
-    "hsl(var(--primary))",
-    "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-    "hsl(var(--chart-5))",
-  ];
+  const radarData = displayResults.slice(0, 4).map(r => ({
+    algorithm: r.algorithm.replace("Optimiseur ", "").replace(/[()]/g, "").substring(0, 10),
+    precision: r.accuracy,
+    consistance: Math.max(0, 100 - (r.consistency * 20)), 
+    rentabilite: r.f1Score || r.accuracy, 
+    frequence: (r.avgMatches / 5) * 100
+  }));
 
   return (
     <div className="space-y-6">
-      {/* Header Card */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+      <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <FlaskConical className="w-6 h-6 text-primary" />
-                Backtesting Professionnel
-              </CardTitle>
-              <CardDescription className="mt-1">
-                Évaluation de la performance historique des algorithmes de prédiction
-              </CardDescription>
-            </div>
-            <Badge variant="outline" className="gap-1">
-              <Timer className="w-3 h-3" />
-              Data Science
-            </Badge>
-          </div>
+          <CardTitle>Évaluation des Algorithmes</CardTitle>
+          <CardDescription>
+            Testez les performances des modèles de prédiction sur les données historiques
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Select value={selectedDraw} onValueChange={setSelectedDraw}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {allDraws.map(draw => (
-                  <SelectItem key={draw.name} value={draw.name}>
-                    {draw.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="w-full md:w-64 space-y-2">
+              <label className="text-sm font-medium">Méthode de validation</label>
+              <Select 
+                value={validationType} 
+                onValueChange={(val: any) => setValidationType(val)}
+                disabled={isRunning}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une méthode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard (Hold-out)</SelectItem>
+                  <SelectItem value="expanding">Fenêtre Étendue (Expanding Window)</SelectItem>
+                  <SelectItem value="rolling">Fenêtre Roulante (Rolling Window)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
             <Button 
               onClick={handleRunBacktest} 
               disabled={isRunning}
-              className="gap-2"
+              className="gap-2 w-full md:w-auto h-10 px-5 md:mt-0"
             >
               {isRunning ? (
                 <>
@@ -134,7 +135,6 @@ export const BacktestingDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Main Content */}
       <Tabs defaultValue="results" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="results" className="gap-2">
@@ -151,7 +151,6 @@ export const BacktestingDashboard = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Results Tab */}
         <TabsContent value="results" className="space-y-4">
           {isRunning && (
             <Card>
@@ -186,7 +185,6 @@ export const BacktestingDashboard = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Accuracy Progress */}
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-muted-foreground">Précision</span>
@@ -199,8 +197,7 @@ export const BacktestingDashboard = () => {
                         className="h-2"
                       />
                     </div>
-
-                    {/* Stats Grid */}
+                    
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div className="bg-muted/50 rounded-lg p-2">
                         <p className="text-muted-foreground text-xs">Moy. matchs</p>
@@ -211,30 +208,27 @@ export const BacktestingDashboard = () => {
                         <p className="font-bold text-green-600">{result.bestMatch}/5</p>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-2">
-                        <p className="text-muted-foreground text-xs">Pire</p>
-                        <p className="font-bold text-red-500">{result.worstMatch}/5</p>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-2">
                         <p className="text-muted-foreground text-xs">Consistance</p>
                         <p className="font-bold">±{result.consistency.toFixed(2)}</p>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t">
-                      <CheckCircle2 className="w-3 h-3" />
-                      {result.totalTests} tests effectués
+                      <div className="bg-muted/50 rounded-lg p-2">
+                        <p className="text-muted-foreground text-xs">F1 Score</p>
+                        <p className="font-bold text-primary">
+                          {result.f1Score !== undefined ? result.f1Score.toFixed(1) : result.accuracy.toFixed(1)}%
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           )}
-
+          
           {!isRunning && displayResults.length === 0 && (
             <Card>
-              <CardContent className="py-12">
-                <div className="text-center text-muted-foreground">
-                  <Activity className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <div className="flex flex-col items-center justify-center">
+                  <BarChart3 className="w-12 h-12 mb-3 opacity-30" />
                   <h3 className="text-lg font-medium mb-2">Aucun résultat de backtesting</h3>
                   <p className="text-sm">
                     Sélectionnez un tirage et lancez l'évaluation pour voir les performances
@@ -245,11 +239,9 @@ export const BacktestingDashboard = () => {
           )}
         </TabsContent>
 
-        {/* Comparison Tab */}
         <TabsContent value="comparison" className="space-y-4">
           {displayResults.length > 0 ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              {/* Bar Chart */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Comparaison des Précisions</CardTitle>
@@ -278,7 +270,6 @@ export const BacktestingDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Radar Chart */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Analyse Multi-Critères</CardTitle>
@@ -322,7 +313,6 @@ export const BacktestingDashboard = () => {
           )}
         </TabsContent>
 
-        {/* Trends Tab */}
         <TabsContent value="trends" className="space-y-4">
           {isLoadingHistory ? (
             <Card>
@@ -379,7 +369,6 @@ export const BacktestingDashboard = () => {
             </Card>
           )}
 
-          {/* Aggregate Stats */}
           {aggregateStats && aggregateStats.length > 0 && (
             <Card>
               <CardHeader>
@@ -393,7 +382,6 @@ export const BacktestingDashboard = () => {
                         <th className="text-left py-2 px-3">Algorithme</th>
                         <th className="text-right py-2 px-3">Précision Moy.</th>
                         <th className="text-right py-2 px-3">Matchs Moy.</th>
-                        <th className="text-right py-2 px-3">Sharpe</th>
                         <th className="text-right py-2 px-3">Tests</th>
                       </tr>
                     </thead>
@@ -413,11 +401,6 @@ export const BacktestingDashboard = () => {
                           <td className="text-right py-2 px-3">
                             {stat.avgMatches.toFixed(2)}
                           </td>
-                          <td className="text-right py-2 px-3">
-                            <span className={stat.sharpeRatio > 1 ? "text-green-600" : "text-muted-foreground"}>
-                              {stat.sharpeRatio.toFixed(2)}
-                            </span>
-                          </td>
                           <td className="text-right py-2 px-3 text-muted-foreground">
                             {stat.totalTests}
                           </td>
@@ -433,4 +416,4 @@ export const BacktestingDashboard = () => {
       </Tabs>
     </div>
   );
-};
+}

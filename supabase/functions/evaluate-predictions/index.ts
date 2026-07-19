@@ -103,99 +103,98 @@ serve(async (req) => {
 
     console.log("Found draw results to evaluate", { count: results.length });
 
+    
     let evaluatedCount = 0;
     let newEvaluations = 0;
     const algorithmStats: Record<string, { evaluated: number; bestMatch: number }> = {};
 
-    // For each result, find ALL predictions made before the draw date
-    for (const result of results as DrawResult[]) {
-      console.log("Processing draw result");
+    // Get all predictions that have target_draw_date or draw_name
+    const { data: predictions, error: predictionsError } = await supabase
+      .from("predictions")
+      .select("id, draw_name, prediction_date, target_draw_date, target_draw_id, predicted_numbers, model_used, confidence_score")
+      .order("prediction_date", { ascending: false });
+
+    if (predictionsError) throw predictionsError;
+
+    for (const prediction of predictions) {
+      let result;
+
+      // Find strict result matching target_draw_id or target_draw_date
+      if (prediction.target_draw_id) {
+        result = results.find((r: any) => r.id === prediction.target_draw_id);
+      } else if (prediction.target_draw_date) {
+        result = results.find((r: any) => r.draw_date === prediction.target_draw_date && r.draw_name === prediction.draw_name);
+      } else {
+        // Fallback for legacy predictions: find the *first* result that occurred after prediction_date
+        const validResults = results.filter((r: any) => r.draw_name === prediction.draw_name && r.draw_date >= prediction.prediction_date);
+        validResults.sort((a: any, b: any) => new Date(a.draw_date).getTime() - new Date(b.draw_date).getTime());
+        result = validResults[0];
+      }
+
+      if (!result) continue; // Draw hasn't happened yet or not found
+
+      // Calculate matches
+      const matches = prediction.predicted_numbers.filter((num: number) => 
+        result.winning_numbers.includes(num)
+      ).length;
+
+      // Unités compatibles : accuracy_score en base 0 à 1
+      const accuracyScore = matches / 5;
       
-      // Get ALL predictions for this draw made before the result date
-      const { data: predictions, error: predictionsError } = await supabase
-        .from("predictions")
-        .select("id, draw_name, prediction_date, predicted_numbers, model_used, confidence_score")
-        .eq("draw_name", result.draw_name)
-        .lte("prediction_date", result.draw_date)
-        .order("prediction_date", { ascending: false });
+      const precision = matches / 5;
+      const recall = matches / result.winning_numbers.length;
+      const f1Score = precision + recall > 0 
+        ? (2 * precision * recall) / (precision + recall) 
+        : 0;
 
-      if (predictionsError) {
-        console.error("Error fetching predictions", { error: predictionsError.message });
-        continue;
+      // Update stats
+      if (!algorithmStats[prediction.model_used]) {
+        algorithmStats[prediction.model_used] = { evaluated: 0, bestMatch: 0 };
       }
+      algorithmStats[prediction.model_used].evaluated++;
+      algorithmStats[prediction.model_used].bestMatch = Math.max(
+        algorithmStats[prediction.model_used].bestMatch,
+        matches
+      );
 
-      if (!predictions || predictions.length === 0) {
-        console.log("No predictions found for this draw");
-        continue;
-      }
+      // Check if already evaluated with specific constraints
+      const { data: existing } = await supabase
+        .from("algorithm_performance")
+        .select("id")
+        .eq("prediction_id", prediction.id)
+        .maybeSingle();
 
-      console.log("Found predictions to evaluate", { count: predictions.length });
-
-      for (const prediction of predictions) {
-        // Calculate matches
-        const matches = prediction.predicted_numbers.filter((num: number) => 
-          result.winning_numbers.includes(num)
-        ).length;
-
-        const accuracyScore = (matches / 5) * 100;
+      if (existing) {
+        if (!forceRebuild) continue;
         
-        // Calcul F1-score réel
-        const precision = matches / 5;
-        const recall = matches / result.winning_numbers.length;
-        const f1Score = precision + recall > 0 
-          ? (2 * precision * recall) / (precision + recall) 
-          : 0;
+        // If forceRebuild is true, delete existing
+        await supabase.from("algorithm_performance").delete().eq("prediction_id", prediction.id);
+      }
 
-        // Update stats
-        if (!algorithmStats[prediction.model_used]) {
-          algorithmStats[prediction.model_used] = { evaluated: 0, bestMatch: 0 };
-        }
-        algorithmStats[prediction.model_used].evaluated++;
-        algorithmStats[prediction.model_used].bestMatch = Math.max(
-          algorithmStats[prediction.model_used].bestMatch,
-          matches
-        );
+      const { error: insertError } = await supabase
+        .from("algorithm_performance")
+        .insert({
+          prediction_id: prediction.id,
+          draw_result_id: result.id,
+          draw_name: result.draw_name,
+          model_used: prediction.model_used,
+          prediction_date: prediction.prediction_date,
+          draw_date: result.draw_date,
+          predicted_numbers: prediction.predicted_numbers,
+          winning_numbers: result.winning_numbers,
+          matches_count: matches,
+          accuracy_score: accuracyScore,
+          f1_score: f1Score,
+        });
 
-        // Check if already evaluated
-        const { data: existing } = await supabase
-          .from("algorithm_performance")
-          .select("id")
-          .eq("draw_name", result.draw_name)
-          .eq("model_used", prediction.model_used)
-          .eq("prediction_date", prediction.prediction_date)
-          .eq("draw_date", result.draw_date)
-          .single();
-
-        // Insert or update performance record
-        const { error: insertError } = await supabase
-          .from("algorithm_performance")
-          .upsert({
-            draw_name: result.draw_name,
-            model_used: prediction.model_used,
-            prediction_date: prediction.prediction_date,
-            draw_date: result.draw_date,
-            predicted_numbers: prediction.predicted_numbers,
-            winning_numbers: result.winning_numbers,
-            matches_count: matches,
-            accuracy_score: accuracyScore,
-            f1_score: f1Score, // Nouveau champ (ajoutez en DB si besoin)
-          }, {
-            onConflict: "draw_name,model_used,prediction_date,draw_date"
-          });
-
-        if (insertError) {
-          console.error("Error inserting performance", { error: insertError.message });
-        } else {
-          evaluatedCount++;
-          if (!existing) {
-            newEvaluations++;
-            console.log("Performance recorded", { matches, accuracy: accuracyScore.toFixed(1), f1: f1Score.toFixed(2) });
-          }
-        }
+      if (insertError) {
+        console.error("Error inserting performance", { error: insertError.message });
+      } else {
+        evaluatedCount++;
+        newEvaluations++;
       }
     }
-
-    // Refresh materialized views to update rankings
+// Refresh materialized views to update rankings
     console.log("\n🔄 Refreshing algorithm rankings...");
     const { error: refreshError } = await supabase.rpc("refresh_algorithm_rankings");
     if (refreshError) {

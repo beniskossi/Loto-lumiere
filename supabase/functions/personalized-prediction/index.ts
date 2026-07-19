@@ -37,9 +37,8 @@ serve(async (req) => {
     
     let user;
     const isServiceRole = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const isAnonKey = token === Deno.env.get("SUPABASE_ANON_KEY") || token.includes("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9");
 
-    if (isServiceRole || isAnonKey) {
+    if (isServiceRole) {
       user = { id: "00000000-0000-0000-0000-000000000000", email: "user@local.test" };
     } else {
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
@@ -217,7 +216,7 @@ function determineSimpleRiskProfile(userPreferences: Record<string, unknown> | n
 
   const prefAlgo = userPreferences.preferred_algorithm?.toLowerCase() || "";
   
-  // FrequencyPro et Random Forest = conservateur
+  // FrequencyPro et Arbres Heuristiques = conservateur
   if (prefAlgo.includes("frequency") || prefAlgo.includes("forest")) {
     return "conservative";
   }

@@ -27,12 +27,12 @@ interface HyperparameterConfig {
 // Les algorithmes valides uniquement
 const VALID_ALGORITHMS = [
   "FrequencyPro",
-  "Random Forest", 
-  "LSTM Network",
-  "Transformer (Attention)",
+  "Arbres Heuristiques", 
+  "Séquences Récurrentes",
+  "Attention Spatiale",
   "Double Gap Sequence",
   "Gap Cadence",
-  "Stacking Ensemble"
+  "Ensemble Hybride Stacking"
 ];
 
 serve(async (req) => {
@@ -41,7 +41,9 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
+    return new Response(JSON.stringify({ message: "Auto-tuning currently disabled for audit" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+
+  const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
@@ -151,18 +153,8 @@ serve(async (req) => {
         ((newWeight - currentWeight) / Math.max(currentWeight, 0.01)) * 100 : 0;
 
       // Mettre à jour ou créer la configuration
-      const { error: configError } = await supabase
-        .from('algorithm_config')
-        .upsert({
-          algorithm_name: algoName,
-          parameters: newParams,
-          weight: newWeight,
-          description: `Auto-tuned based on ${perf.total_predictions || 0} predictions`,
-          is_enabled: (perf.total_predictions || 0) > 0,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'algorithm_name'
-        });
+      /* disabled configError update */
+      const configError = null;
 
       if (configError) {
         console.error(`Error updating config for ${algoName}:`, configError);
@@ -242,7 +234,7 @@ function calculateOptimalParameters(
   const newParams: HyperparameterConfig = { ...currentParams };
 
   switch (algorithmName) {
-    case 'Transformer (Attention)':
+    case 'Attention Spatiale':
       newParams.embeddingDim = Math.max(4, Math.min(16, 
         Math.floor(8 + performanceScore * 8)
       ));
@@ -252,14 +244,14 @@ function calculateOptimalParameters(
       newParams.decayRate = Math.max(0.02, Math.min(0.06, 0.04 * (1 - performanceScore * 0.3)));
       break;
 
-    case 'LSTM Network':
+    case 'Séquences Récurrentes':
       newParams.embeddingDim = Math.max(4, Math.min(12, 
         Math.floor(6 + performanceScore * 6)
       ));
       newParams.decayRate = Math.max(0.02, Math.min(0.05, 0.035 * (1 - performanceScore * 0.3)));
       break;
 
-    case 'Random Forest':
+    case 'Arbres Heuristiques':
       newParams.numTrees = Math.max(5, Math.min(30, 
         Math.floor(10 + performanceScore * 20)
       ));
@@ -289,7 +281,7 @@ function calculateOptimalParameters(
       ));
       break;
 
-    case 'Stacking Ensemble':
+    case 'Ensemble Hybride Stacking':
       newParams.temperature = Math.max(0.6, Math.min(1.2, 
         0.9 + (performanceScore - 0.5) * 0.3
       ));
