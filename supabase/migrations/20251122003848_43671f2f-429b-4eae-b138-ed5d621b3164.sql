@@ -1,31 +1,36 @@
--- Nettoyer la table algorithm_configurations pour ne garder que les 6 algorithmes optimaux
+-- Nettoyer la table algorithm_configurations pour ne garder que les 6 algorithmes optimaux si elle existe
 
--- Supprimer tous les anciens algorithmes
-DELETE FROM algorithm_configurations 
-WHERE algorithm_name NOT IN (
-  'FrequencyPro',
-  'Random Forest',
-  'LSTM Network',
-  'Transformer (Attention)',
-  'XGBoost',
-  'Stacking Ensemble'
-);
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'algorithm_configurations') THEN
+    -- Supprimer tous les anciens algorithmes
+    DELETE FROM public.algorithm_configurations 
+    WHERE algorithm_name NOT IN (
+      'FrequencyPro',
+      'Random Forest',
+      'LSTM Network',
+      'Transformer (Attention)',
+      'XGBoost',
+      'Stacking Ensemble'
+    );
 
--- Mettre à jour ou insérer les 6 algorithmes optimaux avec leurs poids par défaut
-INSERT INTO algorithm_configurations (algorithm_name, is_enabled, weight, parameters)
-VALUES 
-  ('FrequencyPro', true, 1.0, '{"decay_rate": 0.05, "top_candidates": 15}'::jsonb),
-  ('Random Forest', true, 1.0, '{"num_trees": 10, "max_depth": 5}'::jsonb),
-  ('LSTM Network', true, 1.0, '{"hidden_size": 64, "num_layers": 2, "sequence_length": 20}'::jsonb),
-  ('Transformer (Attention)', true, 1.0, '{"num_heads": 4, "embed_dim": 32, "num_layers": 2}'::jsonb),
-  ('XGBoost', true, 1.0, '{"max_iterations": 50, "learning_rate": 0.1, "lambda": 1.0, "gamma": 0.1}'::jsonb),
-  ('Stacking Ensemble', true, 1.5, '{"meta_learner": "weighted_average", "level1_models": 5}'::jsonb)
-ON CONFLICT (algorithm_name) 
-DO UPDATE SET
-  is_enabled = EXCLUDED.is_enabled,
-  weight = EXCLUDED.weight,
-  parameters = EXCLUDED.parameters,
-  updated_at = now();
+    -- Mettre à jour ou insérer les 6 algorithmes optimaux avec leurs poids par défaut
+    INSERT INTO public.algorithm_configurations (algorithm_name, is_enabled, weight, parameters)
+    VALUES 
+      ('FrequencyPro', true, 1.0, '{"decay_rate": 0.05, "top_candidates": 15}'::jsonb),
+      ('Random Forest', true, 1.0, '{"num_trees": 10, "max_depth": 5}'::jsonb),
+      ('LSTM Network', true, 1.0, '{"hidden_size": 64, "num_layers": 2, "sequence_length": 20}'::jsonb),
+      ('Transformer (Attention)', true, 1.0, '{"num_heads": 4, "embed_dim": 32, "num_layers": 2}'::jsonb),
+      ('XGBoost', true, 1.0, '{"max_iterations": 50, "learning_rate": 0.1, "lambda": 1.0, "gamma": 0.1}'::jsonb),
+      ('Stacking Ensemble', true, 1.5, '{"meta_learner": "weighted_average", "level1_models": 5}'::jsonb)
+    ON CONFLICT (algorithm_name) 
+    DO UPDATE SET
+      is_enabled = EXCLUDED.is_enabled,
+      weight = EXCLUDED.weight,
+      parameters = EXCLUDED.parameters,
+      updated_at = now();
+  END IF;
+END $$;
 
 -- Faire pareil pour algorithm_config (au cas où)
 DELETE FROM algorithm_config 

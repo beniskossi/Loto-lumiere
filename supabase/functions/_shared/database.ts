@@ -105,7 +105,7 @@ export class DatabaseHelper {
   // Récupérer les configurations d'algorithmes
   async getAlgorithmConfigurations() {
     const { data, error } = await this.supabase
-      .from('algorithm_configurations')
+      .from('algorithm_config')
       .select('*')
       .eq('is_enabled', true)
       .order('weight', { ascending: false });
@@ -120,7 +120,7 @@ export class DatabaseHelper {
     updates: { weight?: number; parameters?: Record<string, unknown>; is_enabled?: boolean }
   ) {
     const { data, error } = await this.supabase
-      .from('algorithm_configurations')
+      .from('algorithm_config')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('algorithm_name', algorithmName)
       .select()

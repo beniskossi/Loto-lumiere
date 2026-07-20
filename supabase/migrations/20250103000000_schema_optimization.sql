@@ -230,8 +230,8 @@ END;
 $$;
 
 -- Politiques pour les tables sensibles
-DROP POLICY IF EXISTS "Admins can manage algorithm configs" ON public.algorithm_configurations;
-CREATE POLICY "Admins can manage algorithm configs" ON public.algorithm_configurations
+DROP POLICY IF EXISTS "Admins can manage algorithm configs" ON public.algorithm_config;
+CREATE POLICY "Admins can manage algorithm configs" ON public.algorithm_config
     FOR ALL USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Admins can manage scraping jobs" ON public.scraping_jobs;
@@ -243,7 +243,7 @@ CREATE POLICY "Admins can manage scraping jobs" ON public.scraping_jobs
 -- ============================================================================
 
 -- Mise à jour des configurations d'algorithmes avec de meilleurs paramètres
-INSERT INTO public.algorithm_configurations (algorithm_name, is_enabled, weight, parameters)
+INSERT INTO public.algorithm_config (algorithm_name, is_enabled, weight, parameters)
 VALUES
     ('Ensemble Voting', true, 1.0, '{"voting_strategy": "soft", "min_estimators": 3}'::jsonb),
     ('XGBoost Optimized', true, 0.95, '{"n_estimators": 200, "max_depth": 6, "learning_rate": 0.1}'::jsonb),

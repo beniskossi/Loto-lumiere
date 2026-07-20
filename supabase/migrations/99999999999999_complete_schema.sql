@@ -101,7 +101,7 @@ ON CONFLICT (name) DO NOTHING;
 -- SEED DATA - ALGORITHM CONFIGURATIONS (CORRIGÉ UTF-8)
 -- ============================================================================
 
-INSERT INTO public.algorithm_configurations (algorithm_name, is_enabled, weight, parameters)
+INSERT INTO public.algorithm_config (algorithm_name, is_enabled, weight, parameters)
 VALUES
   ('Analyse Fréquentielle', true, 1.0, '{"threshold": 0.15, "recency_boost": 1.2}'::jsonb),
   ('ML K-means', true, 0.9, '{"n_clusters": 5, "max_iter": 100}'::jsonb),
@@ -125,7 +125,7 @@ SELECT
   AVG(ap.accuracy_score) AS avg_accuracy,
   MAX(ap.matches_count) AS best_match,
   COUNT(CASE WHEN ap.matches_count >= 3 THEN 1 END) AS successful_predictions
-FROM public.algorithm_configurations ac
+FROM public.algorithm_config ac
 LEFT JOIN public.algorithm_performance ap ON ap.model_used = ac.algorithm_name
 GROUP BY ac.algorithm_name;
 
@@ -143,7 +143,7 @@ AS $$
   SELECT jsonb_build_object(
     'total_draws', (SELECT COUNT(*) FROM public.draw_results),
     'total_predictions', (SELECT COUNT(*) FROM public.predictions),
-    'active_algorithms', (SELECT COUNT(*) FROM public.algorithm_configurations WHERE is_enabled = true),
+    'active_algorithms', (SELECT COUNT(*) FROM public.algorithm_config WHERE is_enabled = true),
     'last_draw_date', (SELECT MAX(draw_date) FROM public.draw_results)
   );
 $$;

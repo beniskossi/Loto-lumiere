@@ -798,7 +798,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
       </div>
 
       <AnimatePresence mode="wait">
-        {activeTab === "dispersion" && (
+        {activeTab === "dispersion" ? (
           <motion.div
             key="dispersion"
             initial={{ opacity: 0, y: 10 }}
@@ -907,9 +907,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
               </CardContent>
             </Card>
           </motion.div>
-        )}
-
-        {activeTab === "projection" && (
+        ) : activeTab === "projection" ? (
           <motion.div
             key="projection"
             initial={{ opacity: 0, y: 10 }}
@@ -1006,9 +1004,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
               </CardContent>
             </Card>
           </motion.div>
-        )}
-
-        {activeTab === "simulator" && (
+        ) : activeTab === "simulator" ? (
           <motion.div
             key="simulator"
             initial={{ opacity: 0, y: 10 }}
@@ -1172,9 +1168,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
               </motion.div>
             )}
           </motion.div>
-        )}
-
-        {activeTab === "performance" && performanceInsights && (
+        ) : (activeTab === "performance" && performanceInsights) ? (
           <motion.div
             key="performance"
             initial={{ opacity: 0, y: 10 }}
@@ -1488,7 +1482,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
               </CardContent>
             </Card>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </div>
   );

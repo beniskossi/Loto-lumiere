@@ -109,25 +109,27 @@ export const TemporalAnalysis = ({ drawName }: TemporalAnalysisProps) => {
         </TabsList>
 
         <AnimatePresence mode="wait">
-          <TabsContent key="overview" value="overview" className="mt-6">
-            <OverviewTab data={data} />
-          </TabsContent>
-
-          <TabsContent key="daily" value="daily" className="mt-6">
-            <DailyTab data={data} />
-          </TabsContent>
-
-          <TabsContent key="monthly" value="monthly" className="mt-6">
-            <MonthlyTab data={data} />
-          </TabsContent>
-
-          <TabsContent key="cycles" value="cycles" className="mt-6">
-            <CyclesTab data={data} />
-          </TabsContent>
-          
-          <TabsContent key="recurrence" value="recurrence" className="mt-6">
-            <SeasonalRecurrencePanel drawName={drawName} />
-          </TabsContent>
+          {activeTab === "overview" ? (
+            <TabsContent key="overview" value="overview" className="mt-6">
+              <OverviewTab data={data} />
+            </TabsContent>
+          ) : activeTab === "daily" ? (
+            <TabsContent key="daily" value="daily" className="mt-6">
+              <DailyTab data={data} />
+            </TabsContent>
+          ) : activeTab === "monthly" ? (
+            <TabsContent key="monthly" value="monthly" className="mt-6">
+              <MonthlyTab data={data} />
+            </TabsContent>
+          ) : activeTab === "cycles" ? (
+            <TabsContent key="cycles" value="cycles" className="mt-6">
+              <CyclesTab data={data} />
+            </TabsContent>
+          ) : activeTab === "recurrence" ? (
+            <TabsContent key="recurrence" value="recurrence" className="mt-6">
+              <SeasonalRecurrencePanel drawName={drawName} />
+            </TabsContent>
+          ) : null}
         </AnimatePresence>
       </Tabs>
     </div>

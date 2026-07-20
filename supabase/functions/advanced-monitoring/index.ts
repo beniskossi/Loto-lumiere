@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { RateLimiter, getClientIdentifier, createRateLimitResponse } from "../_shared/rate-limiter.ts";
 import { calculateAdvancedMetrics } from "../_shared/metrics.ts";
 import { advancedAnalytics } from "../_shared/advanced-analytics.ts";

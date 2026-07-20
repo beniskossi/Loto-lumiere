@@ -310,21 +310,26 @@ export function lstmAlgorithm(results: DrawResult[]): PredictionResult {
     });
 
     
-    // Génération de la prédiction
+    // Génération de la prédiction robuste
     let prediction = hiddenState
       .slice(0, 5)
-      .map(h => Math.min(90, Math.max(1, Math.round((h + 1) * 45))))
-      .sort((a, b) => a - b);
+      .map(h => {
+        const val = isNaN(h) || typeof h !== 'number' ? 0 : h;
+        return Math.min(90, Math.max(1, Math.round((val + 1) * 45)));
+      });
       
-    prediction = Array.from(new Set(prediction));
+    // Éliminer les doublons et les NaNs
+    prediction = Array.from(new Set(prediction.filter(n => !isNaN(n) && n >= 1 && n <= 90)));
+    
     let attempts = 0;
-    while(prediction.length < 5 && attempts < 100) {
+    while (prediction.length < 5 && attempts < 100) {
       const fallbackNum = Math.floor(Math.random() * 90) + 1;
       if (!prediction.includes(fallbackNum)) {
         prediction.push(fallbackNum);
       }
       attempts++;
     }
+    
     prediction.sort((a, b) => a - b);
     return {
       numbers: prediction,

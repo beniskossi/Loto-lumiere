@@ -122,20 +122,24 @@ CREATE TRIGGER update_votes_count_trigger
 -- First check if there's any data we need to preserve
 DO $$
 BEGIN
-  -- If algorithm_configurations has data not in algorithm_config, copy it
-  INSERT INTO public.algorithm_config (algorithm_name, is_enabled, weight, parameters, description)
-  SELECT 
-    ac.algorithm_name,
-    COALESCE(ac.is_enabled, true),
-    COALESCE(ac.weight, 1.0),
-    COALESCE(ac.parameters, '{}'::jsonb),
-    NULL
-  FROM public.algorithm_configurations ac
-  WHERE NOT EXISTS (
-    SELECT 1 FROM public.algorithm_config cfg
-    WHERE cfg.algorithm_name = ac.algorithm_name
-  )
-  ON CONFLICT (algorithm_name) DO NOTHING;
+  -- If algorithm_configurations exists, copy its data to algorithm_config using dynamic SQL to prevent parser errors
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'algorithm_configurations') THEN
+    EXECUTE '
+      INSERT INTO public.algorithm_config (algorithm_name, is_enabled, weight, parameters, description)
+      SELECT 
+        ac.algorithm_name,
+        COALESCE(ac.is_enabled, true),
+        COALESCE(ac.weight, 1.0),
+        COALESCE(ac.parameters, ''{}''::jsonb),
+        NULL
+      FROM public.algorithm_configurations ac
+      WHERE NOT EXISTS (
+        SELECT 1 FROM public.algorithm_config cfg
+        WHERE cfg.algorithm_name = ac.algorithm_name
+      )
+      ON CONFLICT (algorithm_name) DO NOTHING;
+    ';
+  END IF;
 END $$;
 
 -- Now drop the duplicate table
