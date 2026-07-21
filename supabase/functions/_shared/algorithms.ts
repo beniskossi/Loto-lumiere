@@ -263,7 +263,89 @@ function buildDecisionTree(results: DrawResult[]): number[] {
 }
 
 // =====================================================
-// ALGORITHME 3: Séquences Récurrentes
+// BASELINES OBLIGATOIRES
+// =====================================================
+
+/**
+ * Baseline Uniforme (Aléatoire parfait)
+ * Utile comme comparateur honnête.
+ */
+export function baselineUniformeAlgorithm(_results: DrawResult[]): PredictionResult {
+  const prediction: number[] = [];
+  while (prediction.length < 5) {
+    const num = Math.floor(Math.random() * 90) + 1;
+    if (!prediction.includes(num)) {
+      prediction.push(num);
+    }
+  }
+  return {
+    numbers: prediction.sort((a, b) => a - b),
+    confidence: 0,
+    algorithm: "Baseline Uniforme (Aléatoire)",
+    factors: ["Sélection aléatoire sans biais", "Comparateur honnête"],
+    score: 0,
+    category: "statistical",
+  };
+}
+
+/**
+ * Baseline Fréquence Historique
+ * Tire des nombres pondérés par leur fréquence passée globale.
+ */
+export function baselineFrequenceHistorique(results: DrawResult[]): PredictionResult {
+  if (results.length < 5) {
+    return generateFallbackPrediction("Baseline Fréquence Historique", "statistical");
+  }
+
+  const freq: Record<number, number> = {};
+  for (let i = 1; i <= 90; i++) freq[i] = 0;
+
+  results.forEach(result => {
+    result.winning_numbers.forEach(num => freq[num]++);
+  });
+
+  const sortedNumbers = Object.entries(freq)
+    .sort(([, a], [, b]) => b - a)
+    .map(([num]) => parseInt(num));
+
+  return {
+    numbers: sortedNumbers.slice(0, 5).sort((a, b) => a - b),
+    confidence: 0,
+    algorithm: "Baseline Fréquence Historique",
+    factors: ["Top 5 historiques globaux"],
+    score: 0,
+    category: "statistical",
+  };
+}
+
+/**
+ * Baseline Dernière Période (Stratégie Naïve)
+ * Renvoie simplement les 5 nombres les plus fréquents de la dernière fenêtre très récente.
+ */
+export function baselineDernierePeriode(results: DrawResult[]): PredictionResult {
+  const sorted = [...results].sort((a, b) => new Date(b.draw_date).getTime() - new Date(a.draw_date).getTime());
+  const recent = sorted.slice(0, 10);
+  
+  const freq: Record<number, number> = {};
+  for (let i = 1; i <= 90; i++) freq[i] = 0;
+
+  recent.forEach(result => {
+    result.winning_numbers.forEach(num => freq[num]++);
+  });
+
+  const sortedNumbers = Object.entries(freq)
+    .sort(([, a], [, b]) => b - a)
+    .map(([num]) => parseInt(num));
+
+  return {
+    numbers: sortedNumbers.slice(0, 5).sort((a, b) => a - b),
+    confidence: 0,
+    algorithm: "Baseline Dernière Période",
+    factors: ["Top 5 des 10 derniers tirages"],
+    score: 0,
+    category: "statistical",
+  };
+}
 // Réseau de neurones récurrent simplifié
 // =====================================================
 

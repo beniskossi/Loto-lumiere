@@ -111,9 +111,9 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
               <Search className="h-5 w-5 text-purple-400" />
             </div>
             <div>
-              <CardTitle className="text-lg">Audit Forensic & Calibrage Stochastique</CardTitle>
+              <CardTitle className="text-lg">Contrôle d'Audit & Reproductibilité</CardTitle>
               <CardDescription>
-                Analyse rétroactive des divergences prédictives et ajustement déterministe des poids.
+                Rapport versionné des écarts aux baselines, qualité des données et détection d'anomalies.
               </CardDescription>
             </div>
           </div>
@@ -168,7 +168,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
               </Label>
             </div>
 
-            {isAdmin && (
+              {isAdmin && (
               <div className="flex items-center gap-2">
                 <Switch 
                   id="apply" 
@@ -177,7 +177,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
                 />
                 <Label htmlFor="apply" className="flex items-center gap-1">
                   <Settings2 className="h-4 w-4 text-orange-400" />
-                  Appliquer
+                  Appliquer (Requiert Validation)
                 </Label>
               </div>
             )}
@@ -193,7 +193,7 @@ export const ForensicAuditPanel = ({ drawName }: { drawName?: string }) => {
             ) : (
               <Zap className="h-4 w-4 mr-2" />
             )}
-            Lancer l'Audit
+            Générer le Rapport d'Audit
           </Button>
         </div>
 

@@ -167,7 +167,7 @@ export const ProfessionalConfidenceIndicator = ({
               {analysis.reliabilityScore}%
             </p>
             <p className="text-[10px] text-muted-foreground">
-              ±{analysis.marginOfError}% marge
+              Indice de conformité
             </p>
           </motion.div>
         </div>
@@ -175,7 +175,7 @@ export const ProfessionalConfidenceIndicator = ({
         {/* Main confidence bar */}
         <div className="mb-4">
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>Score de fiabilité</span>
+            <span>Score de conformité de la simulation</span>
             <span className="font-medium">{analysis.reliabilityScore}/100</span>
           </div>
           <div className="relative">
@@ -211,7 +211,7 @@ export const ProfessionalConfidenceIndicator = ({
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <BarChart3 className="w-3 h-3" />
-                Facteurs de confiance
+                Métriques descriptives
               </p>
               
               <TooltipProvider>

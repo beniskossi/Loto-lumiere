@@ -34,7 +34,7 @@ export const BacktestingSummaryCard = ({ drawName = "Etoile" }: { drawName?: str
           </Badge>
         </div>
         <CardDescription className="text-xs mt-1">
-          Simulez les tirages historiques pour évaluer l'engine prédictif (Précision, Rappel, F1-Score).
+          Simulez les tirages historiques pour évaluer les méthodes d'analyse (Précision, Rappel, F1-Score).
         </CardDescription>
       </CardHeader>
       

@@ -2,10 +2,22 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { autoTuneRequestSchema, validateRequest } from "../_shared/validation.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://ais-dev-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+  "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app";
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
+  };
+}
 
 interface AlgorithmPerformance {
   model_used: string;
@@ -22,6 +34,8 @@ interface HyperparameterConfig {
   minDataPoints?: number;
   numTrees?: number;
   learningRate?: number;
+  window_size?: number;
+  cadence_depth?: number;
 }
 
 // Les algorithmes valides uniquement
@@ -36,23 +50,22 @@ const VALID_ALGORITHMS = [
 ];
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    return new Response(JSON.stringify({ message: "Auto-tuning currently disabled for audit" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
-
-  const supabase = createClient(
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Vérifier l'authentification admin
+    // Vérifier l'authentification admin (strictement obligatoire)
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized - Admin access required' }),
+        JSON.stringify({ error: "Non autorisé : Token d'authentification manquant." }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -62,12 +75,12 @@ serve(async (req) => {
 
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized - Invalid token' }),
+        JSON.stringify({ error: "Non autorisé : Session invalide ou expirée." }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Vérifier le rôle admin
+    // Vérifier le rôle administrateur de l'utilisateur
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
@@ -75,9 +88,10 @@ serve(async (req) => {
       .eq('role', 'admin')
       .maybeSingle();
 
-    if (!roleData) {
+    const isAdmin = !!roleData && roleData.role === 'admin';
+    if (!isAdmin) {
       return new Response(
-        JSON.stringify({ error: 'Forbidden - Admin role required' }),
+        JSON.stringify({ error: "Accès refusé : Privilèges administrateur requis." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -88,7 +102,7 @@ serve(async (req) => {
     const validation = validateRequest(autoTuneRequestSchema, body);
     if (!validation.success) {
       return new Response(
-        JSON.stringify({ error: "Invalid input", details: validation.error }),
+        JSON.stringify({ error: "Format de requête invalide", details: validation.error }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -161,7 +175,7 @@ serve(async (req) => {
         continue;
       }
 
-      // Enregistrer l'historique de training
+      // Enregistrer l'historique de training (en mode simulation sécurisée)
       const { error: historyError } = await supabase
         .from('algorithm_training_history')
         .insert({
@@ -176,6 +190,7 @@ serve(async (req) => {
             total_predictions: perf.total_predictions,
             best_match: perf.best_match,
             excellent_predictions: perf.excellent_predictions,
+            simulation_mode: true
           },
         });
 
@@ -189,6 +204,7 @@ serve(async (req) => {
         newWeight: newWeight,
         improvement: improvement,
         parametersChanged: Object.keys(newParams).length,
+        parametersProposed: newParams,
         performance: {
           avgAccuracy: perf.avg_accuracy,
           totalPredictions: perf.total_predictions,
@@ -196,12 +212,12 @@ serve(async (req) => {
         }
       });
 
-      console.log("Algorithm tuned", { algorithm: algoName, oldWeight: currentWeight.toFixed(2), newWeight: newWeight.toFixed(2), improvement: improvement.toFixed(1) });
+      console.log(`[auto-tune] Simulated tuning logged for ${algoName}: oldWeight=${currentWeight}, proposedWeight=${newWeight}`);
     }
 
     return new Response(JSON.stringify({
       success: true,
-      message: `Auto-tuning completed for ${tuningResults.length} algorithms`,
+      message: `Simulation d'auto-tuning terminée avec succès pour ${tuningResults.length} algorithmes. Les configurations ont été loggées à des fins d'analyse (RGPD & Intégrité respectées).`,
       results: tuningResults,
       timestamp: new Date().toISOString(),
     }), {

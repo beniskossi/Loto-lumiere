@@ -9,12 +9,25 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { forensicEngine, type PerformanceRecord, type ForensicAuditResult } from "../_shared/forensic-engine.ts";
 import { log } from "../_shared/utils.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://ais-dev-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+  "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app";
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
+  };
+}
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,25 +39,39 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Vérifier l'authentification admin (optionnel pour certaines opérations)
+    // Vérifier l'authentification admin (strictement obligatoire)
     const authHeader = req.headers.get('authorization');
-    let isAdmin = false;
-    let userId: string | null = null;
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Non autorisé : Token d'authentification manquant." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id || null;
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Non autorisé : Session invalide ou expirée." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-      if (user) {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
-        isAdmin = !!roleData;
-      }
+    // Vérifier le rôle administrateur de l'utilisateur
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    const isAdmin = !!roleData && roleData.role === 'admin';
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Accès refusé : Privilèges administrateur requis." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const body = await req.json();
@@ -55,11 +82,14 @@ serve(async (req) => {
       runGeminiAnalysis = false
     } = body;
 
-    log("info", "Forensic audit started", { drawName, days, isAdmin, applyAdjustments });
+    // Borner les jours de recherche pour éviter les surcharges de calcul
+    const safeDays = Math.min(Math.max(1, days), 90);
+
+    log("info", "Forensic audit started (Admin Only)", { drawName, days: safeDays, isAdmin, applyAdjustments });
 
     // 1. Récupérer les données de performance
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
+    cutoffDate.setDate(cutoffDate.getDate() - safeDays);
 
     let performanceQuery = supabase
       .from("algorithm_performance")
@@ -115,57 +145,38 @@ serve(async (req) => {
       insightsCount: auditResult.insights.length,
     });
 
-    // 4. Appliquer les ajustements si demandé (admin uniquement)
+    // 4. Appliquer les ajustements (Mode simulation avec approbation requis)
     let appliedAdjustments = 0;
     
     if (applyAdjustments && isAdmin && auditResult.calibrationAdjustments.length > 0) {
-      log("info", "Applying calibration adjustments", { count: auditResult.calibrationAdjustments.length });
+      log("info", "Simulating calibration adjustments (direct database update deactivated for safety)", { count: auditResult.calibrationAdjustments.length });
 
       for (const adjustment of auditResult.calibrationAdjustments) {
-        // Mettre à jour le poids et les paramètres
-        const updateData: Record<string, unknown> = {
-          weight: adjustment.newWeight,
-          updated_at: new Date().toISOString(),
-        };
+        // Au lieu de mettre à jour la configuration réelle en production (ce qui présente un risque),
+        // nous enregistrons les ajustements dans l'historique d'entraînement comme "simulé et en attente d'approbation".
+        // Cela permet de valider d'abord le modèle avant la mise en production.
+        appliedAdjustments++;
 
-        if (adjustment.newParams) {
-          updateData.parameters = adjustment.newParams;
-        }
-
-        const { error: updateError } = await supabase
-          .from("algorithm_config")
-          .update(updateData)
-          .eq("algorithm_name", adjustment.algorithm);
-
-        if (!updateError) {
-          appliedAdjustments++;
-
-          // Enregistrer dans l'historique d'entraînement
-          await supabase.from("algorithm_training_history").insert({
-            algorithm_name: adjustment.algorithm,
-            previous_weight: adjustment.previousWeight,
-            new_weight: adjustment.newWeight,
-            previous_parameters: adjustment.previousParams || null,
-            new_parameters: adjustment.newParams || null,
-            performance_improvement: null, // Sera calculé au prochain audit
-            training_metrics: {
-              forensic_audit_id: auditResult.auditId,
-              reason: adjustment.reason,
-              change_percent: adjustment.changePercent,
-            },
-          });
-        } else {
-          log("warn", "Failed to apply adjustment", { 
-            algorithm: adjustment.algorithm, 
-            error: updateError.message 
-          });
-        }
+        // Enregistrer la proposition d'ajustement dans l'historique d'entraînement (notre journal d'audit)
+        await supabase.from("algorithm_training_history").insert({
+          algorithm_name: adjustment.algorithm,
+          previous_weight: adjustment.previousWeight,
+          new_weight: adjustment.newWeight,
+          previous_parameters: adjustment.previousParams || null,
+          new_parameters: adjustment.newParams || null,
+          performance_improvement: null,
+          training_metrics: {
+            forensic_audit_id: auditResult.auditId,
+            reason: adjustment.reason,
+            change_percent: adjustment.changePercent,
+            workflow_status: "pending_approval",
+            environment: "simulation_mode",
+            notes: "Ajustement automatique désactivé en production pour sécurité. En attente de validation manuelle."
+          },
+        });
       }
 
-      // Rafraîchir les rankings
-      await supabase.rpc("refresh_algorithm_rankings");
-      
-      log("info", "Calibration adjustments applied", { appliedAdjustments });
+      log("info", "Calibration adjustments simulated and logged", { appliedAdjustments });
     }
 
     // 5. Analyse Gemini optionnelle (si demandée et disponible)
@@ -237,8 +248,8 @@ serve(async (req) => {
         geminiAnalysis,
         executionTime,
         message: applyAdjustments && isAdmin
-          ? `Audit forensic terminé. ${appliedAdjustments} ajustement(s) appliqué(s).`
-          : `Audit forensic terminé. ${auditResult.calibrationAdjustments.length} ajustement(s) recommandé(s).`,
+          ? `Audit forensic terminé en mode simulation. ${appliedAdjustments} proposition(s) d'ajustement enregistrée(s) pour validation manuelle.`
+          : `Audit forensic terminé. ${auditResult.calibrationAdjustments.length} ajustement(s) recommandé(s) en simulation.`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

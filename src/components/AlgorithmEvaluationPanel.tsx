@@ -157,47 +157,55 @@ export const AlgorithmEvaluationPanel = () => {
               </h3>
               
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                {evaluations.map((evaluation, idx) => (
-                  <div
-                    key={evaluation.algorithm}
-                    className={`p-3 rounded-xl border transition-all ${
-                      idx === 0 
-                        ? "bg-primary/10 border-primary/40 shadow-sm" 
-                        : "bg-muted/20 border-border/30 hover:bg-muted/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {idx === 0 && <Award className="w-4 h-4 text-yellow-500" />}
-                        <h4 className="font-semibold text-xs text-foreground/90">{evaluation.algorithm}</h4>
+                {(() => {
+                  const randomBaseline = evaluations.find(e => e.algorithm.includes("Baseline Aléatoire") || e.algorithm.includes("Aléatoire"));
+                  const baselineAccuracy = randomBaseline ? randomBaseline.accuracy : 5.55;
+
+                  return evaluations.map((evaluation, idx) => {
+                    const diff = evaluation.accuracy - baselineAccuracy;
+                    const isRandom = evaluation.algorithm.includes("Aléatoire");
+                    const advantage = isRandom ? "N/A" : (diff > 0.5 ? `+${diff.toFixed(1)}%` : "Aucun avantage mesurable");
+                    const advantageColor = diff > 0.5 && !isRandom ? "text-emerald-500" : "text-muted-foreground";
+
+                    return (
+                      <div
+                        key={evaluation.algorithm}
+                        className={`p-3 rounded-xl border transition-all ${
+                          idx === 0 && !isRandom
+                            ? "bg-primary/10 border-primary/40 shadow-sm" 
+                            : "bg-muted/20 border-border/30 hover:bg-muted/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {idx === 0 && !isRandom && <Award className="w-4 h-4 text-yellow-500" />}
+                            <h4 className="font-semibold text-xs text-foreground/90">{evaluation.algorithm}</h4>
+                          </div>
+                          <Badge variant={idx === 0 && !isRandom ? "default" : "secondary"} className="scale-90 font-mono">
+                            #{idx + 1}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px] leading-relaxed">
+                          <div>
+                            <span className="text-muted-foreground">Précision : </span>
+                            <span className="font-bold text-foreground">{evaluation.accuracy.toFixed(1)}%</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Matchs : </span>
+                            <span className="font-semibold text-foreground">{evaluation.avgMatches.toFixed(2)}/5</span>
+                          </div>
+                          <div className="col-span-2 pt-1 border-t border-border/20">
+                            <span className="text-muted-foreground">Avantage vs Hasard : </span>
+                            <span className={`font-semibold ${advantageColor}`}>{advantage}</span>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-1.5 flex justify-between">
+                          <span>{evaluation.totalTests} simulations lancées</span>
+                        </div>
                       </div>
-                      <Badge variant={idx === 0 ? "default" : "secondary"} className="scale-90 font-mono">
-                        #{idx + 1}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-[11px] leading-relaxed">
-                      <div>
-                        <span className="text-muted-foreground">Précision : </span>
-                        <span className="font-bold text-foreground">{evaluation.accuracy.toFixed(1)}%</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Matchs : </span>
-                        <span className="font-semibold text-foreground">{evaluation.avgMatches.toFixed(2)}/5</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Meilleur : </span>
-                        <span className="font-semibold text-emerald-500">+{evaluation.bestMatch}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Consistance : </span>
-                        <span className="font-mono text-foreground font-semibold">±{evaluation.consistency.toFixed(1)}</span>
-                      </div>
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-1.5 flex justify-between">
-                      <span>{evaluation.totalTests} simulations lancées</span>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  });
+                })()}
               </div>
             </div>
 

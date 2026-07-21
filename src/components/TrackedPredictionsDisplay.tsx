@@ -51,10 +51,10 @@ export const TrackedPredictionsDisplay = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <History className="w-5 h-5" />
-          Historique de Prédictions
+          Historique de Simulations
         </CardTitle>
         <CardDescription>
-          {hasNoPredictions ? "Aucune prédiction sauvegardée" : `${totalCount} prédiction${totalCount > 1 ? 's' : ''}`}
+          {hasNoPredictions ? "Aucune simulation sauvegardée" : `${totalCount} simulation${totalCount > 1 ? 's' : ''}`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -79,11 +79,11 @@ export const TrackedPredictionsDisplay = () => {
         
         {hasNoPredictions ? (
           <p className="text-center text-muted-foreground py-8">
-            Aucune prédiction sauvegardée pour le moment
+            Aucune simulation sauvegardée pour le moment
           </p>
         ) : paginatedPredictions.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            Aucune prédiction pour ce tirage
+            Aucune simulation pour ce tirage
           </p>
         ) : (
           <>
@@ -93,7 +93,7 @@ export const TrackedPredictionsDisplay = () => {
               <div>
                 <Badge variant="outline">{tracked.predictions.draw_name}</Badge>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Prédiction du {new Date(tracked.predictions.prediction_date).toLocaleDateString("fr-FR")}
+                  Simulation générée le {new Date(tracked.predictions.prediction_date).toLocaleDateString("fr-FR")}
                 </p>
               </div>
               <div className="text-right">

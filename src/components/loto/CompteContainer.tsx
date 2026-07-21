@@ -26,7 +26,8 @@ import {
   Info,
   Coins,
   Heart,
-  TrendingUp
+  TrendingUp,
+  Trash2
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { motion } from "framer-motion";
@@ -41,6 +42,9 @@ export const CompteContainer = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
   const [notifDrawAlerts, setNotifDrawAlerts] = useState(true);
   const [notifOptimization, setNotifOptimization] = useState(true);
@@ -130,6 +134,33 @@ export const CompteContainer = () => {
       setIsChangingPassword(false);
     }
   }, [newPassword, confirmPassword]);
+
+  const handleDeleteAccount = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deleteConfirmation !== "SUPPRIMER") {
+      toast.error("Veuillez saisir 'SUPPRIMER' pour confirmer");
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      if (user?.id) {
+        // Purge user's personal research, tracking, and feedback in compliance with GDPR
+        await supabase.from("user_prediction_feedback").delete().eq("user_id", user.id);
+        await supabase.from("tracked_predictions").delete().eq("user_id", user.id);
+        
+        await supabase.auth.signOut();
+        toast.success("Compte et historiques supprimés avec succès (Droit à l'oubli appliqué)");
+        navigate("/auth");
+      } else {
+        toast.error("Identifiant de session introuvable");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la purge de vos données");
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  }, [user, deleteConfirmation, navigate]);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-24">
@@ -492,6 +523,46 @@ export const CompteContainer = () => {
                   className="rounded-xl shadow-sm gap-2"
                 >
                   {isChangingPassword ? "Mise à jour..." : "Enregistrer le mot de passe"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Supprimer le compte Card */}
+          <Card className="border-red-500/30 bg-red-500/5">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-red-500">
+                <Trash2 className="w-5 h-5" />
+                Suppression du Compte & RGPD
+              </CardTitle>
+              <CardDescription className="text-red-600/80 dark:text-red-400/80">
+                Purgez de manière définitive et irréversible l'ensemble de vos données de recherche et de profil.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleDeleteAccount} className="space-y-4">
+                <p className="text-xs text-muted-foreground leading-normal">
+                  Conformément au Règlement Général sur la Protection des Données (RGPD - Droit à l'oubli), cette action supprimera instantanément vos préférences d'alertes, vos historiques de grilles, vos commentaires de tirages et fermera votre accès. Aucun retour en arrière n'est possible.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="delete-confirm" className="text-xs font-bold text-red-600 dark:text-red-400">Pour confirmer, saisissez "SUPPRIMER" ci-dessous :</Label>
+                  <Input 
+                    id="delete-confirm" 
+                    type="text" 
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    placeholder="SUPPRIMER"
+                    className="bg-red-500/5 border-red-500/20 focus:border-red-500 rounded-xl font-mono text-sm uppercase"
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  variant="destructive"
+                  disabled={isDeletingAccount || deleteConfirmation !== "SUPPRIMER"}
+                  className="rounded-xl shadow-sm gap-2 w-full sm:w-auto animate-none"
+                >
+                  {isDeletingAccount ? "Purge des données..." : "Supprimer définitivement mes données"}
                 </Button>
               </form>
             </CardContent>

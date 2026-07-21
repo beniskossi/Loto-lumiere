@@ -187,7 +187,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
         timestamp: new Date().toISOString()
       };
       localStorage.setItem(`favorite_prediction_${drawName}`, JSON.stringify(saved));
-      toast.success("Prédiction sauvegardée comme favorite");
+      toast.success("Simulation sauvegardée");
     }
   };
 
@@ -201,27 +201,27 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
   const handleRefresh = async () => {
     toast.info("Actualisation...");
     await refetch();
-    toast.success("Prédiction actualisée");
+    toast.success("Génération actualisée");
   };
 
   const modeButtons: { id: AIMode; label: string; icon: React.ElementType; description: string }[] = [
     { 
       id: "automatic", 
-      label: "Automatique", 
+      label: "Uniforme", 
       icon: Wand2,
-      description: "L'IA choisit la meilleure combinaison"
+      description: "Simulation aléatoire mathématiquement neutre"
     },
     { 
       id: "manual", 
-      label: "Manuel", 
+      label: "Contrainte", 
       icon: SlidersHorizontal,
-      description: "Contrôlez les poids des algorithmes"
+      description: "Contrôlez les poids d'échantillonnage"
     },
     { 
       id: "adaptive", 
-      label: "Adaptatif", 
+      label: "Diversifiée", 
       icon: TrendingUp,
-      description: "S'adapte à votre profil de réussite"
+      description: "Réduit le recouvrement avec les propositions précédentes"
     },
   ];
 
@@ -234,7 +234,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Brain className="w-5 h-5 text-accent" />
-            IA Avancée
+            Laboratoire de Génération
           </h2>
           <p className="text-sm text-muted-foreground">{drawName}</p>
         </div>
@@ -290,7 +290,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <Activity className="w-10 h-10 animate-pulse text-accent mb-4" />
-                <p className="text-muted-foreground">Calcul en cours...</p>
+                <p className="text-muted-foreground">Calcul stochastique en cours...</p>
               </div>
             ) : customPrediction ? (
               <div className="space-y-6">
@@ -329,7 +329,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
                 {/* Confidence */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Confiance</span>
+                    <span className="text-muted-foreground">Indice de conformité</span>
                     <span className="font-bold text-accent">
                       {Math.round(customPrediction.confidence * 100)}%
                     </span>
@@ -361,7 +361,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
               </div>
             ) : (
               <p className="text-center text-muted-foreground py-8">
-                Aucune prédiction disponible
+                Aucune simulation disponible
               </p>
             )}
           </CardContent>
@@ -382,7 +382,7 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Settings2 className="w-4 h-4 text-muted-foreground" />
-                    Contrôle Algorithmique
+                    Contrôle d'Échantillonnage
                   </CardTitle>
                   <Button variant="ghost" size="sm" onClick={handleReset}>
                     <RefreshCw className="w-3 h-3 mr-1" />

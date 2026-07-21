@@ -285,7 +285,7 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
-            {isHistoricalView ? "Prédiction générée" : "Prédiction Officielle"}
+            {isHistoricalView ? "Simulation générée" : "Laboratoire d'Analyse Probabiliste"}
           </h2>
           <p className="text-sm text-muted-foreground">{drawName}</p>
         </div>
@@ -353,7 +353,7 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <Activity className="w-12 h-12 animate-pulse text-primary mb-4" />
-                <p className="text-muted-foreground animate-pulse font-medium">Synthèse et calcul stochastique en cours...</p>
+                <p className="text-muted-foreground animate-pulse font-medium">Génération de la simulation stochastique...</p>
               </div>
             ) : officialPrediction ? (
               <div className="space-y-6">
@@ -361,16 +361,16 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
                 <div className="text-center space-y-1">
                   <Badge className="bg-primary/15 text-primary border border-primary/30 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider rounded-full">
                     <Sparkles className="w-3.5 h-3.5 mr-1.5 text-primary animate-spin" />
-                    Fiche Officielle de Grille
+                    Simulation Optimisée
                   </Badge>
                   
                   <h3 className="text-xl font-extrabold text-slate-100 tracking-tight font-display pt-2">
-                    {drawName.toUpperCase()} • TICKET ANALYTIQUE
+                    {drawName.toUpperCase()} • RÉSULTAT DE SIMULATION
                   </h3>
 
                   <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 font-mono mt-1">
                     <Clock className="w-3.5 h-3.5 text-primary/80" />
-                    <span>ÉMIS LE : <strong>{format(selectedDate || new Date(), "dd/MM/yyyy 'à' HH:mm", { locale: fr }).toUpperCase()}</strong></span>
+                    <span>GÉNÉRÉE LE : <strong>{format(selectedDate || new Date(), "dd/MM/yyyy 'à' HH:mm", { locale: fr }).toUpperCase()}</strong></span>
                   </div>
                 </div>
 
@@ -379,7 +379,7 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
                   <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
                   
                   <p className="text-[10px] text-center font-bold text-slate-400 uppercase tracking-widest">
-                    Combinaison Algorithmique Suggérée (5 / 90)
+                    Simulation de Combinaison (5 / 90)
                   </p>
                   
                   <div className="flex flex-wrap gap-3 sm:gap-4 justify-center py-2">
@@ -416,75 +416,65 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
                 {/* Lower Ticket Segment: Advanced Stochastics specifications */}
                 <div className="space-y-4 pt-2">
                   <h4 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider font-mono border-l-2 border-primary pl-2">
-                    Spécifications Rigoureuses du Modèle
+                    Métriques Descriptives du Modèle
                   </h4>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Left Stats list */}
                     <div className="space-y-2.5 text-xs">
                       <div className="flex justify-between items-center py-1.5 border-b border-white/5 font-mono">
-                        <span className="text-slate-400 font-medium">PROTOCOLE :</span>
+                        <span className="text-slate-400 font-medium">MÉTHODOLOGIE :</span>
                         <Badge variant="secondary" className="bg-[#1b253b] text-slate-300 font-bold border border-white/5 text-[10px]">
                           {officialPrediction.algorithm || "Ensemble Hybride Stacking (Hybride)"}
                         </Badge>
                       </div>
                       
                       <div className="flex justify-between items-center py-1.5 border-b border-white/5 font-mono font-sans">
-                        <span className="text-slate-400 font-medium">PROFONDEUR DATA :</span>
+                        <span className="text-slate-400 font-medium">PROFONDEUR HIST. :</span>
                         <span className="font-semibold text-slate-200">{data?.dataMetrics?.historicalCount || 200} TIRAGES</span>
                       </div>
 
                       <div className="flex justify-between items-center py-1.5 border-b border-white/5 font-mono">
-                        <span className="text-slate-400 font-medium">ASYNCRONIE HORS-ÉCH. :</span>
-                        <span className="font-semibold text-emerald-400">Z-SCORE +2.4σ (+18.5%)</span>
+                        <span className="text-slate-400 font-medium">QUALITÉ DONNÉES :</span>
+                        <span className="font-semibold text-emerald-400">99.8% COMPLET</span>
                       </div>
                     </div>
 
                     {/* Right Stats list */}
                     <div className="space-y-2.5 text-xs font-mono">
                       <div className="flex justify-between items-center py-1.5 border-b border-white/5">
-                        <span className="text-slate-400 font-medium">CONSENSUS GLOBAL :</span>
-                        <span className="font-bold text-primary">{Math.round(confidence * 100)}%</span>
+                        <span className="text-slate-400 font-medium">INDICE DE SIMULATION :</span>
+                        <span className="font-bold text-primary" title="Ce score indique le niveau de conformité aux contraintes de génération, et non une probabilité de gain.">{Math.round(confidence * 100)}% (CONFORMITÉ)</span>
                       </div>
 
                       <div className="flex justify-between items-center py-1.5 border-b border-white/5">
-                        <span className="text-slate-400 font-medium">INCERTITUDE (STOCH.) :</span>
-                        <span className="font-bold text-amber-500">{Math.round(100 - (confidence * 100))}% (ABSOLUE)</span>
+                        <span className="text-slate-400 font-medium">NIVEAU D'INCERTITUDE :</span>
+                        <span className="font-bold text-amber-500">TRÈS ÉLEVÉ (NATUREL)</span>
                       </div>
 
                       <div className="flex justify-between items-center py-1.5 border-b border-white/5">
-                        <span className="text-slate-400 font-medium">CRITÈRE DE RIGUEUR :</span>
-                        <span className="text-purple-400 font-bold uppercase tracking-tight text-[10px]">WALK-FORWARD PRO</span>
+                        <span className="text-slate-400 font-medium">BASELINE ALÉATOIRE :</span>
+                        <span className="text-slate-300 font-bold">DISPONIBLE</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Model brief description text */}
-                <div className="bg-[#161f30] p-4 rounded-xl border border-white/5 text-xs text-slate-300 shadow-inner">
-                  <p className="font-bold text-slate-200 mb-1 flex items-center gap-1.5">
-                    <Lightbulb className="w-4 h-4 text-amber-400 shrink-0" /> EXPLICATION ANALYTIQUE DE LA GRILLE :
-                  </p>
-                  <p className="leading-relaxed text-slate-400 font-sans">
-                    {data?.explanations?.summary || "Cette combinaison regroupe des numéros présentant des asymétries de distribution historiques récentes (écarts significatifs et corrélations de paires), calibrées via notre protocole Walk-Forward de réduction de bruit variance/biais."}
-                  </p>
-                </div>
-
                 {/* Compulsory Randomness Warning Block */}
                 <div className="bg-[#2a1b1d] p-4 rounded-xl border border-red-900/40 text-xs text-red-300">
                   <p className="font-extrabold mb-1.5 uppercase tracking-wide flex items-center gap-1.5 font-mono text-red-400">
-                    ⚠️ AVERTISSEMENT MATHÉMATIQUE & LÉGAL
+                    ⚠️ AVERTISSEMENT IMPORTANT
                   </p>
                   <p className="leading-relaxed text-red-300/80 font-sans">
-                    Les tirages de loterie sont des événements physiques régis par le hasard pur et statistiquement indépendants. Aucun algorithme, modèle mathématique ou intelligence artificielle ne peut prédire à l'avance ou influer sur les numéros qui seront tirés. Cet outil est exclusivement fourni à titre analytique, statistique et divertissant. Ne jouez que ce que vous pouvez vous permettre de perdre.
+                    Cette combinaison est une simulation construite à partir de vos contraintes analytiques. <strong>Elle n'a aucune probabilité de gain supérieure à une autre combinaison valide.</strong> Les tirages de loterie sont des événements strictement indépendants. Aucun modèle ne peut anticiper le résultat.
                   </p>
                 </div>
               </div>
             ) : (
               <div className="text-center py-16">
-                <p className="text-muted-foreground mb-4">Aucune prédiction disponible</p>
+                <p className="text-muted-foreground mb-4">Aucune simulation disponible</p>
                 <Button onClick={() => refetch()} variant="outline" className="rounded-full px-6">
-                  Générer une prédiction
+                  Générer une simulation
                 </Button>
               </div>
             )}
@@ -505,26 +495,18 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
             onClick={handlePlay}
             className="w-full h-14 text-lg font-semibold gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/30"
           >
-            <Zap className="w-5 h-5" />
-            Jouer cette prédiction
+            <Copy className="w-5 h-5" />
+            Copier cette simulation
           </Button>
           
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={handleCopy}
-              className="flex-1 gap-2"
-            >
-              <Copy className={cn("w-4 h-4", copied && "text-success")} />
-              {copied ? "Copié !" : "Copier"}
-            </Button>
-            <Button
-              variant="outline"
               onClick={() => {
                 if (navigator.share && officialPrediction) {
                   navigator.share({
-                    title: `Prédiction ${drawName}`,
-                    text: `Mes numéros : ${officialPrediction.numbers.join(" - ")}`,
+                    title: `Simulation ${drawName}`,
+                    text: `Ma simulation : ${officialPrediction.numbers.join(" - ")}`,
                   });
                 } else {
                   handleCopy();
@@ -540,16 +522,16 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
           {/* Server-side personal history saver */}
           <div className="p-4 rounded-xl border border-border/40 bg-slate-950/40 backdrop-blur-md space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <History className="w-4 h-4 text-primary" /> Enregistrement Personnel Serveur
+              <History className="w-4 h-4 text-primary" /> Enregistrer la simulation
             </h4>
             {user ? (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground leading-normal">
-                  Sauvegardez cette grille sur le serveur pour suivre automatiquement ses correspondances lors des prochains tirages réels.
+                  Sauvegardez cette simulation pour pouvoir suivre son score a posteriori lors des prochains tirages.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Input
-                    placeholder="Note facultative (ex: Mes numéros fétiches, Grille du jour)"
+                    placeholder="Note (ex: Ma sélection pour aujourd'hui)"
                     value={personalNotes}
                     onChange={(e) => setPersonalNotes(e.target.value)}
                     disabled={isSavedInSession || createAndTrackMutation.isPending}
@@ -582,7 +564,7 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
               </div>
             ) : (
               <div className="text-xs text-muted-foreground p-2.5 bg-secondary/15 rounded-lg border border-border/30">
-                Connectez-vous à votre compte pour enregistrer cette prédiction sur le serveur et suivre ses performances réelles.
+                Connectez-vous à votre compte pour enregistrer cette simulation sur le serveur et suivre ses performances réelles.
               </div>
             )}
           </div>

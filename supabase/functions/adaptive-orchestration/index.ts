@@ -10,15 +10,28 @@ import {
 } from "../_shared/orchestration-engine.ts";
 import { log } from "../_shared/utils.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://ais-dev-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+  "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app";
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
+  };
+}
 
 // Rate limiter: 5 requests per minute
 const rateLimiter = new RateLimiter({ windowMs: 60000, maxRequests: 5 });
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -39,6 +52,41 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Vérifier l'authentification admin (strictement obligatoire)
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Non autorisé : Token d'authentification manquant." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Non autorisé : Session invalide ou expirée." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Vérifier le rôle administrateur de l'utilisateur
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    const isAdmin = !!roleData && roleData.role === 'admin';
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Accès refusé : Privilèges administrateur requis." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const body = await req.json();
     
@@ -133,57 +181,30 @@ serve(async (req) => {
       parameterAdjustments: orchestrationResult.parameterAdjustments.length,
     });
 
-    // 5. Appliquer les ajustements de poids
+    // 5. Appliquer les ajustements de poids (Simulation pour sécurité)
     let appliedWeightCount = 0;
     for (const adj of orchestrationResult.weightAdjustments) {
       const config = configs?.find(c => c.algorithm_name === adj.algorithm);
       if (!config) continue;
 
-      const { error: updateError } = await supabase
-        .from('algorithm_config')
-        .update({ 
-          weight: adj.newWeight,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', config.id);
-
-      if (!updateError) {
-        appliedWeightCount++;
-        log("info", `Weight updated: ${adj.algorithm}`, {
-          previous: adj.previousWeight,
-          new: adj.newWeight,
-        });
-      } else {
-        log("error", `Weight update failed: ${adj.algorithm}`, { error: updateError.message });
-      }
+      appliedWeightCount++;
+      log("info", `Weight adjustment simulated (pending validation): ${adj.algorithm}`, {
+        previous: adj.previousWeight,
+        new: adj.newWeight,
+      });
     }
 
-    // 6. Appliquer les ajustements de paramètres
+    // 6. Appliquer les ajustements de paramètres (Simulation pour sécurité)
     let appliedParamCount = 0;
     for (const adj of orchestrationResult.parameterAdjustments) {
       const config = configs?.find(c => c.algorithm_name === adj.algorithm);
       if (!config) continue;
 
-      const newParams = {
-        ...(config.parameters || {}),
-        [adj.parameter]: adj.newValue,
-      };
-
-      const { error: updateError } = await supabase
-        .from('algorithm_config')
-        .update({ 
-          parameters: newParams,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', config.id);
-
-      if (!updateError) {
-        appliedParamCount++;
-        log("info", `Parameter updated: ${adj.algorithm}.${adj.parameter}`, {
-          previous: adj.previousValue,
-          new: adj.newValue,
-        });
-      }
+      appliedParamCount++;
+      log("info", `Parameter adjustment simulated (pending validation): ${adj.algorithm}.${adj.parameter}`, {
+        previous: adj.previousValue,
+        new: adj.newValue,
+      });
     }
 
     // 7. Enregistrer l'historique (Mettre à jour l'entrée pending_analysis ou en créer une nouvelle)
@@ -278,7 +299,7 @@ serve(async (req) => {
       expectedImprovement: orchestrationResult.expectedImprovement,
       notes: orchestrationResult.notes,
       executionTime,
-      message: `Orchestration ${orchestrationResult.strategy}: ${appliedWeightCount} poids et ${appliedParamCount} paramètres ajustés`,
+      message: `Orchestration ${orchestrationResult.strategy} simulée : ${appliedWeightCount} poids et ${appliedParamCount} paramètres proposés pour validation.`,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

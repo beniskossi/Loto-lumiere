@@ -91,7 +91,7 @@ export function BacktestingDashboard({ drawName }: BacktestingDashboardProps) {
         <CardHeader>
           <CardTitle>Évaluation des Algorithmes</CardTitle>
           <CardDescription>
-            Testez les performances des modèles de prédiction sur les données historiques
+            Testez les performances des méthodes d'analyse sur les données historiques
           </CardDescription>
         </CardHeader>
         <CardContent>

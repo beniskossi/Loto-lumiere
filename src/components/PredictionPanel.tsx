@@ -84,10 +84,10 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="w-5 h-5 text-primary" />
-                Prédictions Intelligentes
+                Simulations Analytiques
               </CardTitle>
               <CardDescription>
-                Prédictions basées sur des algorithmes d'apprentissage automatique
+                Simulations stochastiques basées sur des algorithmes d'apprentissage
               </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -146,7 +146,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
                 <div className="p-6 bg-gradient-primary rounded-lg text-white">
                   <div className="mb-4">
                     <p className="text-sm opacity-90 mb-1">
-                      Prédiction pour le prochain tirage {drawName}
+                      Simulation analytique pour le tirage {drawName}
                     </p>
                     <p className="text-xs opacity-70">
                       Date prévue: {format(new Date(latestPrediction.prediction_date), "EEEE d MMMM yyyy", { locale: fr })}
@@ -156,7 +156,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
                       {latestPrediction.confidence_score && (
                         <span className="flex items-center gap-1">
                           <TrendingUp className="w-3 h-3" />
-                          Confiance: <strong>{latestPrediction.confidence_score.toFixed(1)}%</strong>
+                          Indice: <strong>{latestPrediction.confidence_score.toFixed(1)}%</strong>
                         </span>
                       )}
                     </div>
@@ -170,8 +170,8 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
 
                   <div className="flex justify-center gap-2 mb-4">
                     <SocialShare
-                      title={`Prédiction ${drawName}`}
-                      description={`Numéros prédits: ${latestPrediction.predicted_numbers.join(', ')}`}
+                      title={`Simulation ${drawName}`}
+                      description={`Numéros simulés: ${latestPrediction.predicted_numbers.join(', ')}`}
                       numbers={latestPrediction.predicted_numbers}
                       drawName={drawName}
                       predictionId={latestPrediction.id}
@@ -198,9 +198,9 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
                         className="h-2 bg-white/20"
                       />
                       <div className="text-xs opacity-80">
-                        {latestPrediction.confidence_score >= 75 ? "🔥 Confiance élevée" : 
-                         latestPrediction.confidence_score >= 60 ? "✓ Confiance moyenne" : 
-                         "⚠️ Confiance modérée"}
+                        {latestPrediction.confidence_score >= 75 ? "🔥 Conformité élevée" : 
+                         latestPrediction.confidence_score >= 60 ? "✓ Conformité moyenne" : 
+                         "⚠️ Conformité modérée"}
                       </div>
                     </div>
                   )}
@@ -232,7 +232,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
               <div className="p-8 text-center bg-muted/30 rounded-lg border-2 border-dashed border-muted">
                 <Brain className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground mb-4">
-                  Aucune prédiction disponible pour le moment. 
+                  Aucune simulation disponible pour le moment. 
                 </p>
                 <Button 
                   onClick={handleGeneratePrediction}
@@ -241,7 +241,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
                   className="gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  Générer la première prédiction
+                  Générer la première simulation
                 </Button>
               </div>
               )}
@@ -255,10 +255,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
       <Card className="bg-destructive/10 border-destructive/30">
         <CardContent className="pt-6">
           <p className="text-sm text-foreground">
-            <strong className="text-destructive">⚠️ Avertissement:</strong> Ces prédictions sont basées sur des analyses 
-            statistiques historiques et ne garantissent aucun résultat. La loterie reste un 
-            jeu de hasard où chaque tirage est totalement indépendant. Jouez de manière 
-            responsable.
+            <strong className="text-destructive">⚠️ Avertissement:</strong> Cette combinaison est une simulation construite à partir de vos contraintes analytiques. Elle n'a aucune probabilité de gain supérieure à une autre combinaison valide. Les tirages de loterie sont des événements strictement indépendants. Aucun modèle ne peut anticiper le résultat.
           </p>
         </CardContent>
       </Card>
@@ -268,7 +265,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              Prédiction Personnalisée
+              Simulation Personnalisée
             </CardTitle>
             <CardDescription className="text-white/80">
               Basée sur vos favoris et historique
@@ -281,7 +278,7 @@ export const PredictionPanel = ({ drawName }: PredictionPanelProps) => {
               ))}
             </div>
             <div className="text-center text-sm opacity-90">
-              Confiance: {Math.round(personalizedPrediction.confidence * 100)}%
+              Indice de conformité: {Math.round(personalizedPrediction.confidence * 100)}%
             </div>
           </CardContent>
         </Card>

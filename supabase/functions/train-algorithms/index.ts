@@ -1,10 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://ais-dev-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+  "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app";
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
+  };
+}
 
 interface AlgorithmConfig {
   id: string;
@@ -34,6 +46,7 @@ interface TrainingHistoryEntry {
     avg_accuracy: number;
     avg_f1_score: number;
     total_evaluations: number;
+    simulation_mode?: boolean;
   };
 }
 
@@ -63,7 +76,7 @@ function deriveTrainingParams(performances: AlgorithmPerformance[]) {
   // Trier les scores globaux pour trouver les quartiles
   const scores = performances.map(p => p.overall_score).sort((a, b) => a - b);
   const q1 = scores[Math.floor(scores.length * 0.25)] || 0.4;
-  const q3 = scores[Math.floor(scores.length * 0.75)] || 0.7;
+  const q3 = scores[scores.length - 1] || 0.7; // fallback clean
 
   // Calcul de la variance pour ajuster dynamiquement l'inertie
   const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
@@ -84,6 +97,7 @@ function deriveTrainingParams(performances: AlgorithmPerformance[]) {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -97,7 +111,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized - Admin access required' } as ResponseData),
+        JSON.stringify({ error: "Non autorisé : Token d'authentification manquant." } as ResponseData),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -107,7 +121,7 @@ serve(async (req) => {
 
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized - Invalid token' } as ResponseData),
+        JSON.stringify({ error: "Non autorisé : Session invalide ou expirée." } as ResponseData),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -120,14 +134,24 @@ serve(async (req) => {
       .eq('role', 'admin')
       .maybeSingle();
 
-    if (!roleData) {
+    const isAdmin = !!roleData && roleData.role === 'admin';
+    if (!isAdmin) {
       return new Response(
-        JSON.stringify({ error: 'Forbidden - Admin role required' } as ResponseData),
+        JSON.stringify({ error: "Accès refusé : Rôle administrateur requis." } as ResponseData),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Starting algorithm training...");
+    // Analyse du mode simulation vs production commit
+    let commit = false;
+    try {
+      const body = await req.json();
+      commit = !!body?.commit;
+    } catch {
+      // Pas de body JSON, simulation par défaut pour préserver l'intégrité
+    }
+
+    console.log(`Starting algorithm training (commit=${commit})...`);
 
     // Récupérer les configurations actuelles
     const { data: configs, error: configsError } = await supabase
@@ -195,6 +219,7 @@ serve(async (req) => {
             avg_accuracy: validPerformances.reduce((sum, p) => sum + p.avg_accuracy, 0) / validPerformances.length,
             avg_f1_score: validPerformances.reduce((sum, p) => sum + p.f1_score, 0) / validPerformances.length,
             total_evaluations: validPerformances.length,
+            simulation_mode: !commit,
           },
         });
 
@@ -208,7 +233,7 @@ serve(async (req) => {
       }
     }
 
-    // Enregistrer l'historique d'entraînement
+    // Enregistrer l'historique d'entraînement (utile même en simulation pour auditer les progrès d'ajustements)
     const significantHistory = trainingHistory.filter(entry => Math.abs(entry.performance_improvement) > 1);
     if (significantHistory.length > 0) {
       const { error: historyError } = await supabase
@@ -220,17 +245,21 @@ serve(async (req) => {
       }
     }
 
-    // Appliquer les mises à jour
-    const updatePromises = updates.map(update =>
-      supabase
-        .from("algorithm_config")
-        .update({ weight: update.weight, parameters: update.parameters })
-        .eq("id", update.id)
-    );
-    const results = await Promise.all(updatePromises);
-    const updatedCount = results.filter(result => !result.error).length;
-
-    console.log("Training complete", { updatedCount });
+    // N'appliquer les mises à jour en base que si commit=true est explicite
+    let updatedCount = 0;
+    if (commit && updates.length > 0) {
+      const updatePromises = updates.map(update =>
+        supabase
+          .from("algorithm_config")
+          .update({ weight: update.weight, parameters: update.parameters })
+          .eq("id", update.id)
+      );
+      const results = await Promise.all(updatePromises);
+      updatedCount = results.filter(result => !result.error).length;
+      console.log("Training complete (committed to live config)", { updatedCount });
+    } else {
+      console.log("Training complete (simulation mode, live config left untouched)", { proposedUpdates: updates.length });
+    }
 
     return new Response(
       JSON.stringify({
@@ -238,7 +267,9 @@ serve(async (req) => {
         trainedCount: trainingHistory.length,
         updatedCount,
         trainingHistory,
-        message: `Entraînement terminé. ${updatedCount} algorithmes mis à jour sur ${trainingHistory.length} analysés.`,
+        message: commit 
+          ? `Entraînement terminé. ${updatedCount} algorithmes mis à jour avec succès en production.`
+          : `Simulation d'entraînement réussie. ${updates.length} ajustements d'algorithmes ont été calculés et loggés pour analyse (aucune modification en production).`,
       } as ResponseData),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -303,11 +334,11 @@ function adjustAlgorithmConfig(
   const adjustmentFactor = performanceDelta * 0.4 * (1 - stabilityPenalty);
   
   // Limiter les changements drastiques
-  const cappedAdjustment = Math.max(-MAX_WEIGHT_CHANGE, Math.min(MAX_WEIGHT_CHANGE, adjustmentFactor));
+  const cappedAdjustment = Math.max(-params.maxWeightChange, Math.min(params.maxWeightChange, adjustmentFactor));
   
   // Appliquer le momentum (mélange ancien et nouveau poids)
   const targetWeight = config.weight * (1 + cappedAdjustment);
-  const newWeight = config.weight * WEIGHT_MOMENTUM + targetWeight * (1 - WEIGHT_MOMENTUM);
+  const newWeight = config.weight * params.weightMomentum + targetWeight * (1 - params.weightMomentum);
   
   // Contraindre le poids dans des limites raisonnables
   const finalWeight = Math.min(2, Math.max(0.05, newWeight));
@@ -325,7 +356,7 @@ function adjustAlgorithmConfig(
   const netAdjustment = capacityAdjustment - variancePenalty;
 
   if (typeof newParams.learningRate === 'number') {
-    const lrMultiplier = Math.exp(netAdjustment * Math.log(LR_INCREASE_FACTOR));
+    const lrMultiplier = Math.exp(netAdjustment * Math.log(params.lrIncreaseFactor));
     newParams.learningRate = Math.max(0.001, Math.min(0.1, newParams.learningRate * lrMultiplier));
   }
   

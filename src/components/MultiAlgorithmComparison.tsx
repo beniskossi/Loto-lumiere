@@ -50,10 +50,10 @@ export const MultiAlgorithmComparison = ({ drawName }: MultiAlgorithmComparisonP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-primary" />
-            Comparaison Multi-Algorithmes
+            Comparatif des Modèles
           </CardTitle>
           <CardDescription>
-            Top 3 des algorithmes les plus performants
+            Top 3 des méthodes d'analyse de données
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -80,7 +80,7 @@ export const MultiAlgorithmComparison = ({ drawName }: MultiAlgorithmComparisonP
               <div className="flex items-center justify-between text-sm">
                 <div className="flex gap-4">
                   <span className="text-muted-foreground">
-                    Confiance: <strong className="text-foreground">{(algo.confidence ?? 0).toFixed(1)}%</strong>
+                    Indice: <strong className="text-foreground">{(algo.confidence ?? 0).toFixed(1)}%</strong>
                   </span>
                   <span className="text-muted-foreground">
                     Précision: <strong className="text-foreground">{(algo.recentAccuracy ?? 0).toFixed(1)}%</strong>
@@ -108,7 +108,7 @@ export const MultiAlgorithmComparison = ({ drawName }: MultiAlgorithmComparisonP
             Consensus des 3 Meilleurs
           </CardTitle>
           <CardDescription className="text-white/80">
-            Prédiction basée sur l'accord des algorithmes
+            Simulation consensuelle des modèles
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -120,7 +120,7 @@ export const MultiAlgorithmComparison = ({ drawName }: MultiAlgorithmComparisonP
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="p-3 bg-white/10 rounded">
-              <p className="text-white/70 text-xs">Confiance moyenne</p>
+              <p className="text-white/70 text-xs">Indice de conformité</p>
               <p className="text-xl font-bold">{(data.consensus?.confidence ?? 0).toFixed(1)}%</p>
             </div>
             <div className="p-3 bg-white/10 rounded">
@@ -130,9 +130,9 @@ export const MultiAlgorithmComparison = ({ drawName }: MultiAlgorithmComparisonP
           </div>
 
           <p className="text-center text-sm opacity-90">
-            {(data.consensus?.agreementScore ?? 0) >= 70 ? "🔥 Fort consensus" : 
-             (data.consensus?.agreementScore ?? 0) >= 50 ? "✓ Consensus modéré" : 
-             "⚠️ Consensus faible"}
+            {(data.consensus?.agreementScore ?? 0) >= 70 ? "🔥 Fort consensus analytique" : 
+             (data.consensus?.agreementScore ?? 0) >= 50 ? "✓ Consensus analytique modéré" : 
+             "⚠️ Consensus faible (Variance élevée)"}
           </p>
         </CardContent>
       </Card>

@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrawResultsPaginated, DrawResult } from "@/hooks/useDrawResults";
 import { NumberBall } from "@/components/NumberBall";
+import { SensitiveActionDialog } from "@/components/SensitiveActionDialog";
 import { Edit2, Trash2, Calendar, Clock, CalendarIcon, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -495,35 +496,30 @@ export const DrawResultsManager = ({
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingResult} onOpenChange={() => setDeletingResult(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer ce résultat ?
-              {deletingResult && (
-                <div className="mt-2 p-3 bg-muted rounded-lg">
-                  <div className="font-medium">{deletingResult.draw_name}</div>
-                  <div className="text-sm">
-                    {format(new Date(deletingResult.draw_date), "dd MMMM yyyy", { locale: fr })}
-                  </div>
+      <SensitiveActionDialog 
+        open={!!deletingResult} 
+        onOpenChange={(open) => {
+          if (!open) setDeletingResult(null);
+        }}
+        onConfirm={handleDeleteResult}
+        title="Confirmer la suppression"
+        description={
+          <>
+            Êtes-vous sûr de vouloir supprimer ce résultat ?
+            {deletingResult && (
+              <div className="mt-2 p-3 bg-muted rounded-lg">
+                <div className="font-medium">{deletingResult.draw_name}</div>
+                <div className="text-sm">
+                  {format(new Date(deletingResult.draw_date), "dd MMMM yyyy", { locale: fr })}
                 </div>
-              )}
-              Cette action est irréversible.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteResult}
-              disabled={isLoading}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isLoading ? "Suppression..." : "Supprimer"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </div>
+            )}
+            Cette action est irréversible.
+          </>
+        }
+        requireConfirmationText="SUPPRIMER"
+        actionText={isLoading ? "Suppression..." : "Supprimer"}
+      />
     </>
   );
 };

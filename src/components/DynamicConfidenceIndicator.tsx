@@ -23,16 +23,16 @@ export const DynamicConfidenceIndicator = ({ drawName }: DynamicConfidenceIndica
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendIcon className={`w-5 h-5 ${trendColor}`} />
-            <span className="font-semibold">Confiance Dynamique</span>
+            <span className="font-semibold">Indice Analytique Dynamique</span>
           </div>
           <Badge variant={confidence.reliability === "high" ? "default" : confidence.reliability === "medium" ? "secondary" : "destructive"}>
-            {confidence.reliability === "high" ? "Élevée" : confidence.reliability === "medium" ? "Moyenne" : "Faible"}
+            {confidence.reliability === "high" ? "Élevé" : confidence.reliability === "medium" ? "Moyen" : "Faible"}
           </Badge>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Niveau actuel</span>
+            <span>Conformité actuelle</span>
             <span className="font-bold">{confidence.currentConfidence}%</span>
           </div>
           <Progress value={confidence.currentConfidence} className="h-2" />
@@ -40,7 +40,7 @@ export const DynamicConfidenceIndicator = ({ drawName }: DynamicConfidenceIndica
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="p-2 bg-background/50 rounded">
-            <p className="text-muted-foreground text-xs">Précision récente</p>
+            <p className="text-muted-foreground text-xs">Consistance récente</p>
             <p className="font-bold">{confidence.recentAccuracy}%</p>
           </div>
           <div className="p-2 bg-background/50 rounded">
@@ -53,7 +53,7 @@ export const DynamicConfidenceIndicator = ({ drawName }: DynamicConfidenceIndica
           <Alert variant="destructive" className="py-2">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              Performance sous le seuil de 60%. Recommandation: Vérifier les algorithmes
+              Indice sous le seuil de 60%. Les modèles manquent de données récentes fiables.
             </AlertDescription>
           </Alert>
         )}

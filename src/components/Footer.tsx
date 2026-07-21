@@ -13,19 +13,19 @@ export const Footer = () => {
             </div>
             <span className="hidden md:inline text-border/60">|</span>
             <p className="text-[11px] sm:text-xs">
-              Analyse stochastique & prédictions algorithmiques de loterie.
+              Analyse stochastique & simulations algorithmiques de loterie. Les tirages sont indépendants et purement aléatoires. Aucun modèle ou calcul ne peut garantir des gains ou prédire l'avenir.
             </p>
           </div>
 
           {/* Responsible Gaming Badge & Text */}
-          <div className="flex flex-col sm:flex-row items-center gap-2 bg-amber-500/5 border border-amber-500/10 px-3.5 py-1.5 rounded-xl max-w-sm sm:max-w-none">
-            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+          <div className="flex flex-col sm:flex-row items-center gap-2 bg-amber-500/10 border border-amber-500/25 px-4 py-2 rounded-xl max-w-sm sm:max-w-none">
+            <span className="flex items-center gap-1 text-[10px] font-extrabold text-amber-500 uppercase tracking-wider">
               <Shield className="w-3.5 h-3.5" />
-              Responsabilité
+              Avertissement Légal & Responsabilité
             </span>
-            <span className="hidden sm:inline text-amber-500/30">•</span>
-            <p className="text-[10px] text-amber-500/90 font-medium text-center sm:text-left">
-              Le jeu comporte des risques (dépendance, isolement). Appelez le 09 74 75 13 13.
+            <span className="hidden sm:inline text-amber-500/40">•</span>
+            <p className="text-[10px] text-amber-400 font-medium text-center sm:text-left leading-relaxed">
+              Le loto est un jeu de hasard pur. Jouez avec modération. Le jeu comporte des risques (dépendance, isolement, endettement). Appelez le 09 74 75 13 13 (appel non surtaxé, confidentiel).
             </p>
           </div>
         </div>

@@ -68,6 +68,9 @@ const AnisotropyAnalyzer = lazy(() =>
 const ForensicAuditPanel = lazy(() =>
   import("@/components/ForensicAuditPanel").then((m) => ({ default: m.ForensicAuditPanel }))
 );
+const EducationalGlossary = lazy(() =>
+  import("@/components/EducationalGlossary").then((m) => ({ default: m.EducationalGlossary }))
+);
 
 interface AnalysesContainerProps {
   drawName: string;
@@ -91,7 +94,7 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
   
   // Subtabs state for each category
   const [classicSubTab, setClassicSubTab] = useState<"data" | "temporal" | "gaps" | "double-gap" | "stats" | "comparison" | "search">("data");
-  const [experimentalSubTab, setExperimentalSubTab] = useState<"formulas" | "ai-config" | "rules" | "affinity" | "fractal" | "anisotropy" | "forensic">("formulas");
+  const [experimentalSubTab, setExperimentalSubTab] = useState<"formulas" | "ai-config" | "rules" | "affinity" | "fractal" | "anisotropy" | "forensic" | "glossary">("formulas");
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-24">
@@ -305,6 +308,13 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
               <ShieldAlert className="w-4 h-4 text-destructive" />
               Audit Forensic
             </TabsTrigger>
+            <TabsTrigger
+              value="glossary"
+              className="flex-1 gap-2 py-2.5 px-3 rounded-lg data-[state=active]:shadow-sm transition-all text-xs font-medium whitespace-nowrap"
+            >
+              <Info className="w-4 h-4 text-purple-400" />
+              Glossaire
+            </TabsTrigger>
           </TabsList>
 
           <Suspense fallback={<AnalysesFallback />}>
@@ -336,6 +346,9 @@ export const AnalysesContainer = ({ drawName }: AnalysesContainerProps) => {
 
             <TabsContent value="forensic" className="mt-0 focus-visible:outline-none">
               <ForensicAuditPanel />
+            </TabsContent>
+            <TabsContent value="glossary" className="mt-0 focus-visible:outline-none">
+              <EducationalGlossary />
             </TabsContent>
           </Suspense>
         </Tabs>

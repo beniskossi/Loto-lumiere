@@ -69,18 +69,18 @@ export const AIPredictionAnalyzer = ({ predictions, drawName }: AIPredictionAnal
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
-              <Sparkles className="w-6 h-6 text-primary" />
+              <Brain className="w-6 h-6 text-primary" />
             </div>
             <div>
               <CardTitle className="text-xl flex items-center gap-2 flex-wrap">
-                Analyse IA Deep Research
+                Assistant Analyste IA
                 <Badge variant="outline" className="bg-primary/10 text-xs">
-                  <Brain className="w-3 h-3 mr-1" />
-                  Gemini Flash 2.5
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  Gemini
                 </Badge>
               </CardTitle>
               <CardDescription>
-                Réseau de neurones multimodal pour la fusion algorithmique
+                Explication des modèles, détection d'anomalies et comparaison aux baselines aléatoires
               </CardDescription>
             </div>
           </div>

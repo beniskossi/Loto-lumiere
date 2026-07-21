@@ -190,6 +190,7 @@ export const DrawResultsImporter = ({
 
     // Validate numbers range (1 - 90)
     const validDrawNumbers = foundNumbers.filter(n => n >= 1 && n <= 90);
+    const uniqueFirstFive = new Set(validDrawNumbers.slice(0, 5));
 
     if (validDrawNumbers.length < 5) {
       return {
@@ -200,6 +201,32 @@ export const DrawResultsImporter = ({
         draw_time: drawTime,
         isValid: false,
         validationError: `Numéros insuffisants (trouvé: ${validDrawNumbers.length}, attendu: 5 minimum entre 1-90)`,
+        rawLine: line
+      };
+    }
+
+    if (uniqueFirstFive.size !== 5) {
+      return {
+        draw_name: drawName,
+        draw_date: detectedDate,
+        winning_numbers: validDrawNumbers,
+        draw_day: drawDay,
+        draw_time: drawTime,
+        isValid: false,
+        validationError: "Les 5 premiers numéros contiennent des doublons",
+        rawLine: line
+      };
+    }
+
+    if (detectedDate && new Date(detectedDate) > new Date()) {
+      return {
+        draw_name: drawName,
+        draw_date: detectedDate,
+        winning_numbers: validDrawNumbers,
+        draw_day: drawDay,
+        draw_time: drawTime,
+        isValid: false,
+        validationError: "La date du tirage ne peut pas être dans le futur",
         rawLine: line
       };
     }
@@ -781,7 +808,12 @@ export const DrawResultsImporter = ({
           draw_time: r.draw_time,
         });
       });
-      const payload = Array.from(uniquePayloadMap.values());
+      const payload = Array.from(uniquePayloadMap.values()).map(r => ({
+        ...r,
+        status: "En_validation",
+        source: "saisie_manuelle",
+        raw_data: { parsedAt: new Date().toISOString() }
+      }));
 
       // We use upsert with onConflict to handle conflicts gracefully (overwriting or skipping instead of throwing)
       const { error } = await supabase

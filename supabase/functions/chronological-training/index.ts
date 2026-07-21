@@ -1,9 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://ais-dev-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+  "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : "https://ais-pre-pi4cbnvbnhvhgdeu26bzu4-755915034440.europe-west2.run.app";
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
+  };
+}
 
 
 interface RequestData {
@@ -29,6 +42,7 @@ interface DrawResult {
 const MIN_RESULTS = 10;
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -37,6 +51,41 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Vérifier l'authentification admin (strictement obligatoire)
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Non autorisé : Token d'authentification manquant." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Non autorisé : Session invalide ou expirée." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Vérifier le rôle administrateur de l'utilisateur
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    const isAdmin = !!roleData && roleData.role === 'admin';
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Accès refusé : Privilèges administrateur requis." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const { drawName } = (await req.json()) as RequestData;
     if (!drawName) {
@@ -220,13 +269,16 @@ serve(async (req) => {
             heuristic_score: heuristicScore,
             total_evaluations: results.length,
             learned_pattern: learnedPattern,
-            patterns_stats: currentDrawStats.patterns
+            patterns_stats: currentDrawStats.patterns,
+            workflow_status: "pending_approval",
+            environment: "simulation_mode",
+            notes: "Entraînement simulé. Les paramètres réels en production ne sont pas modifiés automatiquement pour des raisons de sécurité."
           },
         });
       }
     }
 
-    // Save training history
+    // Save training history (immutable simulation logs)
     if (trainingHistory.length > 0) {
       const { error: historyError } = await supabase
         .from("algorithm_training_history")
@@ -235,22 +287,15 @@ serve(async (req) => {
       if (historyError) console.error("Failed to save chronological training history:", historyError);
     }
 
-    // Apply updates
-    const updatePromises = updates.map(update =>
-      supabase
-        .from("algorithm_config")
-        .update({ parameters: update.parameters })
-        .eq("id", update.id)
-    );
-
-    await Promise.all(updatePromises);
+    // Direct configuration updates are deactivated in production for security.
+    // Instead of executing database updates to algorithm_config, we return the simulated recommendations.
 
     return new Response(
       JSON.stringify({
         success: true,
         trainedCount: updates.length,
         history: trainingHistory,
-        message: `Entraînement chronologique réussi pour le tirage ${drawName}. ${updates.length} algorithmes optimisés.`
+        message: `Entraînement chronologique simulé avec succès pour le tirage ${drawName}. ${updates.length} propositions d'ajustements enregistrées pour validation manuelle.`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

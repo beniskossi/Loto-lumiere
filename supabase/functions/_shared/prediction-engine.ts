@@ -9,6 +9,7 @@ import type {
   PredictionOptions,
   DataMetrics,
 } from "./types.ts";
+
 import { algorithmRegistry, selectOptimalAlgorithm } from "./algorithm-registry.ts";
 import { stackingEnsemble } from "./stacking.ts";
 import { smartEnsemble } from "./smart-ensemble.ts";
@@ -17,6 +18,7 @@ import {
   type EnhancedPredictionResult,
   type EnhancedScoreBreakdown
 } from "./enhanced-prediction.ts";
+
 import {
   calculateBayesianModelAverage,
   calculateConsensusMetrics,
@@ -24,7 +26,9 @@ import {
   detectPeriodicPatterns,
   identifyDueNumbers
 } from "./data-science.ts";
+
 import { log, calculateDataQuality, calculateFreshness } from "./utils.ts";
+import { applyAntiBiasLayer } from "./anti-bias.ts";
 
 export type { EnhancedPredictionResult, EnhancedScoreBreakdown };
 
@@ -100,13 +104,26 @@ export async function generatePredictions(
     options
   );
 
+  const rawOptimized = enhancedResult.prediction || finalPrediction;
+  
+  // -----------------------------------------------------
+  // APPLICATION DE LA COUCHE ANTI-BIAIS
+  // -----------------------------------------------------
+  const antiBiasResult = applyAntiBiasLayer(rawOptimized, results);
+  
+  if (antiBiasResult.biasDetected.length > 0) {
+    rawOptimized.numbers = antiBiasResult.adjustedNumbers;
+    rawOptimized.factors.push(...antiBiasResult.biasDetected.map(b => `[Anti-Biais Corrigé] ${b}`));
+    rawOptimized.confidence = rawOptimized.confidence * (1 - (antiBiasResult.biasScore * 0.1));
+  }
+
   const executionTime = Date.now() - startTime;
 
   return {
     predictions: predictions.sort((a, b) => b.score - a.score),
     selectedAlgorithm: selection.algorithm,
     algorithmReason: selection.reason,
-    optimizedPrediction: enhancedResult.prediction || finalPrediction,
+    optimizedPrediction: rawOptimized,
     enhancedPrediction: enhancedResult.enhanced,
     dataMetrics,
     executionTime,
@@ -122,26 +139,10 @@ export async function generatePredictions(
 
 function calculateDataMetrics(results: DrawResult[]): DataMetrics {
   return {
+    historicalCount: results.length,
     quality: calculateDataQuality(results),
     freshness: calculateFreshness(results),
-    completeness: results.length > 0 ? 1 : 0,
-    consistency: calculateConsistency(results),
-    historicalCount: results.length,
   };
-}
-
-function calculateConsistency(results: DrawResult[]): number {
-  if (results.length < 2) return 1;
-  
-  let consistentCount = 0;
-  results.forEach(r => {
-    if (r.winning_numbers?.length === 5 && 
-        r.winning_numbers.every(n => n >= 1 && n <= 90)) {
-      consistentCount++;
-    }
-  });
-  
-  return consistentCount / results.length;
 }
 
 async function executePredictions(
@@ -149,46 +150,25 @@ async function executePredictions(
   selectedAlgorithm: string,
   options: PredictionOptions,
   dataMetrics: DataMetrics
-): Promise<{ predictions: PredictionResult[]; optimizedPrediction: PredictionResult }> {
-  let predictions: PredictionResult[] = [];
+) {
+  const algorithmsToRun = options.algorithms || [selectedAlgorithm, "FrequencyPro"];
+  if (!algorithmsToRun.includes(selectedAlgorithm)) {
+    algorithmsToRun.push(selectedAlgorithm);
+  }
+  
+  const predictionsMap = await algorithmRegistry.executeMultiple(results, algorithmsToRun);
+  const predictions = Array.from(predictionsMap.values());
+  
   let optimizedPrediction: PredictionResult;
-
-  // Mode Smart Ensemble
-  if (options.useSmartEnsemble) {
-    log("info", `Utilisation du Smart Ensemble (mode adaptatif, AI Orchestration: ${options.useAIOrchestration})`);
-    optimizedPrediction = await smartEnsemble.generateEnsemblePrediction(results, options.useAIOrchestration);
-    
-    if (options.multiAlgorithm) {
-      const multiPredictions = await algorithmRegistry.executeMultiple(results);
-      predictions = Array.from(multiPredictions.values());
-      predictions.push(optimizedPrediction);
-    } else {
-      predictions = [optimizedPrediction];
-    }
-  }
-  // Mode Ensemble Hybride Stacking
-  else if (selectedAlgorithm === "Ensemble Hybride Stacking" || options.useStackingEnsemble) {
+  
+  if (selectedAlgorithm === "Ensemble Hybride Stacking") {
     optimizedPrediction = stackingEnsemble(results);
-    
-    if (options.multiAlgorithm) {
-      const multiPredictions = await algorithmRegistry.executeMultiple(results);
-      predictions = Array.from(multiPredictions.values());
-    } else {
-      predictions = [optimizedPrediction];
-    }
+  } else if (predictions.length > 1) {
+    optimizedPrediction = smartEnsemble(predictions, dataMetrics.quality);
+  } else {
+    optimizedPrediction = predictions[0] || generateFallbackPrediction();
   }
-  // Mode Multi-algorithmes
-  else if (options.multiAlgorithm) {
-    const multiPredictions = await algorithmRegistry.executeMultiple(results);
-    predictions = Array.from(multiPredictions.values());
-    optimizedPrediction = predictions[0] || algorithmRegistry.execute("FrequencyPro", results);
-  }
-  // Mode Single algorithme
-  else {
-    optimizedPrediction = algorithmRegistry.execute(selectedAlgorithm, results);
-    predictions = [optimizedPrediction];
-  }
-
+  
   return { predictions, optimizedPrediction };
 }
 
@@ -213,70 +193,31 @@ async function performAdvancedAnalysis(
   options: PredictionOptions
 ): Promise<AdvancedAnalysisResults> {
   const analysisResults: AdvancedAnalysisResults = {};
-
-  // Analyse Bayésienne
-  if (predictions.length >= 2 && options.useBayesian !== false) {
+  
+  try {
     const predictionsMap = new Map(predictions.map(p => [p.algorithm, p]));
-    const consensus = calculateConsensusMetrics(predictionsMap);
+    const priorPerformance = new Map<string, number>();
+    predictions.forEach(p => priorPerformance.set(p.algorithm, p.confidence));
     
-    analysisResults.consensus = {
-      agreementScore: consensus.agreementScore,
-      consensusNumbers: consensus.consensusNumbers
-    };
-
-    // Moyenne bayésienne si bon consensus
-    if (consensus.agreementScore > 0.3) {
-      const priorPerformance = new Map([
-        ["Attention Spatiale", 0.28],
-        ["Séquences Récurrentes", 0.24],
-        ["Arbres Heuristiques", 0.24],
-        ["FrequencyPro", 0.24]
-      ]);
-      
-      const bayesianResult = calculateBayesianModelAverage(predictionsMap, priorPerformance);
-      
+    const bayesianResult = calculateBayesianModelAverage(predictionsMap, priorPerformance);
+    
+    if (bayesianResult && bayesianResult.topNumbers.length >= 5) {
       analysisResults.bayesianPrediction = {
-        numbers: bayesianResult.numbers,
-        confidence: bayesianResult.confidence,
-        algorithm: `Bayesian Ensemble (${predictions.length} modèles)`,
-        factors: [
-          `Consensus: ${(consensus.agreementScore * 100).toFixed(0)}%`,
-          `Numéros consensuels: ${consensus.consensusNumbers.slice(0, 3).join(', ')}`,
-          ...bayesianResult.weights.slice(0, 3).map(w => 
-            `${w.algorithm}: ${(w.posteriorProbability * 100).toFixed(0)}%`
-          )
-        ],
-        score: bayesianResult.confidence * 0.95,
-        category: "ensemble"
+        numbers: bayesianResult.topNumbers.slice(0, 5).sort((a, b) => a - b),
+        confidence: Math.min(0.95, bayesianResult.overallConfidence * 1.1),
+        score: bayesianResult.overallConfidence,
+        algorithm: "Bayesian Ensemble",
+        factors: ["Moyenne Bayésienne Multi-Modèles", "Inférence Probabiliste"],
       };
-      
-      log("info", "Moyenne bayésienne appliquée", {
-        confidence: bayesianResult.confidence,
-        topWeight: bayesianResult.weights[0]?.algorithm
-      });
     }
+    
+    analysisResults.consensus = calculateConsensusMetrics(predictions);
+    analysisResults.periodicity = detectPeriodicPatterns(results);
+    
+  } catch (error) {
+    log("warn", "Erreur lors de l'analyse avancée", { error });
   }
-
-  // Détection de périodicité
-  if (results.length >= 50 && options.usePeriodicity !== false) {
-    try {
-      const patterns = detectPeriodicPatterns(results);
-      const dueNumbers = identifyDueNumbers(results);
-      
-      analysisResults.periodicity = {
-        count: patterns.length,
-        dueNumbers: dueNumbers.slice(0, 5)
-      };
-      
-      log("info", "Analyse de périodicité effectuée", {
-        patterns: patterns.length,
-        dueNumbers: dueNumbers.slice(0, 5)
-      });
-    } catch (error) {
-      log("warn", "Analyse de périodicité échouée", { error });
-    }
-  }
-
+  
   return analysisResults;
 }
 
@@ -287,13 +228,11 @@ function enhanceFinalPrediction(
 ): PredictionResult {
   let prediction = { ...basePrediction };
 
-  // Utiliser la prédiction bayésienne si meilleure
   if (analysis.bayesianPrediction && 
       analysis.bayesianPrediction.confidence > prediction.confidence) {
     prediction = analysis.bayesianPrediction;
   }
 
-  // Boost avec les numéros "dus"
   if (analysis.periodicity?.dueNumbers.length) {
     const boostedNumbers = [...prediction.numbers];
     const dueNumbers = analysis.periodicity.dueNumbers;
@@ -311,8 +250,9 @@ function enhanceFinalPrediction(
       numbers: boostedNumbers.sort((a, b) => a - b),
       factors: [
         ...prediction.factors,
-        `Numéros dus: ${dueNumbers.slice(0, 3).join(', ')}`
-      ]
+        "Boost Périodique (Numéros Dus)"
+      ],
+      confidence: Math.min(0.95, prediction.confidence * 1.05)
     };
   }
 
@@ -320,161 +260,61 @@ function enhanceFinalPrediction(
 }
 
 function applyEnhancedFormulas(
-  results: DrawResult[],
-  optimizedPrediction: PredictionResult,
-  predictions: PredictionResult[],
-  dataMetrics: DataMetrics,
+  results: DrawResult[], 
+  finalPrediction: PredictionResult, 
+  predictions: PredictionResult[], 
+  dataMetrics: DataMetrics, 
   options: PredictionOptions
-): { prediction?: EnhancedPredictionResult; enhanced?: EnhancedPredictionResult; breakdown?: EnhancedScoreBreakdown } {
-  if (options.useEnhancedFormulas === false || results.length < 20) {
-    return {};
-  }
-
+): { prediction: PredictionResult; enhanced?: EnhancedPredictionResult; breakdown?: EnhancedScoreBreakdown } {
   try {
-    const enhancedPredictionResult = generateOptimizedPrediction(results, optimizedPrediction);
-    const breakdown = enhancedPredictionResult.breakdown;
-
-    // Confiance améliorée
-    if (predictions.length >= 2) {
-      const predictionsMap = new Map(predictions.map(p => [p.algorithm, p]));
-      const historicalAccuracy = new Map<string, number>();
+    const enhanced = generateOptimizedPrediction(results, finalPrediction.numbers);
+    
+    if (enhanced && enhanced.recommendedNumbers && enhanced.recommendedNumbers.length === 5) {
+      const mergedPrediction = {
+        ...finalPrediction,
+        numbers: enhanced.recommendedNumbers.sort((a, b) => a - b),
+        confidence: Math.min(0.95, finalPrediction.confidence * (1 + (enhanced.compositeScore / 200))),
+        factors: [
+          ...finalPrediction.factors,
+          ...enhanced.narratives.slice(0, 3)
+        ]
+      };
       
-      const enhancedConfidence = calculateEnhancedConfidence(
-        predictionsMap,
-        historicalAccuracy,
-        dataMetrics.quality,
-        dataMetrics.freshness
-      );
-      
-      enhancedPredictionResult.confidence = Math.max(
-        enhancedPredictionResult.confidence,
-        enhancedConfidence
-      );
+      return { 
+        prediction: mergedPrediction, 
+        enhanced: enhanced,
+        breakdown: enhanced.breakdown 
+      };
     }
-
-    log("info", "Formules améliorées appliquées", {
-      composite: breakdown.composite,
-      narratives: enhancedPredictionResult.narratives.length,
-    });
-
-    return {
-      prediction: enhancedPredictionResult,
-      enhanced: enhancedPredictionResult,
-      breakdown
-    };
   } catch (error) {
-    log("warn", "Formules améliorées échouées", { error });
-    return {};
+    log("warn", "Erreur lors de l'application des formules améliorées", { error });
   }
+  
+  return { prediction: finalPrediction };
 }
 
-// =====================================================
-// GÉNÉRATION D'EXPLICATIONS
-// =====================================================
-
-/**
- * Génère des explications détaillées pour les prédictions
- */
 export function generateExplanations(
-  result: PredictionEngineResult,
-  historicalData: DrawResult[]
-): {
-  summary: string;
-  strengths: string[];
-  weaknesses: string[];
-  recommendation: string;
-  advancedInsights?: string[];
-  algorithmInfo: {
-    name: string;
-    description: string;
-    dataPointsUsed: number;
-    confidence: number;
-  };
-} {
-  const { dataMetrics, selectedAlgorithm, predictions, consensusMetrics, periodicPatterns } = result;
+  predictions: PredictionResult[],
+  results: DrawResult[],
+  options: any
+): any[] {
+  return predictions.map(p => ({
+    algorithm: p.algorithm,
+    explanation: p.factors.join(", ")
+  }));
+}
 
-  const strengths: string[] = [`Algorithme ${selectedAlgorithm} sélectionné`];
-  const weaknesses: string[] = [];
-
-  // Analyse des forces
-  if (dataMetrics.quality > 0.7) {
-    strengths.push("Excellente qualité des données");
+function generateFallbackPrediction(): PredictionResult {
+  const fallbackNumbers = [];
+  while(fallbackNumbers.length < 5) {
+    const n = Math.floor(Math.random() * 90) + 1;
+    if(!fallbackNumbers.includes(n)) fallbackNumbers.push(n);
   }
-  if (dataMetrics.freshness > 0.7) {
-    strengths.push("Données récentes et actualisées");
-  }
-  if (dataMetrics.historicalCount >= 100) {
-    strengths.push(`Volume solide de ${dataMetrics.historicalCount} tirages`);
-  }
-  if (consensusMetrics && consensusMetrics.agreementScore > 0.4) {
-    strengths.push(`Fort consensus inter-algorithmes (${(consensusMetrics.agreementScore * 100).toFixed(0)}%)`);
-  }
-
-  // Analyse des faiblesses
-  if (dataMetrics.quality < 0.5) {
-    weaknesses.push(`Qualité des données limitée (${(dataMetrics.quality * 100).toFixed(0)}%)`);
-  }
-  if (dataMetrics.freshness < 0.5) {
-    weaknesses.push("Données peu récentes");
-  }
-  if (dataMetrics.historicalCount < 50) {
-    weaknesses.push(`Historique limité (${dataMetrics.historicalCount} tirages)`);
-  }
-  if (consensusMetrics && consensusMetrics.agreementScore < 0.2) {
-    weaknesses.push("Faible accord entre les modèles");
-  }
-
-  // Confiance moyenne
-  const avgConfidence = predictions.length > 0
-    ? predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length
-    : 0;
-
-  const summary = `${predictions.length} prédiction(s) générée(s) avec ${selectedAlgorithm}`;
-  
-  const recommendation = avgConfidence > 0.7
-    ? `Confiance élevée (${(avgConfidence * 100).toFixed(0)}%) - Prédictions fiables`
-    : avgConfidence > 0.5
-    ? `Confiance modérée (${(avgConfidence * 100).toFixed(0)}%) - Prudence recommandée`
-    : `Confiance faible (${(avgConfidence * 100).toFixed(0)}%) - Données insuffisantes`;
-
-  // Insights avancés
-  const advancedInsights: string[] = [];
-  
-  if (consensusMetrics?.consensusNumbers.length) {
-    advancedInsights.push(`Numéros avec fort consensus: ${consensusMetrics.consensusNumbers.slice(0, 5).join(', ')}`);
-  }
-  
-  if (periodicPatterns) {
-    if (periodicPatterns.count > 0) {
-      advancedInsights.push(`${periodicPatterns.count} pattern(s) périodique(s) détecté(s)`);
-    }
-    if (periodicPatterns.dueNumbers.length > 0) {
-      advancedInsights.push(`Numéros "dus": ${periodicPatterns.dueNumbers.join(', ')}`);
-    }
-  }
-
-  // Descriptions des algorithmes
-  const algorithmDescriptions: Record<string, string> = {
-    "Ensemble Hybride Stacking": "Méta-algorithme combinant les modèles pour une prédiction optimisée",
-    "Attention Spatiale": "Réseau d'attention pour capturer les dépendances longue distance",
-    "Séquences Récurrentes": "Réseau récurrent spécialisé dans les séquences temporelles",
-    "Arbres Heuristiques": "Ensemble d'arbres de décision pour robustesse",
-    "FrequencyPro": "Analyse fréquentielle pondérée avec détection de tendances"
-  };
-
-  const algorithmInfo = {
-    name: selectedAlgorithm,
-    description: algorithmDescriptions[selectedAlgorithm] || "Algorithme de prédiction avancé",
-    dataPointsUsed: dataMetrics.historicalCount,
-    confidence: avgConfidence
-  };
-
   return {
-    summary,
-    strengths,
-    weaknesses,
-    recommendation,
-    advancedInsights: advancedInsights.length > 0 ? advancedInsights : undefined,
-    algorithmInfo,
+    algorithm: "Fallback",
+    numbers: fallbackNumbers.sort((a, b) => a - b),
+    confidence: 0.5,
+    score: 0.5,
+    factors: ["Fallback Mode"]
   };
 }

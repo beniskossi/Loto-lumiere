@@ -518,9 +518,9 @@ const Auth = () => {
                   <p>
                     Chez <strong>LOTO LUMIÈRE</strong>, nous accordons une importance fondamentale à la confidentialité de vos données et à votre anonymat de recherche.
                   </p>
-                  <h4 className="font-bold text-slate-100">1. Collecte Limitée</h4>
+                  <h4 className="font-bold text-slate-100">1. Collecte Limitée & Bases Légales</h4>
                   <p>
-                    Nous collectons uniquement l'adresse e-mail et le nom complet que vous nous fournissez volontairement lors de la création de votre compte d'analyste afin de gérer vos accès et vos préférences (alertes de tirage, historiques personnels).
+                    Nous traitons vos données sur la base de votre <strong>consentement</strong> (Article 6(1)(a) du RGPD) pour l'enregistrement de vos préférences et grilles suivies, et de notre <strong>intérêt légitime</strong> (Article 6(1)(f) du RGPD) pour assurer la sécurité et l'authentification de votre compte d'analyste.
                   </p>
                   <h4 className="font-bold text-slate-100">2. Non-Transmission à des Tiers</h4>
                   <p>
@@ -529,6 +529,14 @@ const Auth = () => {
                   <h4 className="font-bold text-slate-100">3. Sécurisation Technique</h4>
                   <p>
                     Nous utilisons les protocoles d'authentification certifiés de Supabase avec chiffrement fort au repos et en transit (HTTPS/SSL), ainsi que des règles de sécurité de niveau ligne (Row-Level Security) strictes sur notre base de données PostgreSQL.
+                  </p>
+                  <h4 className="font-bold text-slate-100">4. Durée de Conservation des Données</h4>
+                  <p>
+                    Vos données sont conservées uniquement pour la durée de vie active de votre compte. Tout compte n'ayant enregistré aucune connexion pendant une période de 24 mois consécutifs est considéré comme inactif et ses données personnelles associées sont définitivement et automatiquement purgées.
+                  </p>
+                  <h4 className="font-bold text-slate-100">5. Droit à l'Oubli & Suppression Autonome</h4>
+                  <p>
+                    Conformément à la réglementation européenne, vous disposez d'un droit complet d'accès, de rectification et d'effacement de vos données. LOTO LUMIÈRE met à votre disposition un outil de suppression autonome de compte et d'historiques dans l'onglet <strong>Compte</strong> de l'application, supprimant instantanément et de manière irréversible toutes vos données de nos serveurs.
                   </p>
                 </div>
               </DialogContent>
