@@ -38,8 +38,10 @@ export function validateAndCleanPredictions<T extends { numbers: number[] }>(
 
       // Une prédiction Loto Lumière valide requiert exactement 5 numéros distincts
       if (cleanNumbers.length !== 5) {
-        console.warn("Prédiction invalide ignorée (doit contenir exactement 5 numéros uniques entre 1 et 90):", pred);
-        return null;
+        console.error("[CRITIQUE] L'algorithme a généré une prédiction invalide avec " + cleanNumbers.length + " numéros:", pred);
+        // Le frontend ne doit plus masquer les bugs du backend en filtrant silencieusement
+        // On laisse passer pour forcer la visibilité du défaut (ou on pourrait jeter une erreur)
+        // throw new Error("Backend Bug: L'algorithme n'a pas retourné 5 numéros uniques.");
       }
 
       return {

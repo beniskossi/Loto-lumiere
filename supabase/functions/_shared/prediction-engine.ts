@@ -29,6 +29,8 @@ import {
 
 import { log, calculateDataQuality, calculateFreshness } from "./utils.ts";
 import { applyAntiBiasLayer } from "./anti-bias.ts";
+import { calibrateProbability } from "./calibration.ts";
+import { getHistoricalPerformanceMap } from "./ledger.ts";
 
 export type { EnhancedPredictionResult, EnhancedScoreBreakdown };
 
@@ -78,8 +80,15 @@ export async function generatePredictions(
     dataMetrics
   );
 
-  // Ajuster les scores selon la qualité des données
-  adjustPredictionScores(predictions, dataMetrics);
+  // Couche de calibration unique basée sur le ledger (historique)
+  // TODO: Récupérer le vrai historicalPerformance depuis la BD (ledger)
+  // Récupération de la performance historique réelle depuis le Ledger
+  const historicalLedger = await getHistoricalPerformanceMap();
+  const calibratedPredictions = calibrateProbability(predictions, historicalLedger);
+  
+  // Remplacer les prédictions par leurs versions calibrées
+  predictions.length = 0;
+  predictions.push(...calibratedPredictions);
 
   // Analyses avancées
   const analysisResults = await performAdvancedAnalysis(
@@ -114,7 +123,9 @@ export async function generatePredictions(
   if (antiBiasResult.biasDetected.length > 0) {
     rawOptimized.numbers = antiBiasResult.adjustedNumbers;
     rawOptimized.factors.push(...antiBiasResult.biasDetected.map(b => `[Anti-Biais Corrigé] ${b}`));
-    rawOptimized.confidence = rawOptimized.confidence * (1 - (antiBiasResult.biasScore * 0.1));
+    // La confiance mathématique ne doit pas être altérée par un multiplicateur opaque ici.
+    // La couche Anti-Biais corrige la combinaison elle-même. La calibration de la probabilité
+    // est réservée au module Platt Scaling / Ledger.
   }
 
   const executionTime = Date.now() - startTime;
@@ -173,12 +184,9 @@ async function executePredictions(
 }
 
 function adjustPredictionScores(predictions: PredictionResult[], dataMetrics: DataMetrics): void {
-  const qualityFactor = 0.5 + dataMetrics.quality * 0.3 + dataMetrics.freshness * 0.2;
-  
-  predictions.forEach(pred => {
-    pred.confidence = Math.min(0.95, pred.confidence * qualityFactor);
-    pred.score = Math.min(0.95, pred.score * qualityFactor);
-  });
+  // Remplacé par: Calibration probabiliste sans multiplicateurs arbitraires
+  // En attendant le Platt Scaling complet sur le ledger:
+  // on préserve la probabilité d'origine calculée mathématiquement.
 }
 
 interface AdvancedAnalysisResults {

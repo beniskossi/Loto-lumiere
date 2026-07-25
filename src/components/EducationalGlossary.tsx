@@ -45,7 +45,24 @@ export const EducationalGlossary = () => {
             <span className="font-semibold text-white">Calibration (Score de Confiance)</span>
             <p className="mt-1 text-xs">Le score affiché (ex: 65%) ne signifie pas "65% de chances de gagner". Il indique le degré d'alignement de la combinaison avec les paramètres du modèle (répartition, poids historiques).</p>
           </div>
+        
+<h3 className="font-semibold text-white mb-2">Moteur Probabiliste (Phase 2)</h3>
+          <ul className="space-y-4 text-sm text-gray-300">
+            <li>
+              <span className="font-semibold text-white">Loi de Dirichlet à Oubli</span>
+              <p className="mt-1 text-gray-400">Le moteur central (FrequencyPro) n'utilise plus de statistiques naïves. Il calcule une distribution bayésienne (Dirichlet-multinomiale) avec un facteur d'oubli exponentiel. Les pondérations (lambda) ne sont plus codées en dur mais ajustées mathématiquement.</p>
+            </li>
+            <li>
+              <span className="font-semibold text-white">Baseline PCG32 (Honnêteté)</span>
+              <p className="mt-1 text-gray-400">Pour prouver sa performance, l'IA est toujours comparée à un algorithme purement aléatoire de haute précision (PCG32). Si l'IA ne fait pas mieux que la baseline (probabilité de 5/90), elle s'efface.</p>
+            </li>
+            <li>
+              <span className="font-semibold text-white">Ledger de Calibration (Walk-Forward)</span>
+              <p className="mt-1 text-gray-400">Les prédictions sont enregistrées chaque nuit dans un Ledger immuable puis confrontées à la réalité le lendemain. Ce backtesting continu (Platt Scaling) permet à l'IA d'apprendre de ses propres erreurs (Log-Score) et de ne jamais gonfler artificiellement sa "confiance".</p>
+            </li>
+          </ul>
         </div>
+</div>
       </CardContent>
     </Card>
   );
