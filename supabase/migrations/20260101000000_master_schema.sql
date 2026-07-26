@@ -10,6 +10,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Duplicate detection in number arrays
+DROP FUNCTION IF EXISTS public.has_any_duplicates(integer[]) CASCADE;
 CREATE OR REPLACE FUNCTION public.has_any_duplicates(arr integer[])
 RETURNS boolean
 LANGUAGE plpgsql
@@ -24,6 +25,7 @@ END;
 $$;
 
 -- Validation for 5-number lottery predictions (1 to 90, exactly 5 unique numbers)
+DROP FUNCTION IF EXISTS public.validate_numbers_array(integer[]) CASCADE;
 CREATE OR REPLACE FUNCTION public.validate_numbers_array(numbers integer[])
 RETURNS boolean
 LANGUAGE plpgsql
@@ -39,6 +41,7 @@ END;
 $$;
 
 -- Array matching helper
+DROP FUNCTION IF EXISTS public.count_array_matches(integer[], integer[]) CASCADE;
 CREATE OR REPLACE FUNCTION public.count_array_matches(arr1 integer[], arr2 integer[])
 RETURNS integer
 LANGUAGE plpgsql
@@ -59,6 +62,7 @@ END;
 $$;
 
 -- Automatic updated_at column handler
+DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -70,6 +74,7 @@ END;
 $$;
 
 -- User admin role verification helper
+DROP FUNCTION IF EXISTS public.is_admin() CASCADE;
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean
 LANGUAGE plpgsql
@@ -81,6 +86,36 @@ BEGIN
     SELECT 1 FROM public.user_profiles 
     WHERE id = auth.uid() 
     AND role IN ('admin', 'super_admin')
+  );
+END;
+$$;
+
+-- Alias for is_admin
+DROP FUNCTION IF EXISTS public.is_current_user_admin() CASCADE;
+CREATE OR REPLACE FUNCTION public.is_current_user_admin()
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN public.is_admin();
+END;
+$$;
+
+-- Has Role Helper
+DROP FUNCTION IF EXISTS public.has_role(text, uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.has_role CASCADE;
+CREATE OR REPLACE FUNCTION public.has_role(_role text, _user_id uuid DEFAULT auth.uid())
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.user_profiles
+    WHERE id = _user_id AND role = _role
   );
 END;
 $$;
@@ -334,6 +369,8 @@ CREATE TABLE IF NOT EXISTS public.algorithm_calibration_metrics (
 -- ----------------------------------------------------------------------------
 
 -- Calculate composite score for a set of numbers based on 5 explainable formulas
+DROP FUNCTION IF EXISTS public.calculate_composite_score(integer[], text) CASCADE;
+DROP FUNCTION IF EXISTS public.calculate_composite_score CASCADE;
 CREATE OR REPLACE FUNCTION public.calculate_composite_score(p_numbers integer[], p_draw_name text)
 RETURNS numeric
 LANGUAGE plpgsql
@@ -382,6 +419,8 @@ END;
 $$;
 
 -- Global Statistics RPC
+DROP FUNCTION IF EXISTS public.get_global_statistics(text) CASCADE;
+DROP FUNCTION IF EXISTS public.get_global_statistics() CASCADE;
 CREATE OR REPLACE FUNCTION public.get_global_statistics(p_draw_name text DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -414,6 +453,8 @@ END;
 $$;
 
 -- Get Enhanced Number Stats RPC
+DROP FUNCTION IF EXISTS public.get_enhanced_stats(text, integer) CASCADE;
+DROP FUNCTION IF EXISTS public.get_enhanced_stats() CASCADE;
 CREATE OR REPLACE FUNCTION public.get_enhanced_stats(p_draw_name text DEFAULT NULL, p_limit integer DEFAULT 90)
 RETURNS TABLE (
   number integer,
@@ -442,6 +483,8 @@ END;
 $$;
 
 -- Algorithm Performance Summary RPC
+DROP FUNCTION IF EXISTS public.get_algorithm_performance_summary(integer) CASCADE;
+DROP FUNCTION IF EXISTS public.get_algorithm_performance_summary() CASCADE;
 CREATE OR REPLACE FUNCTION public.get_algorithm_performance_summary(p_days integer DEFAULT 30)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -466,6 +509,97 @@ BEGIN
   ) t;
 
   RETURN COALESCE(v_result, '[]'::jsonb);
+END;
+$$;
+
+-- Detailed Algorithm Rankings RPC
+DROP FUNCTION IF EXISTS public.get_algorithm_rankings_detailed(text) CASCADE;
+DROP FUNCTION IF EXISTS public.get_algorithm_rankings_detailed() CASCADE;
+CREATE OR REPLACE FUNCTION public.get_algorithm_rankings_detailed(p_draw_name text DEFAULT NULL)
+RETURNS TABLE (
+  model_used text,
+  total_predictions bigint,
+  avg_accuracy numeric,
+  composite_score numeric,
+  best_match integer,
+  win_count bigint
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    ap.model_used,
+    COUNT(ap.id) AS total_predictions,
+    COALESCE(ROUND(AVG(ap.accuracy_score)::numeric, 4), 0) AS avg_accuracy,
+    COALESCE(ROUND(AVG(ap.composite_score)::numeric, 4), 0) AS composite_score,
+    COALESCE(MAX(ap.matches_count), 0)::integer AS best_match,
+    COUNT(CASE WHEN ap.matches_count >= 3 THEN 1 END) AS win_count
+  FROM public.algorithm_performance ap
+  WHERE (p_draw_name IS NULL OR ap.draw_name = p_draw_name)
+  GROUP BY ap.model_used
+  ORDER BY avg_accuracy DESC;
+END;
+$$;
+
+-- Algorithm Trends RPC
+DROP FUNCTION IF EXISTS public.get_algorithm_trends(text) CASCADE;
+DROP FUNCTION IF EXISTS public.get_algorithm_trends() CASCADE;
+CREATE OR REPLACE FUNCTION public.get_algorithm_trends(p_draw_name text DEFAULT NULL)
+RETURNS TABLE (
+  model_used text,
+  draw_date date,
+  avg_accuracy numeric,
+  matches_count integer
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    ap.model_used,
+    ap.draw_date,
+    ROUND(AVG(ap.accuracy_score)::numeric, 4) AS avg_accuracy,
+    MAX(ap.matches_count)::integer AS matches_count
+  FROM public.algorithm_performance ap
+  WHERE (p_draw_name IS NULL OR ap.draw_name = p_draw_name)
+  GROUP BY ap.model_used, ap.draw_date
+  ORDER BY ap.draw_date DESC;
+END;
+$$;
+
+-- Cleanup Expired Predictions RPC
+DROP FUNCTION IF EXISTS public.cleanup_expired_predictions() CASCADE;
+CREATE OR REPLACE FUNCTION public.cleanup_expired_predictions()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  DELETE FROM public.precalculated_predictions
+  WHERE draw_date < CURRENT_DATE - INTERVAL '30 days';
+END;
+$$;
+
+-- Dynamic Optimal Gap RPC
+DROP FUNCTION IF EXISTS public.calculate_dynamic_optimal_gap(text) CASCADE;
+DROP FUNCTION IF EXISTS public.calculate_dynamic_optimal_gap() CASCADE;
+CREATE OR REPLACE FUNCTION public.calculate_dynamic_optimal_gap(p_draw_name text)
+RETURNS numeric
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  v_avg_gap numeric;
+BEGIN
+  SELECT AVG(days_since_last) INTO v_avg_gap
+  FROM public.number_statistics
+  WHERE draw_name = p_draw_name;
+  RETURN COALESCE(ROUND(v_avg_gap, 2), 7.0);
 END;
 $$;
 
@@ -500,6 +634,7 @@ GROUP BY ap.model_used;
 CREATE UNIQUE INDEX IF NOT EXISTS mv_enhanced_stats_pkey ON public.mv_enhanced_stats (algorithm_name);
 
 -- Materialized View Refresh Routine
+DROP FUNCTION IF EXISTS public.refresh_materialized_views() CASCADE;
 CREATE OR REPLACE FUNCTION public.refresh_materialized_views()
 RETURNS void
 LANGUAGE plpgsql
@@ -523,11 +658,34 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.refresh_algorithm_rankings() CASCADE;
+CREATE OR REPLACE FUNCTION public.refresh_algorithm_rankings()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  PERFORM public.refresh_materialized_views();
+END;
+$$;
+
+DROP FUNCTION IF EXISTS public.refresh_enhanced_stats() CASCADE;
+CREATE OR REPLACE FUNCTION public.refresh_enhanced_stats()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  PERFORM public.refresh_materialized_views();
+END;
+$$;
+
 -- ----------------------------------------------------------------------------
 -- 5. AUTOMATED TRIGGERS
 -- ----------------------------------------------------------------------------
 
 -- Trigger to create profile and preferences on user signup
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -573,6 +731,7 @@ CREATE TRIGGER update_algorithm_config_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Adaptive Orchestration Automation on Draw Result Insertion
+DROP FUNCTION IF EXISTS public.trigger_adaptive_orchestration() CASCADE;
 CREATE OR REPLACE FUNCTION public.trigger_adaptive_orchestration()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -640,31 +799,69 @@ ALTER TABLE public.training_control ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.algorithm_calibration_metrics ENABLE ROW LEVEL SECURITY;
 
 -- Public READ policies for shared data
+DROP POLICY IF EXISTS "Public read draw_results" ON public.draw_results;
 CREATE POLICY "Public read draw_results" ON public.draw_results FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read number_statistics" ON public.number_statistics;
 CREATE POLICY "Public read number_statistics" ON public.number_statistics FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read precalculated_predictions" ON public.precalculated_predictions;
 CREATE POLICY "Public read precalculated_predictions" ON public.precalculated_predictions FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read collaborative_predictions" ON public.collaborative_predictions;
 CREATE POLICY "Public read collaborative_predictions" ON public.collaborative_predictions FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read algorithm_config" ON public.algorithm_config;
 CREATE POLICY "Public read algorithm_config" ON public.algorithm_config FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read algorithm_performance" ON public.algorithm_performance;
 CREATE POLICY "Public read algorithm_performance" ON public.algorithm_performance FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read achievements" ON public.achievements;
 CREATE POLICY "Public read achievements" ON public.achievements FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read user_profiles" ON public.user_profiles;
 CREATE POLICY "Public read user_profiles" ON public.user_profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read ledger_entries" ON public.ledger_entries;
 CREATE POLICY "Public read ledger_entries" ON public.ledger_entries FOR SELECT USING (true);
 
 -- User-owned policies
+DROP POLICY IF EXISTS "Users read own predictions" ON public.predictions;
 CREATE POLICY "Users read own predictions" ON public.predictions FOR SELECT USING (auth.uid() = user_id OR user_id IS NULL);
+
+DROP POLICY IF EXISTS "Users insert own predictions" ON public.predictions;
 CREATE POLICY "Users insert own predictions" ON public.predictions FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+
+DROP POLICY IF EXISTS "Users update own predictions" ON public.predictions;
 CREATE POLICY "Users update own predictions" ON public.predictions FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users manage own profiles" ON public.user_profiles;
 CREATE POLICY "Users manage own profiles" ON public.user_profiles FOR ALL USING (auth.uid() = id OR public.is_admin());
+
+DROP POLICY IF EXISTS "Users manage own preferences" ON public.user_preferences;
 CREATE POLICY "Users manage own preferences" ON public.user_preferences FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users read own achievements" ON public.user_achievements;
 CREATE POLICY "Users read own achievements" ON public.user_achievements FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users manage feedback" ON public.user_prediction_feedback;
 CREATE POLICY "Users manage feedback" ON public.user_prediction_feedback FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users manage community votes" ON public.community_votes;
 CREATE POLICY "Users manage community votes" ON public.community_votes FOR ALL USING (auth.uid() = user_id);
 
 -- Admin management policies
+DROP POLICY IF EXISTS "Admin manage algorithm_config" ON public.algorithm_config;
 CREATE POLICY "Admin manage algorithm_config" ON public.algorithm_config FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin manage draw_results" ON public.draw_results;
 CREATE POLICY "Admin manage draw_results" ON public.draw_results FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin manage training_history" ON public.algorithm_training_history;
 CREATE POLICY "Admin manage training_history" ON public.algorithm_training_history FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin manage training_control" ON public.training_control;
 CREATE POLICY "Admin manage training_control" ON public.training_control FOR ALL USING (public.is_admin());
 
 -- ----------------------------------------------------------------------------
