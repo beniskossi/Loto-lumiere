@@ -146,6 +146,12 @@ CREATE TABLE IF NOT EXISTS public.user_preferences (
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
   favorite_draws text[] DEFAULT '{}',
   favorite_numbers integer[] DEFAULT '{}',
+  preferred_algorithm text,
+  preferred_draw_name text,
+  theme_primary_color text,
+  theme_accent_color text,
+  custom_layout jsonb DEFAULT '{}'::jsonb,
+  has_completed_onboarding boolean DEFAULT false,
   notification_enabled boolean DEFAULT true,
   notification_time time DEFAULT '09:00:00',
   theme text DEFAULT 'system',
@@ -158,7 +164,10 @@ CREATE TABLE IF NOT EXISTS public.draw_results (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   draw_name text NOT NULL,
   draw_date date NOT NULL,
+  draw_day text,
+  draw_time text,
   winning_numbers integer[] NOT NULL CONSTRAINT check_winning_numbers CHECK (public.validate_numbers_array(winning_numbers)),
+  machine_numbers integer[] DEFAULT '{}',
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
   CONSTRAINT unique_draw_result UNIQUE (draw_name, draw_date)
@@ -171,7 +180,9 @@ CREATE TABLE IF NOT EXISTS public.number_statistics (
   number integer NOT NULL CHECK (number BETWEEN 1 AND 90),
   frequency integer DEFAULT 0,
   last_drawn_date date,
+  last_appearance date,
   days_since_last integer DEFAULT 0,
+  associated_numbers jsonb DEFAULT '[]'::jsonb,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
   CONSTRAINT unique_number_stat UNIQUE (draw_name, number)
@@ -183,11 +194,24 @@ CREATE TABLE IF NOT EXISTS public.precalculated_predictions (
   draw_name text NOT NULL,
   draw_date date NOT NULL,
   algorithm_name text NOT NULL,
+  selected_algorithm text,
   predicted_numbers integer[] NOT NULL CONSTRAINT check_pred_numbers CHECK (public.validate_numbers_array(predicted_numbers)),
+  predictions jsonb DEFAULT '[]'::jsonb,
   confidence numeric DEFAULT 0.5,
   score numeric DEFAULT 0.5,
   composite_score numeric DEFAULT 0.5,
   algorithm_reason text,
+  explanations jsonb DEFAULT '{}'::jsonb,
+  formulas_breakdown jsonb DEFAULT '{}'::jsonb,
+  optimized_prediction jsonb DEFAULT '{}'::jsonb,
+  top_pairs jsonb DEFAULT '[]'::jsonb,
+  warning text,
+  enhanced_narratives text[],
+  calculated_at timestamptz DEFAULT now(),
+  expires_at timestamptz DEFAULT (now() + interval '30 days'),
+  data_quality numeric DEFAULT 1.0,
+  freshness numeric DEFAULT 1.0,
+  historical_count integer DEFAULT 0,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
   CONSTRAINT unique_precalc_pred UNIQUE (draw_name, draw_date, algorithm_name)
@@ -202,18 +226,38 @@ CREATE TABLE IF NOT EXISTS public.orchestration_history (
   algorithm_weights jsonb DEFAULT '{}'::jsonb,
   execution_time_ms integer DEFAULT 0,
   status text DEFAULT 'completed',
+  notes text,
+  trigger_metrics jsonb DEFAULT '{}'::jsonb,
+  weight_adjustments jsonb DEFAULT '{}'::jsonb,
+  parameter_adjustments jsonb DEFAULT '{}'::jsonb,
+  algorithms_analyzed jsonb DEFAULT '[]'::jsonb,
+  adjustment_strategy text DEFAULT 'adaptive',
+  adjustment_date date DEFAULT CURRENT_DATE,
+  expected_improvement numeric DEFAULT 0,
   created_at timestamptz DEFAULT now()
 );
 
 -- Collaborative Predictions
 CREATE TABLE IF NOT EXISTS public.collaborative_predictions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
   draw_name text NOT NULL,
   draw_date date NOT NULL,
-  numbers integer[] NOT NULL CONSTRAINT check_collab_numbers CHECK (public.validate_numbers_array(numbers)),
+  numbers integer[] CONSTRAINT check_collab_numbers CHECK (public.validate_numbers_array(numbers)),
+  predicted_numbers integer[],
   total_votes integer DEFAULT 1,
+  votes_count integer DEFAULT 1,
   confidence_avg numeric DEFAULT 0.5,
   status text DEFAULT 'active',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Collaborative Prediction Votes
+CREATE TABLE IF NOT EXISTS public.collaborative_prediction_votes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  prediction_id uuid REFERENCES public.collaborative_predictions(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at timestamptz DEFAULT now()
 );
 
@@ -227,6 +271,16 @@ CREATE TABLE IF NOT EXISTS public.algorithm_config (
   parameters jsonb DEFAULT '{}'::jsonb,
   category text,
   created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Prediction Configuration
+CREATE TABLE IF NOT EXISTS public.prediction_config (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  config_key text UNIQUE NOT NULL,
+  config_value jsonb NOT NULL,
+  description text,
+  updated_by text,
   updated_at timestamptz DEFAULT now()
 );
 
@@ -262,7 +316,14 @@ CREATE TABLE IF NOT EXISTS public.algorithm_training_history (
   algorithm_name text NOT NULL,
   accuracy numeric DEFAULT 0,
   loss numeric DEFAULT 0,
-  training_date timestamptz DEFAULT now()
+  training_date timestamptz DEFAULT now(),
+  previous_parameters jsonb,
+  new_parameters jsonb,
+  previous_weight numeric DEFAULT 1.0,
+  new_weight numeric DEFAULT 1.0,
+  performance_improvement numeric DEFAULT 0,
+  training_metrics jsonb DEFAULT '{}'::jsonb,
+  created_at timestamptz DEFAULT now()
 );
 
 -- User & System Predictions
@@ -271,9 +332,13 @@ CREATE TABLE IF NOT EXISTS public.predictions (
   user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   draw_name text NOT NULL,
   prediction_date date DEFAULT CURRENT_DATE,
+  target_draw_date date,
+  target_draw_id uuid,
   predicted_numbers integer[] NOT NULL CONSTRAINT check_user_pred CHECK (public.validate_numbers_array(predicted_numbers)),
   confidence numeric DEFAULT 0.5,
+  confidence_score numeric DEFAULT 0.5,
   model_used text NOT NULL,
+  model_metadata jsonb DEFAULT '{}'::jsonb,
   algorithm_reason text,
   status text DEFAULT 'pending',
   matches_count integer DEFAULT 0,
@@ -287,6 +352,8 @@ CREATE TABLE IF NOT EXISTS public.user_prediction_feedback (
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
   prediction_id uuid REFERENCES public.predictions(id) ON DELETE CASCADE,
   rating integer CHECK (rating BETWEEN 1 AND 5),
+  matches integer DEFAULT 0,
+  comments text,
   feedback_text text,
   created_at timestamptz DEFAULT now()
 );
@@ -298,6 +365,51 @@ CREATE TABLE IF NOT EXISTS public.user_prediction_tracking (
   prediction_id uuid REFERENCES public.predictions(id) ON DELETE CASCADE,
   draw_result_id uuid REFERENCES public.draw_results(id) ON DELETE CASCADE,
   matches_count integer DEFAULT 0,
+  notes text,
+  marked_at timestamptz DEFAULT now(),
+  created_at timestamptz DEFAULT now()
+);
+
+-- Prediction Shares
+CREATE TABLE IF NOT EXISTS public.prediction_shares (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  prediction_id uuid REFERENCES public.predictions(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  share_platform text NOT NULL,
+  shared_at timestamptz DEFAULT now()
+);
+
+-- User Favorite Numbers & Lists
+CREATE TABLE IF NOT EXISTS public.user_favorites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  draw_name text,
+  favorite_numbers integer[] NOT NULL,
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.user_favorite_numbers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text,
+  favorite_numbers integer[] NOT NULL,
+  notes text,
+  category text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Scraping Jobs
+CREATE TABLE IF NOT EXISTS public.scraping_jobs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_date date NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  results_count integer DEFAULT 0,
+  error_message text,
+  started_at timestamptz,
+  completed_at timestamptz,
   created_at timestamptz DEFAULT now()
 );
 
@@ -349,9 +461,15 @@ CREATE TABLE IF NOT EXISTS public.community_votes (
 CREATE TABLE IF NOT EXISTS public.training_control (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   is_training boolean DEFAULT false,
+  is_training_enabled boolean DEFAULT true,
+  auto_tune_enabled boolean DEFAULT true,
   current_algorithm text,
   progress_percent numeric DEFAULT 0,
-  updated_at timestamptz DEFAULT now()
+  training_frequency_hours integer DEFAULT 24,
+  last_training_run timestamptz,
+  updated_by text,
+  updated_at timestamptz DEFAULT now(),
+  created_at timestamptz DEFAULT now()
 );
 
 -- Calibration Metrics
@@ -364,29 +482,127 @@ CREATE TABLE IF NOT EXISTS public.algorithm_calibration_metrics (
   evaluated_at timestamptz DEFAULT now()
 );
 
--- Idempotent Column Additions for Existing Database Instances
+-- Validation Reports
+CREATE TABLE IF NOT EXISTS public.validation_reports (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_date date DEFAULT CURRENT_DATE,
+  overall_status text DEFAULT 'passed',
+  total_checks integer DEFAULT 0,
+  passed_checks integer DEFAULT 0,
+  failed_checks integer DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.validation_report_details (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id uuid REFERENCES public.validation_reports(id) ON DELETE CASCADE,
+  check_name text NOT NULL,
+  status text DEFAULT 'passed',
+  details jsonb DEFAULT '{}'::jsonb,
+  created_at timestamptz DEFAULT now()
+);
+
+-- ----------------------------------------------------------------------------
+-- COMPREHENSIVE IDEMPOTENT COLUMN ADDITIONS FOR EXISTING INSTANCES
+-- ----------------------------------------------------------------------------
+
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS username text;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS full_name text;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS avatar_url text;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS bio text;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS role text DEFAULT 'user';
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS level integer DEFAULT 1;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS experience_points integer DEFAULT 0;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS total_predictions integer DEFAULT 0;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS successful_predictions integer DEFAULT 0;
 
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS favorite_draws text[] DEFAULT '{}';
 ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS favorite_numbers integer[] DEFAULT '{}';
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS preferred_algorithm text;
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS preferred_draw_name text;
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS theme_primary_color text;
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS theme_accent_color text;
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS custom_layout jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS has_completed_onboarding boolean DEFAULT false;
 ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS notification_enabled boolean DEFAULT true;
 ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS notification_time time DEFAULT '09:00:00';
 ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS theme text DEFAULT 'system';
 
+ALTER TABLE public.draw_results ADD COLUMN IF NOT EXISTS draw_name text;
+ALTER TABLE public.draw_results ADD COLUMN IF NOT EXISTS draw_date date;
+ALTER TABLE public.draw_results ADD COLUMN IF NOT EXISTS draw_day text;
+ALTER TABLE public.draw_results ADD COLUMN IF NOT EXISTS draw_time text;
+ALTER TABLE public.draw_results ADD COLUMN IF NOT EXISTS winning_numbers integer[];
+ALTER TABLE public.draw_results ADD COLUMN IF NOT EXISTS machine_numbers integer[] DEFAULT '{}';
+
+ALTER TABLE public.number_statistics ADD COLUMN IF NOT EXISTS draw_name text;
+ALTER TABLE public.number_statistics ADD COLUMN IF NOT EXISTS number integer;
+ALTER TABLE public.number_statistics ADD COLUMN IF NOT EXISTS frequency integer DEFAULT 0;
+ALTER TABLE public.number_statistics ADD COLUMN IF NOT EXISTS last_drawn_date date;
+ALTER TABLE public.number_statistics ADD COLUMN IF NOT EXISTS last_appearance date;
+ALTER TABLE public.number_statistics ADD COLUMN IF NOT EXISTS days_since_last integer DEFAULT 0;
+ALTER TABLE public.number_statistics ADD COLUMN IF NOT EXISTS associated_numbers jsonb DEFAULT '[]'::jsonb;
+
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS draw_name text;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS draw_date date;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS algorithm_name text;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS selected_algorithm text;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS predicted_numbers integer[];
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS predictions jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS confidence numeric DEFAULT 0.5;
 ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS score numeric DEFAULT 0.5;
 ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS composite_score numeric DEFAULT 0.5;
 ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS algorithm_reason text;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS explanations jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS formulas_breakdown jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS optimized_prediction jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS top_pairs jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS warning text;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS enhanced_narratives text[];
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS calculated_at timestamptz DEFAULT now();
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS expires_at timestamptz DEFAULT (now() + interval '30 days');
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS data_quality numeric DEFAULT 1.0;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS freshness numeric DEFAULT 1.0;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS historical_count integer DEFAULT 0;
 
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS draw_name text;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS draw_date date;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS selected_algorithm text;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS algorithm_weights jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS execution_time_ms integer DEFAULT 0;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS status text DEFAULT 'completed';
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS notes text;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS trigger_metrics jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS weight_adjustments jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS parameter_adjustments jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS algorithms_analyzed jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS adjustment_strategy text DEFAULT 'adaptive';
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS adjustment_date date DEFAULT CURRENT_DATE;
+ALTER TABLE public.orchestration_history ADD COLUMN IF NOT EXISTS expected_improvement numeric DEFAULT 0;
+
+ALTER TABLE public.collaborative_predictions ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.collaborative_predictions ADD COLUMN IF NOT EXISTS draw_name text;
+ALTER TABLE public.collaborative_predictions ADD COLUMN IF NOT EXISTS draw_date date;
+ALTER TABLE public.collaborative_predictions ADD COLUMN IF NOT EXISTS numbers integer[];
+ALTER TABLE public.collaborative_predictions ADD COLUMN IF NOT EXISTS predicted_numbers integer[];
+ALTER TABLE public.collaborative_predictions ADD COLUMN IF NOT EXISTS total_votes integer DEFAULT 1;
+ALTER TABLE public.collaborative_predictions ADD COLUMN IF NOT EXISTS votes_count integer DEFAULT 1;
+ALTER TABLE public.collaborative_predictions ADD COLUMN IF NOT EXISTS confidence_avg numeric DEFAULT 0.5;
+ALTER TABLE public.collaborative_predictions ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+
+ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS algorithm_name text;
+ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS description text;
 ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS is_enabled boolean DEFAULT true;
 ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS weight numeric DEFAULT 1.0;
 ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS parameters jsonb DEFAULT '{}'::jsonb;
 ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS category text;
 
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS draw_name text;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS draw_date date;
 ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS prediction_date date;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS model_used text;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS predicted_numbers integer[];
 ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS winning_numbers integer[];
 ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS actual_numbers integer[] DEFAULT '{}';
 ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS matches_count integer DEFAULT 0;
@@ -403,11 +619,34 @@ ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS factors text[]
 ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS prediction_id uuid;
 ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS draw_result_id uuid;
 
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS draw_name text;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS prediction_date date DEFAULT CURRENT_DATE;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS target_draw_date date;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS target_draw_id uuid;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS predicted_numbers integer[];
 ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS confidence numeric DEFAULT 0.5;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS confidence_score numeric DEFAULT 0.5;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS model_used text;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS model_metadata jsonb DEFAULT '{}'::jsonb;
 ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS algorithm_reason text;
 ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending';
 ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS matches_count integer DEFAULT 0;
 ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS matched_numbers integer[] DEFAULT '{}';
+
+ALTER TABLE public.user_prediction_feedback ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.user_prediction_feedback ADD COLUMN IF NOT EXISTS prediction_id uuid REFERENCES public.predictions(id) ON DELETE CASCADE;
+ALTER TABLE public.user_prediction_feedback ADD COLUMN IF NOT EXISTS rating integer;
+ALTER TABLE public.user_prediction_feedback ADD COLUMN IF NOT EXISTS matches integer DEFAULT 0;
+ALTER TABLE public.user_prediction_feedback ADD COLUMN IF NOT EXISTS comments text;
+ALTER TABLE public.user_prediction_feedback ADD COLUMN IF NOT EXISTS feedback_text text;
+
+ALTER TABLE public.user_prediction_tracking ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.user_prediction_tracking ADD COLUMN IF NOT EXISTS prediction_id uuid REFERENCES public.predictions(id) ON DELETE CASCADE;
+ALTER TABLE public.user_prediction_tracking ADD COLUMN IF NOT EXISTS draw_result_id uuid REFERENCES public.draw_results(id) ON DELETE CASCADE;
+ALTER TABLE public.user_prediction_tracking ADD COLUMN IF NOT EXISTS matches_count integer DEFAULT 0;
+ALTER TABLE public.user_prediction_tracking ADD COLUMN IF NOT EXISTS notes text;
+ALTER TABLE public.user_prediction_tracking ADD COLUMN IF NOT EXISTS marked_at timestamptz DEFAULT now();
 
 -- ----------------------------------------------------------------------------
 -- 3. COMPOSITE SCORE & STATISTICAL COMPUTATION FUNCTIONS
@@ -649,7 +888,7 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 4. MATERIALIZED VIEWS & RANKINGS
+-- 4. MATERIALIZED VIEWS, VIEWS & ALIASES
 -- ----------------------------------------------------------------------------
 
 DROP MATERIALIZED VIEW IF EXISTS public.mv_algorithm_stats CASCADE;
@@ -680,6 +919,67 @@ GROUP BY ap.model_used;
 
 CREATE UNIQUE INDEX IF NOT EXISTS mv_enhanced_stats_pkey ON public.mv_enhanced_stats (algorithm_name);
 
+-- Views for backward compatibility and aliases
+CREATE OR REPLACE VIEW public.profiles AS 
+SELECT id, id AS user_id, username, full_name, avatar_url, bio, role, level, experience_points, total_predictions, successful_predictions, created_at, updated_at 
+FROM public.user_profiles;
+
+CREATE OR REPLACE VIEW public.user_roles AS 
+SELECT id, id AS user_id, role, created_at 
+FROM public.user_profiles;
+
+CREATE OR REPLACE VIEW public.prediction_ledger AS 
+SELECT * FROM public.ledger_entries;
+
+CREATE OR REPLACE VIEW public.tracked_predictions AS 
+SELECT * FROM public.user_prediction_tracking;
+
+CREATE OR REPLACE VIEW public.prediction_tracking AS 
+SELECT * FROM public.user_prediction_tracking;
+
+CREATE OR REPLACE VIEW public.algorithm_evaluations AS 
+SELECT * FROM public.algorithm_performance;
+
+CREATE OR REPLACE VIEW public.algorithm_rankings AS
+SELECT 
+  model_used,
+  draw_name,
+  COUNT(id) AS total_predictions,
+  COALESCE(AVG(accuracy_score), 0) AS avg_accuracy,
+  COALESCE(MAX(matches_count), 0)::integer AS best_match,
+  SUM(matches_count) AS total_matches,
+  COUNT(CASE WHEN matches_count = 5 THEN 1 END) AS perfect_predictions,
+  COUNT(CASE WHEN matches_count = 4 THEN 1 END) AS excellent_predictions,
+  COUNT(CASE WHEN matches_count = 3 THEN 1 END) AS good_predictions,
+  MIN(created_at)::text AS first_prediction,
+  MAX(created_at)::text AS last_prediction
+FROM public.algorithm_performance
+GROUP BY model_used, draw_name;
+
+CREATE OR REPLACE VIEW public.algorithm_rankings_detailed AS
+SELECT 
+  model_used,
+  draw_name,
+  COUNT(id) AS total_predictions,
+  COALESCE(AVG(accuracy_score), 0) AS avg_accuracy,
+  COALESCE(STDDEV(accuracy_score), 0) AS accuracy_stddev,
+  COALESCE(MAX(matches_count), 0)::integer AS best_match,
+  COALESCE(MIN(matches_count), 0)::integer AS worst_match,
+  SUM(matches_count) AS total_matches,
+  COUNT(CASE WHEN matches_count = 5 THEN 1 END) AS perfect_predictions,
+  COUNT(CASE WHEN matches_count = 4 THEN 1 END) AS outstanding_predictions,
+  COUNT(CASE WHEN matches_count = 3 THEN 1 END) AS excellent_predictions,
+  COUNT(CASE WHEN matches_count = 2 THEN 1 END) AS good_predictions,
+  COALESCE(AVG(precision_score), 0) AS precision_rate,
+  COALESCE(AVG(recall_score), 0) AS recall_rate,
+  COALESCE(AVG(f1_score), 0) AS f1_score,
+  COALESCE(AVG(composite_score), 0) AS consistency_score,
+  COALESCE(AVG(accuracy_score), 0) AS overall_score,
+  MIN(created_at)::text AS first_prediction,
+  MAX(created_at)::text AS last_prediction
+FROM public.algorithm_performance
+GROUP BY model_used, draw_name;
+
 -- Materialized View Refresh Routine
 DROP FUNCTION IF EXISTS public.refresh_materialized_views() CASCADE;
 CREATE OR REPLACE FUNCTION public.refresh_materialized_views()
@@ -695,7 +995,6 @@ BEGIN
     REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_enhanced_stats;
   END IF;
 EXCEPTION WHEN OTHERS THEN
-  -- Fallback if CONCURRENTLY fails due to lack of index
   IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'mv_algorithm_stats') THEN
     REFRESH MATERIALIZED VIEW public.mv_algorithm_stats;
   END IF;
@@ -832,18 +1131,26 @@ ALTER TABLE public.number_statistics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.precalculated_predictions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orchestration_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.collaborative_predictions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.collaborative_prediction_votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.algorithm_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.prediction_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.algorithm_performance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.algorithm_training_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.predictions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_prediction_feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_prediction_tracking ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.prediction_shares ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_favorites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_favorite_numbers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.scraping_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ledger_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.community_votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.training_control ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.algorithm_calibration_metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.validation_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.validation_report_details ENABLE ROW LEVEL SECURITY;
 
 -- Public READ policies for shared data
 DROP POLICY IF EXISTS "Public read draw_results" ON public.draw_results;
@@ -860,6 +1167,9 @@ CREATE POLICY "Public read collaborative_predictions" ON public.collaborative_pr
 
 DROP POLICY IF EXISTS "Public read algorithm_config" ON public.algorithm_config;
 CREATE POLICY "Public read algorithm_config" ON public.algorithm_config FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read prediction_config" ON public.prediction_config;
+CREATE POLICY "Public read prediction_config" ON public.prediction_config FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public read algorithm_performance" ON public.algorithm_performance;
 CREATE POLICY "Public read algorithm_performance" ON public.algorithm_performance FOR SELECT USING (true);
@@ -898,9 +1208,18 @@ CREATE POLICY "Users manage feedback" ON public.user_prediction_feedback FOR ALL
 DROP POLICY IF EXISTS "Users manage community votes" ON public.community_votes;
 CREATE POLICY "Users manage community votes" ON public.community_votes FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users manage favorites" ON public.user_favorites;
+CREATE POLICY "Users manage favorites" ON public.user_favorites FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users manage favorite numbers" ON public.user_favorite_numbers;
+CREATE POLICY "Users manage favorite numbers" ON public.user_favorite_numbers FOR ALL USING (auth.uid() = user_id);
+
 -- Admin management policies
 DROP POLICY IF EXISTS "Admin manage algorithm_config" ON public.algorithm_config;
 CREATE POLICY "Admin manage algorithm_config" ON public.algorithm_config FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin manage prediction_config" ON public.prediction_config;
+CREATE POLICY "Admin manage prediction_config" ON public.prediction_config FOR ALL USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Admin manage draw_results" ON public.draw_results;
 CREATE POLICY "Admin manage draw_results" ON public.draw_results FOR ALL USING (public.is_admin());
@@ -910,6 +1229,15 @@ CREATE POLICY "Admin manage training_history" ON public.algorithm_training_histo
 
 DROP POLICY IF EXISTS "Admin manage training_control" ON public.training_control;
 CREATE POLICY "Admin manage training_control" ON public.training_control FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin manage scraping_jobs" ON public.scraping_jobs;
+CREATE POLICY "Admin manage scraping_jobs" ON public.scraping_jobs FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin manage validation_reports" ON public.validation_reports;
+CREATE POLICY "Admin manage validation_reports" ON public.validation_reports FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin manage validation_report_details" ON public.validation_report_details;
+CREATE POLICY "Admin manage validation_report_details" ON public.validation_report_details FOR ALL USING (public.is_admin());
 
 -- ----------------------------------------------------------------------------
 -- 8. SEED DATA - LES 6 ALGORITHMES OFFICIELS & GAMIFICATION
