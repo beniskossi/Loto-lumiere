@@ -132,6 +132,14 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'algorithm_performance' AND column_name = 'factors') THEN
         ALTER TABLE public.algorithm_performance ADD COLUMN factors text[];
     END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'algorithm_performance' AND column_name = 'composite_score') THEN
+        ALTER TABLE public.algorithm_performance ADD COLUMN composite_score numeric DEFAULT 0;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'algorithm_performance' AND column_name = 'actual_numbers') THEN
+        ALTER TABLE public.algorithm_performance ADD COLUMN actual_numbers integer[] DEFAULT '{}';
+    END IF;
 END $$;
 
 -- ============================================================================

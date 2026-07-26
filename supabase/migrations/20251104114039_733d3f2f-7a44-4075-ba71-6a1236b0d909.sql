@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS public.algorithm_performance (
   winning_numbers INTEGER[] NOT NULL,
   matches_count INTEGER NOT NULL DEFAULT 0,
   accuracy_score NUMERIC NOT NULL DEFAULT 0,
+  composite_score NUMERIC DEFAULT 0,
+  actual_numbers INTEGER[] DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   UNIQUE(draw_name, model_used, prediction_date, draw_date)
 );

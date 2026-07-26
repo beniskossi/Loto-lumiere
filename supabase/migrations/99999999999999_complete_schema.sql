@@ -153,6 +153,9 @@ CREATE TABLE IF NOT EXISTS public.algorithm_performance (
   created_at timestamptz DEFAULT now()
 );
 
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS composite_score numeric DEFAULT 0;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS actual_numbers integer[] DEFAULT '{}';
+
 -- Historique d'entraînement
 CREATE TABLE IF NOT EXISTS public.algorithm_training_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
