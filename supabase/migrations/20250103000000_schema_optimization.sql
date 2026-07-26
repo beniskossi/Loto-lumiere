@@ -5,7 +5,19 @@
 -- Suppression des tables dupliquées/obsolètes
 DROP TABLE IF EXISTS public.profiles CASCADE;
 DROP TABLE IF EXISTS public.user_favorites CASCADE;
-DROP TABLE IF EXISTS public.algorithm_config CASCADE;
+
+-- Assurer l'existence de la table algorithm_config
+CREATE TABLE IF NOT EXISTS public.algorithm_config (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  algorithm_name text UNIQUE NOT NULL,
+  description text,
+  is_enabled boolean DEFAULT true,
+  weight numeric DEFAULT 1.0,
+  parameters jsonb DEFAULT '{}'::jsonb,
+  category text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 
 -- ============================================================================
 -- 1. CORRECTION DE LA TABLE USER_PROFILES
@@ -72,10 +84,10 @@ END $$;
 -- ============================================================================
 
 -- Index optimisés pour les performances
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_draw_results_performance ON public.draw_results(draw_name, draw_date DESC, created_at DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_predictions_performance ON public.predictions(draw_name, prediction_date DESC, model_used);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_algorithm_performance_model_date ON public.algorithm_performance(model_used, draw_date DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_number_statistics_draw_frequency ON public.number_statistics(draw_name, frequency DESC, days_since_last);
+CREATE INDEX IF NOT EXISTS idx_draw_results_performance ON public.draw_results(draw_name, draw_date DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_predictions_performance ON public.predictions(draw_name, prediction_date DESC, model_used);
+CREATE INDEX IF NOT EXISTS idx_algorithm_performance_model_date ON public.algorithm_performance(model_used, draw_date DESC);
+CREATE INDEX IF NOT EXISTS idx_number_statistics_draw_frequency ON public.number_statistics(draw_name, frequency DESC, days_since_last);
 
 -- ============================================================================
 -- 4. FONCTIONS UTILITAIRES OPTIMISÉES
@@ -242,13 +254,15 @@ CREATE POLICY "Admins can manage scraping jobs" ON public.scraping_jobs
 -- 8. DONNÉES DE RÉFÉRENCE OPTIMISÉES
 -- ============================================================================
 
--- Mise à jour des configurations d'algorithmes avec de meilleurs paramètres
+-- Mise à jour des configurations d'algorithmes avec les 6 algorithmes optimaux
 INSERT INTO public.algorithm_config (algorithm_name, is_enabled, weight, parameters)
 VALUES
-    ('Ensemble Voting', true, 1.0, '{"voting_strategy": "soft", "min_estimators": 3}'::jsonb),
-    ('XGBoost Optimized', true, 0.95, '{"n_estimators": 200, "max_depth": 6, "learning_rate": 0.1}'::jsonb),
+    ('FrequencyPro', true, 1.0, '{"threshold": 0.15, "recency_boost": 1.2}'::jsonb),
     ('Random Forest', true, 0.9, '{"n_estimators": 100, "max_depth": 10, "min_samples_split": 5}'::jsonb),
-    ('Deep Learning', true, 0.85, '{"layers": [128, 64, 32], "dropout": 0.3, "epochs": 100}'::jsonb)
+    ('LSTM Network', true, 0.9, '{"units": 64, "lookback": 20}'::jsonb),
+    ('Transformer (Attention)', true, 1.1, '{"num_heads": 4, "num_layers": 2}'::jsonb),
+    ('XGBoost', true, 1.0, '{"n_estimators": 200, "max_depth": 6, "learning_rate": 0.1}'::jsonb),
+    ('Ensemble Hybride Stacking', true, 1.2, '{"voting_strategy": "soft", "min_estimators": 3}'::jsonb)
 ON CONFLICT (algorithm_name) DO UPDATE SET
     parameters = EXCLUDED.parameters,
     updated_at = now();

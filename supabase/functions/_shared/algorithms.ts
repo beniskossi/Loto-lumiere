@@ -313,6 +313,6 @@ export function lstmAlgorithm(results: DrawResult[]): PredictionResult {
   };
 
 }
--e 
+
 export { xgboostAlgorithm };
 
