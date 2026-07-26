@@ -892,6 +892,8 @@ $$;
 -- ----------------------------------------------------------------------------
 
 DROP MATERIALIZED VIEW IF EXISTS public.mv_algorithm_stats CASCADE;
+DROP VIEW IF EXISTS public.mv_algorithm_stats CASCADE;
+DROP TABLE IF EXISTS public.mv_algorithm_stats CASCADE;
 CREATE MATERIALIZED VIEW public.mv_algorithm_stats AS
 SELECT 
   ac.algorithm_name,
@@ -906,6 +908,8 @@ GROUP BY ac.algorithm_name;
 CREATE UNIQUE INDEX IF NOT EXISTS mv_algorithm_stats_pkey ON public.mv_algorithm_stats (algorithm_name);
 
 DROP MATERIALIZED VIEW IF EXISTS public.mv_enhanced_stats CASCADE;
+DROP VIEW IF EXISTS public.mv_enhanced_stats CASCADE;
+DROP TABLE IF EXISTS public.mv_enhanced_stats CASCADE;
 CREATE MATERIALIZED VIEW public.mv_enhanced_stats AS
 SELECT 
   ap.model_used AS algorithm_name,
@@ -920,27 +924,41 @@ GROUP BY ap.model_used;
 CREATE UNIQUE INDEX IF NOT EXISTS mv_enhanced_stats_pkey ON public.mv_enhanced_stats (algorithm_name);
 
 -- Views for backward compatibility and aliases
-CREATE OR REPLACE VIEW public.profiles AS 
+DROP VIEW IF EXISTS public.profiles CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+CREATE VIEW public.profiles AS 
 SELECT id, id AS user_id, username, full_name, avatar_url, bio, role, level, experience_points, total_predictions, successful_predictions, created_at, updated_at 
 FROM public.user_profiles;
 
-CREATE OR REPLACE VIEW public.user_roles AS 
+DROP VIEW IF EXISTS public.user_roles CASCADE;
+DROP TABLE IF EXISTS public.user_roles CASCADE;
+CREATE VIEW public.user_roles AS 
 SELECT id, id AS user_id, role, created_at 
 FROM public.user_profiles;
 
-CREATE OR REPLACE VIEW public.prediction_ledger AS 
+DROP VIEW IF EXISTS public.prediction_ledger CASCADE;
+DROP TABLE IF EXISTS public.prediction_ledger CASCADE;
+CREATE VIEW public.prediction_ledger AS 
 SELECT * FROM public.ledger_entries;
 
-CREATE OR REPLACE VIEW public.tracked_predictions AS 
+DROP VIEW IF EXISTS public.tracked_predictions CASCADE;
+DROP TABLE IF EXISTS public.tracked_predictions CASCADE;
+CREATE VIEW public.tracked_predictions AS 
 SELECT * FROM public.user_prediction_tracking;
 
-CREATE OR REPLACE VIEW public.prediction_tracking AS 
+DROP VIEW IF EXISTS public.prediction_tracking CASCADE;
+DROP TABLE IF EXISTS public.prediction_tracking CASCADE;
+CREATE VIEW public.prediction_tracking AS 
 SELECT * FROM public.user_prediction_tracking;
 
-CREATE OR REPLACE VIEW public.algorithm_evaluations AS 
+DROP VIEW IF EXISTS public.algorithm_evaluations CASCADE;
+DROP TABLE IF EXISTS public.algorithm_evaluations CASCADE;
+CREATE VIEW public.algorithm_evaluations AS 
 SELECT * FROM public.algorithm_performance;
 
-CREATE OR REPLACE VIEW public.algorithm_rankings AS
+DROP VIEW IF EXISTS public.algorithm_rankings CASCADE;
+DROP TABLE IF EXISTS public.algorithm_rankings CASCADE;
+CREATE VIEW public.algorithm_rankings AS
 SELECT 
   model_used,
   draw_name,
@@ -956,7 +974,9 @@ SELECT
 FROM public.algorithm_performance
 GROUP BY model_used, draw_name;
 
-CREATE OR REPLACE VIEW public.algorithm_rankings_detailed AS
+DROP VIEW IF EXISTS public.algorithm_rankings_detailed CASCADE;
+DROP TABLE IF EXISTS public.algorithm_rankings_detailed CASCADE;
+CREATE VIEW public.algorithm_rankings_detailed AS
 SELECT 
   model_used,
   draw_name,
