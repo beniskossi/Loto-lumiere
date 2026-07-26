@@ -364,6 +364,51 @@ CREATE TABLE IF NOT EXISTS public.algorithm_calibration_metrics (
   evaluated_at timestamptz DEFAULT now()
 );
 
+-- Idempotent Column Additions for Existing Database Instances
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS role text DEFAULT 'user';
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS level integer DEFAULT 1;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS experience_points integer DEFAULT 0;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS total_predictions integer DEFAULT 0;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS successful_predictions integer DEFAULT 0;
+
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS favorite_draws text[] DEFAULT '{}';
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS favorite_numbers integer[] DEFAULT '{}';
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS notification_enabled boolean DEFAULT true;
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS notification_time time DEFAULT '09:00:00';
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS theme text DEFAULT 'system';
+
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS score numeric DEFAULT 0.5;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS composite_score numeric DEFAULT 0.5;
+ALTER TABLE public.precalculated_predictions ADD COLUMN IF NOT EXISTS algorithm_reason text;
+
+ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS is_enabled boolean DEFAULT true;
+ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS weight numeric DEFAULT 1.0;
+ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS parameters jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.algorithm_config ADD COLUMN IF NOT EXISTS category text;
+
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS prediction_date date;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS winning_numbers integer[];
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS actual_numbers integer[] DEFAULT '{}';
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS matches_count integer DEFAULT 0;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS accuracy_score numeric DEFAULT 0;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS composite_score numeric DEFAULT 0;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS confidence_score numeric(5,2);
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS precision_score numeric(5,2);
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS recall_score numeric(5,2);
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS f1_score numeric(5,2);
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS prediction_score numeric(5,2);
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS execution_time numeric(10,3);
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS data_points_used integer;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS factors text[];
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS prediction_id uuid;
+ALTER TABLE public.algorithm_performance ADD COLUMN IF NOT EXISTS draw_result_id uuid;
+
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS confidence numeric DEFAULT 0.5;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS algorithm_reason text;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending';
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS matches_count integer DEFAULT 0;
+ALTER TABLE public.predictions ADD COLUMN IF NOT EXISTS matched_numbers integer[] DEFAULT '{}';
+
 -- ----------------------------------------------------------------------------
 -- 3. COMPOSITE SCORE & STATISTICAL COMPUTATION FUNCTIONS
 -- ----------------------------------------------------------------------------
@@ -607,7 +652,8 @@ $$;
 -- 4. MATERIALIZED VIEWS & RANKINGS
 -- ----------------------------------------------------------------------------
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS public.mv_algorithm_stats AS
+DROP MATERIALIZED VIEW IF EXISTS public.mv_algorithm_stats CASCADE;
+CREATE MATERIALIZED VIEW public.mv_algorithm_stats AS
 SELECT 
   ac.algorithm_name,
   COUNT(ap.id) AS total_predictions,
@@ -620,7 +666,8 @@ GROUP BY ac.algorithm_name;
 
 CREATE UNIQUE INDEX IF NOT EXISTS mv_algorithm_stats_pkey ON public.mv_algorithm_stats (algorithm_name);
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS public.mv_enhanced_stats AS
+DROP MATERIALIZED VIEW IF EXISTS public.mv_enhanced_stats CASCADE;
+CREATE MATERIALIZED VIEW public.mv_enhanced_stats AS
 SELECT 
   ap.model_used AS algorithm_name,
   COUNT(ap.id) AS total_predictions,
