@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateAndCleanPredictions } from "@/utils/predictionValidation";
-import { generateFallbackEnhancedPredictions } from "@/utils/fallbackPredictionGenerator";
 
 export interface EnhancedScoreBreakdown {
   frequency: number;
@@ -78,10 +77,9 @@ export const useEnhancedPrediction = (drawName: string, enabled: boolean = true)
             toast.error("Serveur temporairement saturé", {
               description: "Veuillez réessayer dans quelques instants"
             });
-            throw new Error("WORKER_LIMIT");
           }
-          console.warn("Edge function error in useEnhancedPrediction, using fallback:", error);
-          return await generateFallbackEnhancedPredictions(drawName);
+          console.error("Edge function error in useEnhancedPrediction:", error);
+          throw error;
         }
 
         // Valider et nettoyer les données
@@ -91,13 +89,8 @@ export const useEnhancedPrediction = (drawName: string, enabled: boolean = true)
 
         return data;
       } catch (error) {
-        console.error("Error in useEnhancedPrediction, using fallback:", error);
-        
-        if (error instanceof Error && error.message === "WORKER_LIMIT") {
-          throw error;
-        }
-        
-        return await generateFallbackEnhancedPredictions(drawName);
+        console.error("Error in useEnhancedPrediction:", error);
+        throw error;
       }
     },
     enabled: !!drawName && enabled,
@@ -127,4 +120,3 @@ export const useFormulasBreakdown = (drawName: string) => {
     error,
   };
 };
-
