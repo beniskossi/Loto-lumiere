@@ -80,18 +80,25 @@ export function applyAntiBiasLayer(
   };
 }
 
-// Helpers pour la correction
+// Helpers pour la correction déterministe
+function getFirstAvailableNumber(excluded: number[], filterCondition?: (n: number) => boolean): number {
+  for (let n = 1; n <= 90; n++) {
+    if (!excluded.includes(n) && (!filterCondition || filterCondition(n))) {
+      return n;
+    }
+  }
+  for (let n = 1; n <= 90; n++) {
+    if (!excluded.includes(n)) return n;
+  }
+  return 1;
+}
+
 function breakConsecutiveSequence(numbers: number[]): number[] {
   const result = [...numbers];
   for (let i = 1; i < result.length - 1; i++) {
     if (result[i] === result[i-1] + 1 && result[i+1] === result[i] + 1) {
-      // Remplacer le numéro central de la suite par un autre
-      let newNum;
-      do {
-        newNum = Math.floor(Math.random() * 90) + 1;
-      } while (result.includes(newNum));
-      result[i] = newNum;
-      break; // Casser une seule fois suffit généralement
+      result[i] = getFirstAvailableNumber(result);
+      break;
     }
   }
   return result;
@@ -99,12 +106,7 @@ function breakConsecutiveSequence(numbers: number[]): number[] {
 
 function disperseNumbers(numbers: number[]): number[] {
   const result = [...numbers];
-  // Remplacer le dernier numéro pour élargir la plage
-  let newNum;
-  do {
-    newNum = Math.floor(Math.random() * 90) + 1;
-  } while (result.includes(newNum) || Math.abs(newNum - result[0]) < 20);
-  result[result.length - 1] = newNum;
+  result[result.length - 1] = getFirstAvailableNumber(result, (n) => Math.abs(n - result[0]) >= 20);
   return result;
 }
 
@@ -112,12 +114,9 @@ function reduceRecencyBias(numbers: number[], lastDraw: number[]): number[] {
   const result = [...numbers];
   let replaced = 0;
   for (let i = 0; i < result.length; i++) {
-    if (lastDraw.includes(result[i]) && replaced < 2) { // Enlever au moins 2 numéros copiés
-      let newNum;
-      do {
-        newNum = Math.floor(Math.random() * 90) + 1;
-      } while (result.includes(newNum) || lastDraw.includes(newNum));
-      result[i] = newNum;
+    if (lastDraw.includes(result[i]) && replaced < 2) {
+      const excluded = [...result, ...lastDraw];
+      result[i] = getFirstAvailableNumber(excluded);
       replaced++;
     }
   }

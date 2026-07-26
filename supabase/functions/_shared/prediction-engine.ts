@@ -313,16 +313,11 @@ export function generateExplanations(
 }
 
 function generateFallbackPrediction(): PredictionResult {
-  const fallbackNumbers = [];
-  while(fallbackNumbers.length < 5) {
-    const n = Math.floor(Math.random() * 90) + 1;
-    if(!fallbackNumbers.includes(n)) fallbackNumbers.push(n);
-  }
   return {
-    algorithm: "Fallback",
-    numbers: fallbackNumbers.sort((a, b) => a - b),
-    confidence: 0.5,
-    score: 0.5,
-    factors: ["Fallback Mode"]
+    algorithm: "Baseline Uniforme (Théorique)",
+    numbers: [1, 2, 3, 4, 5],
+    confidence: 0.0556,
+    score: 0.0556,
+    factors: ["Distribution uniforme de référence (5/90)"]
   };
 }

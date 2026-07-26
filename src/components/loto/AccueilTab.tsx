@@ -13,8 +13,6 @@ import { NumberBall } from "@/components/NumberBall";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { BacktestingSummaryCard } from "../BacktestingSummaryCard";
-import { PredictedVsActualChart } from "./PredictedVsActualChart";
 import { fr } from "date-fns/locale";
 
 interface AccueilTabProps {
@@ -387,22 +385,11 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
         )}
       </div>
 
-      {/* Dashboard Summary Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Backtesting Module Card */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <BacktestingSummaryCard drawName={selectedDayDraws && selectedDayDraws.length > 0 ? selectedDayDraws[0].name : "Etoile"} />
-        </motion.div>
-
-        {/* Week Schedule Summary */}
+      {/* Week Schedule Summary */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.2 }}
       >
         <Card className="bg-secondary/20 border-border/30">
           <CardContent className="p-4">
@@ -436,16 +423,6 @@ export const AccueilTab = ({ onSelectDraw }: AccueilTabProps) => {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
-      </div>
-
-      {/* Trend Chart */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-      >
-        <PredictedVsActualChart drawName={selectedDayDraws && selectedDayDraws.length > 0 ? selectedDayDraws[0].name : "all"} />
       </motion.div>
     </div>
   );

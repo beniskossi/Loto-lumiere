@@ -636,11 +636,12 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
         }
       }
 
-      // Si pas assez de candidats, fallback sur des numéros aléatoires de la tranche
-      while (count < needed) {
-        const fallbackNum = Math.floor(Math.random() * (tranche.max === 999 ? 90 : tranche.max - tranche.min + 1)) + tranche.min;
-        if (!selectedSuggested.includes(fallbackNum) && fallbackNum >= 1 && fallbackNum <= 90) {
-          selectedSuggested.push(fallbackNum);
+      // Si pas assez de candidats, sélectionner de manière déterministe les prochains numéros valides de la tranche
+      const startNum = Math.max(1, tranche.min);
+      const endNum = Math.min(90, tranche.max === 999 ? 90 : tranche.max);
+      for (let n = startNum; n <= endNum && count < needed; n++) {
+        if (!selectedSuggested.includes(n)) {
+          selectedSuggested.push(n);
           count++;
         }
       }

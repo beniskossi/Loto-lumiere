@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, Search, Filter, Calendar, Trophy, Star } from "lucide-react";
+import { Clock, Search, Filter, Calendar, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NumberBall } from "@/components/NumberBall";
 import { useDrawResultsPaginated, DrawResult } from "@/hooks/useDrawResults";
@@ -173,7 +173,7 @@ export const HistoriqueTab = ({ drawName }: HistoriqueTabProps) => {
 };
 
 // Individual result row
-const DrawResultRow = React.memo(({ result, index }: { result: DrawResult; index: number }) => {
+const DrawResultRow = React.memo(({ result }: { result: DrawResult; index: number }) => {
   const formattedDate = useMemo(() => {
     try {
       return format(parseISO(result.draw_date), "dd MMM yyyy", { locale: fr });
@@ -181,19 +181,6 @@ const DrawResultRow = React.memo(({ result, index }: { result: DrawResult; index
       return result.draw_date;
     }
   }, [result.draw_date]);
-
-  // Simulate match count (completely deterministic, derived from draw data)
-  const matchCount = useMemo(() => {
-    const numbers = result.winning_numbers || [];
-    if (numbers.length === 0) return 0;
-    
-    // Derived stable value based on numbers
-    const sum = numbers.reduce((acc, val) => acc + val, 0);
-    if (sum % 29 === 0) return 5;
-    if (sum % 17 === 0) return 4;
-    if (sum % 11 === 0) return 3;
-    return 0;
-  }, [result.winning_numbers]);
 
   return (
     <motion.div
@@ -207,16 +194,6 @@ const DrawResultRow = React.memo(({ result, index }: { result: DrawResult; index
         "group"
       )}
     >
-      {/* Highlight for matches */}
-      {matchCount >= 3 && (
-        <div className={cn(
-          "absolute inset-y-0 left-0 w-1",
-          matchCount >= 5 ? "bg-success" :
-          matchCount >= 4 ? "bg-warning" :
-          "bg-info"
-        )} />
-      )}
-
       <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         {/* Date & Draw Info */}
         <div className="flex items-center gap-3 min-w-[140px]">
@@ -258,21 +235,6 @@ const DrawResultRow = React.memo(({ result, index }: { result: DrawResult; index
             </>
           )}
         </div>
-
-        {/* Match Badge */}
-        {matchCount >= 3 && (
-          <Badge 
-            className={cn(
-              "gap-1 self-start sm:self-center",
-              matchCount >= 5 ? "bg-success text-success-foreground" :
-              matchCount >= 4 ? "bg-warning text-warning-foreground" :
-              "bg-info text-info-foreground"
-            )}
-          >
-            <Trophy className="w-3 h-3" />
-            {matchCount} numéros
-          </Badge>
-        )}
       </div>
     </motion.div>
   );

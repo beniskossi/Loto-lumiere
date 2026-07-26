@@ -173,6 +173,27 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
     });
   }, []);
 
+  const applyPreset = (presetType: "balanced" | "deep" | "ensemble" | "stats") => {
+    setWeights(prev => {
+      return prev.map(w => {
+        if (presetType === "balanced") {
+          return { ...w, enabled: true, weight: 20 };
+        } else if (presetType === "deep") {
+          const isDeep = w.name.includes("LSTM") || w.name.includes("Transformer");
+          return { ...w, enabled: true, weight: isDeep ? 40 : 10 };
+        } else if (presetType === "ensemble") {
+          const isEnsemble = w.name.includes("Stacking") || w.name.includes("Random Forest");
+          return { ...w, enabled: true, weight: isEnsemble ? 40 : 10 };
+        } else {
+          // stats
+          const isStats = w.name.includes("FrequencyPro");
+          return { ...w, enabled: true, weight: isStats ? 50 : 10 };
+        }
+      });
+    });
+    toast.success(`Preset appliqué : ${presetType}`);
+  };
+
   const handleReset = () => {
     setWeights(INITIAL_WEIGHTS);
     toast.success("Poids réinitialisés");
@@ -390,7 +411,26 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
+                {/* Presets */}
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground font-medium">Presets Stratégiques :</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => applyPreset("balanced")}>
+                      ⚖️ Équilibré
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => applyPreset("deep")}>
+                      🧠 Deep Learning
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => applyPreset("ensemble")}>
+                      🌲 Stacking & Forest
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => applyPreset("stats")}>
+                      📊 Pure Statistique
+                    </Button>
+                  </div>
+                </div>
+
                 {weights.map((algo, index) => (
                   <motion.div 
                     key={algo.name}

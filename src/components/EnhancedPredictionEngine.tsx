@@ -95,6 +95,11 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
     return unique;
   })();
 
+  const getConfValue = (conf: number) => {
+    if (conf == null || Number.isNaN(conf)) return 0;
+    return conf <= 1 ? conf * 100 : conf;
+  };
+
   const topPredictions = predictions.slice(0, 3);
 
   // Calculer le consensus des numéros les plus fréquents parmi toutes les prédictions
@@ -206,22 +211,22 @@ export const EnhancedPredictionEngine = ({ drawName }: EnhancedPredictionEngineP
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold">
-                            {Math.round(pred.confidence * 100)}%
+                            {Math.round(getConfValue(pred.confidence))}%
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Score: {pred.score.toFixed(2)}
+                            Score: {(pred.score ?? 0).toFixed(2)}
                           </p>
                         </div>
                       </div>
                       
                       <div className="flex gap-2 mb-3">
                         {pred.numbers.map((num, idx) => (
-                          <NumberBall key={`${num}-${idx}`} number={num} size="lg" confidence={pred.confidence * 100} />
+                          <NumberBall key={`${num}-${idx}`} number={num} size="lg" confidence={getConfValue(pred.confidence)} />
                         ))}
                       </div>
                       
                       <Progress 
-                        value={pred.confidence * 100} 
+                        value={getConfValue(pred.confidence)} 
                         className="h-2 mb-2" 
                       />
                       
