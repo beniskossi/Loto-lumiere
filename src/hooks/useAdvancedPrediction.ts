@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateAndCleanPredictions } from "@/utils/predictionValidation";
+import { generateFallbackAdvancedPredictions } from "@/utils/fallbackPredictionGenerator";
 
 export interface AdvancedPrediction {
   numbers: number[];
@@ -71,7 +72,8 @@ export const useAdvancedPrediction = (drawName: string, options: AdvancedPredict
             });
             throw new Error("WORKER_LIMIT");
           }
-          throw error;
+          console.warn("Edge Function advanced-ai-prediction-v2 returned error, switching to local fallback engine:", error);
+          return await generateFallbackAdvancedPredictions(drawName, options);
         }
 
         // Validate and clean data
@@ -81,16 +83,13 @@ export const useAdvancedPrediction = (drawName: string, options: AdvancedPredict
 
         return data;
       } catch (error) {
-        console.error("Error in useAdvancedPrediction:", error);
+        console.error("Error in useAdvancedPrediction, using local stochastics fallback:", error);
         
         if (error instanceof Error && error.message === "WORKER_LIMIT") {
           throw error;
         }
         
-        toast.error("Erreur lors du chargement des prédictions", {
-          description: "Une erreur est survenue lors de la génération des prédictions"
-        });
-        throw error;
+        return await generateFallbackAdvancedPredictions(drawName, options);
       }
     },
     enabled: !!drawName,
@@ -98,7 +97,7 @@ export const useAdvancedPrediction = (drawName: string, options: AdvancedPredict
       if (error instanceof Error && error.message === "WORKER_LIMIT") {
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: STALE_TIME,
@@ -107,3 +106,4 @@ export const useAdvancedPrediction = (drawName: string, options: AdvancedPredict
     refetchOnMount: false, // Use cached data if still fresh
   });
 };
+

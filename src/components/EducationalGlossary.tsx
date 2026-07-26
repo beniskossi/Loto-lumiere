@@ -62,7 +62,6 @@ export const EducationalGlossary = () => {
             </li>
           </ul>
         </div>
-</div>
       </CardContent>
     </Card>
   );

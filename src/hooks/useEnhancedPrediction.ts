@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateAndCleanPredictions } from "@/utils/predictionValidation";
+import { generateFallbackEnhancedPredictions } from "@/utils/fallbackPredictionGenerator";
 
 export interface EnhancedScoreBreakdown {
   frequency: number;
@@ -79,7 +80,8 @@ export const useEnhancedPrediction = (drawName: string, enabled: boolean = true)
             });
             throw new Error("WORKER_LIMIT");
           }
-          throw error;
+          console.warn("Edge function error in useEnhancedPrediction, using fallback:", error);
+          return await generateFallbackEnhancedPredictions(drawName);
         }
 
         // Valider et nettoyer les données
@@ -89,14 +91,13 @@ export const useEnhancedPrediction = (drawName: string, enabled: boolean = true)
 
         return data;
       } catch (error) {
-        console.error("Error in useEnhancedPrediction:", error);
+        console.error("Error in useEnhancedPrediction, using fallback:", error);
         
         if (error instanceof Error && error.message === "WORKER_LIMIT") {
           throw error;
         }
         
-        toast.error("Erreur lors du chargement des prédictions améliorées");
-        throw error;
+        return await generateFallbackEnhancedPredictions(drawName);
       }
     },
     enabled: !!drawName && enabled,
@@ -104,7 +105,7 @@ export const useEnhancedPrediction = (drawName: string, enabled: boolean = true)
       if (error instanceof Error && error.message === "WORKER_LIMIT") {
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: STALE_TIME,
@@ -126,3 +127,4 @@ export const useFormulasBreakdown = (drawName: string) => {
     error,
   };
 };
+

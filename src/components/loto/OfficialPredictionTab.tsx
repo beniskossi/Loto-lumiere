@@ -490,52 +490,61 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
           transition={{ delay: 0.3, duration: 0.5 }}
           className="space-y-3"
         >
-          <Button 
-            size="lg" 
-            onClick={handlePlay}
-            className="w-full h-14 text-lg font-semibold gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/30"
-          >
-            <Copy className="w-5 h-5" />
-            Copier cette simulation
-          </Button>
-          
-          <div className="flex gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button 
+              size="lg" 
+              onClick={handlePlay}
+              className="h-13 text-base font-bold gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-md shadow-primary/20 rounded-xl"
+            >
+              <Copy className="w-4 h-4" />
+              Copier la simulation
+            </Button>
+            
             <Button
               variant="outline"
+              size="lg"
               onClick={() => {
                 if (navigator.share && officialPrediction) {
                   navigator.share({
                     title: `Simulation ${drawName}`,
-                    text: `Ma simulation : ${officialPrediction.numbers.join(" - ")}`,
+                    text: `Ma simulation LOTO LUMIÈRE (${drawName}) : ${officialPrediction.numbers.join(" - ")}`,
                   });
                 } else {
                   handleCopy();
                 }
               }}
-              className="flex-1 gap-2"
+              className="h-13 text-base font-medium gap-2 border-border/50 hover:bg-secondary/50 rounded-xl"
             >
-              <Share2 className="w-4 h-4" />
-              Partager
+              <Share2 className="w-4 h-4 text-primary" />
+              Partager la grille
             </Button>
           </div>
 
           {/* Server-side personal history saver */}
-          <div className="p-4 rounded-xl border border-border/40 bg-slate-950/40 backdrop-blur-md space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <History className="w-4 h-4 text-primary" /> Enregistrer la simulation
-            </h4>
+          <div className="p-4 sm:p-5 rounded-2xl border border-border/50 bg-card/60 backdrop-blur-md space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 font-mono">
+                <History className="w-4 h-4 text-primary" /> Enregistrer dans mon suivi
+              </h4>
+              {isSavedInSession && (
+                <Badge className="bg-green-500/15 text-green-500 border-green-500/30 text-[10px]">
+                  ✓ Sauvegardé
+                </Badge>
+              )}
+            </div>
+
             {user ? (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground leading-normal">
-                  Sauvegardez cette simulation pour pouvoir suivre son score a posteriori lors des prochains tirages.
+              <div className="space-y-2.5">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Conservez cette simulation dans votre espace pour comparer automatiquement son taux de correspondance lors du prochain tirage officiel.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Input
-                    placeholder="Note (ex: Ma sélection pour aujourd'hui)"
+                    placeholder="Note personnelle (ex: Grille du vendredi)"
                     value={personalNotes}
                     onChange={(e) => setPersonalNotes(e.target.value)}
                     disabled={isSavedInSession || createAndTrackMutation.isPending}
-                    className="bg-background/50 text-xs border-border/40 focus:border-primary rounded-lg h-9"
+                    className="bg-background/60 text-xs border-border/40 focus:border-primary rounded-xl h-10"
                   />
                   <Button
                     size="sm"
@@ -556,15 +565,15 @@ export const OfficialPredictionTab = ({ drawName, selectedDate, onClearDate }: O
                       }
                     }}
                     disabled={isSavedInSession || createAndTrackMutation.isPending}
-                    className="shrink-0 h-9 rounded-lg px-4"
+                    className="shrink-0 h-10 rounded-xl px-5 font-semibold"
                   >
-                    {createAndTrackMutation.isPending ? "Enregistrement..." : isSavedInSession ? "✓ Enregistré" : "Enregistrer"}
+                    {createAndTrackMutation.isPending ? "Sauvegarde..." : isSavedInSession ? "✓ Enregistré" : "Sauvegarder"}
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-muted-foreground p-2.5 bg-secondary/15 rounded-lg border border-border/30">
-                Connectez-vous à votre compte pour enregistrer cette simulation sur le serveur et suivre ses performances réelles.
+              <div className="text-xs text-muted-foreground p-3 bg-secondary/20 rounded-xl border border-border/30 flex items-center justify-between gap-3">
+                <span>Connectez-vous pour conserver cette simulation et suivre son score d'adéquation en direct.</span>
               </div>
             )}
           </div>

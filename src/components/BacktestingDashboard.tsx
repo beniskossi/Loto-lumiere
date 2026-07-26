@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useBacktesting } from "@/hooks/useBacktesting";
+import { useState, useMemo } from "react";
+import { useBacktesting, BacktestResult } from "@/hooks/useBacktesting";
 import { 
   Card, 
   CardContent, 
@@ -66,24 +66,47 @@ export function BacktestingDashboard({ drawName }: BacktestingDashboardProps) {
     });
   };
 
-  const displayResults = lastResults?.evaluations || aggregateStats || [];
+  const displayResults: BacktestResult[] = useMemo(() => {
+    if (lastResults?.evaluations && lastResults.evaluations.length > 0) {
+      return lastResults.evaluations;
+    }
+    if (aggregateStats && aggregateStats.length > 0) {
+      return aggregateStats.map((s) => ({
+        algorithm: s.algorithm || "Inconnu",
+        accuracy: s.avgAccuracy ?? 0,
+        precision: s.avgAccuracy ?? 0,
+        recall: s.avgAccuracy ?? 0,
+        f1Score: s.avgAccuracy ?? 0,
+        avgMatches: s.avgMatches ?? 0,
+        bestMatch: s.bestMatch ?? 0,
+        worstMatch: s.worstMatch ?? 0,
+        consistency: s.consistency ?? 0,
+        totalTests: s.totalTests ?? 0,
+      }));
+    }
+    return [];
+  }, [lastResults, aggregateStats]);
   
-  const comparisonData = displayResults.slice(0, 5).map(r => ({
-    name: r.algorithm.replace("Optimiseur ", "").replace(/[()]/g, "").substring(0, 15),
-    accuracy: r.accuracy,
-    precision: r.precision,
-    consistency: r.consistency,
-    f1Score: r.f1Score || r.accuracy,
-    matches: r.avgMatches
-  }));
+  const comparisonData = useMemo(() => {
+    return displayResults.slice(0, 5).map(r => ({
+      name: (r.algorithm || "").replace("Optimiseur ", "").replace(/[()]/g, "").substring(0, 15),
+      accuracy: r.accuracy ?? 0,
+      precision: r.precision ?? 0,
+      consistency: r.consistency ?? 0,
+      f1Score: r.f1Score ?? r.accuracy ?? 0,
+      matches: r.avgMatches ?? 0
+    }));
+  }, [displayResults]);
 
-  const radarData = displayResults.slice(0, 4).map(r => ({
-    algorithm: r.algorithm.replace("Optimiseur ", "").replace(/[()]/g, "").substring(0, 10),
-    precision: r.accuracy,
-    consistance: Math.max(0, 100 - (r.consistency * 20)), 
-    rentabilite: r.f1Score || r.accuracy, 
-    frequence: (r.avgMatches / 5) * 100
-  }));
+  const radarData = useMemo(() => {
+    return displayResults.slice(0, 4).map(r => ({
+      algorithm: (r.algorithm || "").replace("Optimiseur ", "").replace(/[()]/g, "").substring(0, 10),
+      precision: r.accuracy ?? 0,
+      consistance: Math.max(0, 100 - ((r.consistency ?? 0) * 20)), 
+      rentabilite: r.f1Score ?? r.accuracy ?? 0, 
+      frequence: ((r.avgMatches ?? 0) / 5) * 100
+    }));
+  }, [displayResults]);
 
   return (
     <div className="space-y-6">
@@ -189,11 +212,11 @@ export function BacktestingDashboard({ drawName }: BacktestingDashboardProps) {
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-muted-foreground">Précision</span>
                         <span className="font-bold text-primary">
-                          {result.accuracy.toFixed(1)}%
+                          {(result.accuracy ?? 0).toFixed(1)}%
                         </span>
                       </div>
                       <Progress 
-                        value={result.accuracy} 
+                        value={result.accuracy ?? 0} 
                         className="h-2"
                       />
                     </div>
@@ -201,20 +224,20 @@ export function BacktestingDashboard({ drawName }: BacktestingDashboardProps) {
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div className="bg-muted/50 rounded-lg p-2">
                         <p className="text-muted-foreground text-xs">Moy. matchs</p>
-                        <p className="font-bold">{result.avgMatches.toFixed(2)}</p>
+                        <p className="font-bold">{(result.avgMatches ?? 0).toFixed(2)}</p>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-2">
                         <p className="text-muted-foreground text-xs">Meilleur</p>
-                        <p className="font-bold text-green-600">{result.bestMatch}/5</p>
+                        <p className="font-bold text-green-600">{result.bestMatch ?? 0}/5</p>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-2">
                         <p className="text-muted-foreground text-xs">Consistance</p>
-                        <p className="font-bold">±{result.consistency.toFixed(2)}</p>
+                        <p className="font-bold">±{(result.consistency ?? 0).toFixed(2)}</p>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-2">
                         <p className="text-muted-foreground text-xs">F1 Score</p>
                         <p className="font-bold text-primary">
-                          {result.f1Score !== undefined ? result.f1Score.toFixed(1) : result.accuracy.toFixed(1)}%
+                          {((result.f1Score !== undefined ? result.f1Score : result.accuracy) ?? 0).toFixed(1)}%
                         </p>
                       </div>
                     </div>
@@ -258,7 +281,7 @@ export function BacktestingDashboard({ drawName }: BacktestingDashboardProps) {
                         tick={{ fontSize: 11 }}
                       />
                       <Tooltip 
-                        formatter={(value: number) => [`${value.toFixed(1)}%`, "Précision"]}
+                        formatter={(value: any) => [`${Number(value || 0).toFixed(1)}%`, "Précision"]}
                       />
                       <Bar dataKey="accuracy" radius={[0, 4, 4, 0]}>
                         {comparisonData.map((_, index) => (
@@ -342,7 +365,7 @@ export function BacktestingDashboard({ drawName }: BacktestingDashboardProps) {
                     <YAxis domain={[0, 100]} />
                     <Tooltip 
                       labelFormatter={(date) => new Date(date).toLocaleDateString("fr-FR")}
-                      formatter={(value: number, name: string) => [`${value.toFixed(1)}%`, name]}
+                      formatter={(value: any, name: string) => [`${Number(value || 0).toFixed(1)}%`, name]}
                     />
                     <Legend />
                     {aggregateStats?.slice(0, 5).map((stat, idx) => (
@@ -396,10 +419,10 @@ export function BacktestingDashboard({ drawName }: BacktestingDashboardProps) {
                             {stat.algorithm}
                           </td>
                           <td className="text-right py-2 px-3 font-bold text-primary">
-                            {stat.avgAccuracy.toFixed(1)}%
+                            {(stat.avgAccuracy ?? 0).toFixed(1)}%
                           </td>
                           <td className="text-right py-2 px-3">
-                            {stat.avgMatches.toFixed(2)}
+                            {(stat.avgMatches ?? 0).toFixed(2)}
                           </td>
                           <td className="text-right py-2 px-3 text-muted-foreground">
                             {stat.totalTests}
