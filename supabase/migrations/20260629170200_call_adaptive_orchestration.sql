@@ -40,10 +40,9 @@ BEGIN
     );
 
     -- 2. Call the Edge Function asynchronously via pg_net
-    -- Using the existing anon/service key format and project ID found in other cron jobs
     SELECT extensions.net.http_post(
       url := 'https://kmkdwivnymcumgoorsiv.supabase.co/functions/v1/adaptive-orchestration',
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtta2R3aXZueW1jdW1nb29yc2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxNjM2MzQsImV4cCI6MjA3NzczOTYzNH0.LsdZ342a8rfbCCa0ScYeOGUwJONS7ZIaYAMLleTM9t4"}'::jsonb,
+      headers := ('{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key', true) || '"}')::jsonb,
       body := jsonb_build_object('drawName', NEW.draw_name, 'drawDate', NEW.draw_date)
     ) INTO req_id;
 

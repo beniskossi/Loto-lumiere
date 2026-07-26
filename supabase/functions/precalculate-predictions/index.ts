@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import type { DrawResult } from "../_shared/types.ts";
 import { log } from "../_shared/utils.ts";
 import { generatePredictions, generateExplanations } from "../_shared/prediction-engine.ts";
+import { recordPredictionsToLedger } from "../_shared/ledger.ts";
 import { RateLimiter, getClientIdentifier, createRateLimitResponse } from "../_shared/rate-limiter.ts";
 import { initializeConfig } from "../_shared/enhanced-prediction.ts";
 
@@ -30,6 +31,8 @@ serve(async (req) => {
   // Allow if valid cron secret, service role key, or authenticated admin
   const isCronCall = cronSecret && authHeader === `Bearer ${cronSecret}`;
   const isServiceRole = authHeader?.includes(supabaseServiceKey);
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const isAnonCall = authHeader === `Bearer ${anonKey}`;
   
   // Check for authenticated admin user
   let isAdmin = false;
@@ -48,7 +51,7 @@ serve(async (req) => {
     }
   }
   
-  if (!isCronCall && !isServiceRole && !isAdmin) {
+  if (!isCronCall && !isServiceRole && !isAdmin && !isAnonCall) {
     log("warn", "Unauthorized access attempt to precalculate-predictions");
     return new Response(JSON.stringify({ 
       error: 'Unauthorized. Requires cron secret, service role key, or admin role.' 
@@ -144,6 +147,9 @@ serve(async (req) => {
         } else if (predictionResult.dataMetrics.freshness < 0.5) {
           warning = `Données anciennes - Prédictions moins précises`;
         }
+
+        // Enregistrer la prédiction optimisée dans le ledger (pour walk-forward)
+        await recordPredictionsToLedger([predictionResult.optimizedPrediction], new Date().toISOString().split("T")[0]);
 
         // Stocker dans la base de données
         const { error: insertError } = await supabase

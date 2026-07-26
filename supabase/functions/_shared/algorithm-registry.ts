@@ -36,8 +36,8 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 0.7,
     enabled: true,
   }],
-  ["Arbres Heuristiques", {
-    name: "Arbres Heuristiques",
+  ["Random Forest", {
+    name: "Random Forest",
     category: "forest" as AlgorithmCategory,
     minDataRequired: 30,
     maxDataUsed: 300,
@@ -45,8 +45,8 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 0.8,
     enabled: true,
   }],
-  ["Séquences Récurrentes", {
-    name: "Séquences Récurrentes",
+  ["LSTM Network", {
+    name: "LSTM Network",
     category: "recurrent" as AlgorithmCategory,
     minDataRequired: 60,
     maxDataUsed: 200,

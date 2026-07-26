@@ -110,7 +110,7 @@ serve(async (req) => {
           };
         });
         
-        await supabaseClient.from('algorithm_performance').upsert(perfUpdates);
+        await supabaseClient.from('algorithm_calibration_metrics').upsert(perfUpdates);
       }
     }
 

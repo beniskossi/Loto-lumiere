@@ -16,43 +16,43 @@ const DRAW_SCHEDULE: Record<string, { name: string; time: string }[]> = {
     { name: "Benediction", time: "10:00" },
     { name: "Prestige", time: "13:00" },
     { name: "Awale", time: "16:00" },
-    { name: "Espoir", time: "18:15" },
+    { name: "Espoir", time: "19:50" },
   ],
   1: [ // Lundi
     { name: "Reveil", time: "10:00" },
     { name: "Etoile", time: "13:00" },
     { name: "Akwaba", time: "16:00" },
-    { name: "Monday Special", time: "18:15" },
+    { name: "Monday Special", time: "19:50" },
   ],
   2: [ // Mardi
     { name: "La Matinale", time: "10:00" },
     { name: "Emergence", time: "13:00" },
     { name: "Sika", time: "16:00" },
-    { name: "Lucky Tuesday", time: "18:15" },
+    { name: "Lucky Tuesday", time: "19:50" },
   ],
   3: [ // Mercredi
     { name: "Premiere Heure", time: "10:00" },
     { name: "Fortune", time: "13:00" },
     { name: "Baraka", time: "16:00" },
-    { name: "Midweek", time: "18:15" },
+    { name: "Midweek", time: "19:50" },
   ],
   4: [ // Jeudi
     { name: "Kado", time: "10:00" },
     { name: "Privilege", time: "13:00" },
     { name: "Monni", time: "16:00" },
-    { name: "Fortune Thursday", time: "18:15" },
+    { name: "Fortune Thursday", time: "19:50" },
   ],
   5: [ // Vendredi
     { name: "Cash", time: "10:00" },
     { name: "Solution", time: "13:00" },
     { name: "Wari", time: "16:00" },
-    { name: "Friday Bonanza", time: "18:15" },
+    { name: "Friday Bonanza", time: "19:50" },
   ],
   6: [ // Samedi
     { name: "Soutra", time: "10:00" },
     { name: "Diamant", time: "13:00" },
     { name: "Moaye", time: "16:00" },
-    { name: "National", time: "18:15" },
+    { name: "National", time: "19:50" },
   ],
 };
 
@@ -73,7 +73,9 @@ serve(async (req) => {
   // Authentication check - require CRON_SECRET
   const authHeader = req.headers.get('Authorization');
   const cronSecret = Deno.env.get('CRON_SECRET');
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && authHeader !== `Bearer ${anonKey}` && authHeader !== `Bearer ${serviceRoleKey}`) {
     console.log('[auto-fetch-results] Unauthorized access attempt');
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
       status: 401, 

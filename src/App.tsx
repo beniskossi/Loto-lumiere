@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RealtimeSync } from "@/components/RealtimeSync";
 
 // Lazy-loaded pages for code splitting
 const Admin = lazy(() => import("./pages/Admin"));
@@ -44,6 +45,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <RealtimeSync />
         <PWAInstallPrompt />
         <OfflineIndicator />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

@@ -1,0 +1,49 @@
+--- src/lib/algorithms/predictionEngine.ts
++++ src/lib/algorithms/predictionEngine.ts
+@@ -1,6 +1,7 @@
+ import { DrawResult } from "@/types/lottery";
++import { DirichletMultinomialEngine } from "@/lib/core/dirichlet";
+ 
+ export interface ScoreBreakdown {
+   number: number;
+   frequencyScore: number; // Raw frequency or decayed frequency
+@@ -95,20 +96,30 @@
+     for (let n = 1; n <= maxNum; n++) {
+       allAppearancesIndices[n] = [];
+     }
+ 
+-    // Calculate F1 (Decayed Frequency) and collect gap history
++    // Prepare history for Dirichlet and gap history
++    const historicalDrawsArrays = sortedDraws.map(d => d.winningNumbers || []);
++    
++    // Initialize the true Dirichlet model
++    const dirichlet = new DirichletMultinomialEngine({
++      timeDecay: Math.exp(-decay) // convert continuous rate to discrete multiplier
++    });
++    
++    const posterior = dirichlet.calculatePosterior(historicalDrawsArrays);
++    const bayesianProbs = dirichlet.estimateProbabilities(posterior);
++
++    // Calculate F1 (Dirichlet Probability) and collect gap history
+     for (let i = 0; i < sortedDraws.length; i++) {
+       const draw = sortedDraws[i];
+       const numbers = draw.winningNumbers || [];
+-      const recencyWeight = Math.exp(-decay * i);
+ 
+       numbers.forEach((num) => {
+         if (num >= 1 && num <= maxNum) {
+-          frequencies[num] += recencyWeight;
+           allAppearancesIndices[num].push(i);
+           if (lastAppearances[num] === -1) {
+             lastAppearances[num] = i;
+             gaps[num] = i;
+           }
+         }
+       });
+     }
++    
++    for (let n = 1; n <= maxNum; n++) {
++       frequencies[n] = bayesianProbs.get(n)?.expectedProbability || 0;
++    }
+ 
+     // Calculate F2 (Poisson-Gap Recurrence Score)

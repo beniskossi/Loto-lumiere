@@ -1,0 +1,18 @@
+--- src/App.tsx
++++ src/App.tsx
+@@ -9,6 +9,7 @@
+ import { AdminRoute } from "@/components/AdminRoute";
+ import { Skeleton } from "@/components/ui/skeleton";
+ import { ErrorBoundary } from "@/components/ErrorBoundary";
++import { RealtimeSync } from "@/components/RealtimeSync";
+ 
+ // Lazy-loaded pages for code splitting
+ const Admin = lazy(() => import("./pages/Admin"));
+@@ -48,6 +49,7 @@
+             }
+           />
+         </Routes>
++        <RealtimeSync />
+         <PWAInstallPrompt />
+         <OfflineIndicator />
+       </BrowserRouter>

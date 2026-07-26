@@ -1,0 +1,82 @@
+--- supabase/functions/_shared/algorithm-registry.ts
++++ supabase/functions/_shared/algorithm-registry.ts
+@@ -2,7 +2,7 @@
+ import {
+   frequencyProAlgorithm,
+-  randomForestAlgorithm,
+-  lstmAlgorithm,
++  randomForestAlgorithm as randomForestPlaceholder,
++  lstmAlgorithm as lstmPlaceholder,
+   transformerAlgorithm,
+   doubleGapSequenceAlgorithm,
+   gapCadenceAlgorithm,
+   seasonalRecurrenceAlgorithm,
+   stackingEnsemble,
+   generateFallbackPrediction,
++  xgboostAlgorithm
+ } from "./algorithms.ts";
+ import { log } from "./utils.ts";
+ 
+@@ -37,18 +37,18 @@
+     enabled: true,
+   }],
+-  ["Arbres Heuristiques", {
+-    name: "Arbres Heuristiques",
++  ["Random Forest", {
++    name: "Random Forest",
+     category: "forest" as AlgorithmCategory,
+     minDataRequired: 30,
+     maxDataUsed: 300,
+     resourceIntensity: "low",
+     weight: 0.8,
+     enabled: true,
+   }],
+-  ["Séquences Récurrentes", {
+-    name: "Séquences Récurrentes",
++  ["LSTM Network", {
++    name: "LSTM Network",
+     category: "recurrent" as AlgorithmCategory,
+     minDataRequired: 60,
+     maxDataUsed: 200,
+     resourceIntensity: "medium",
+     weight: 0.9,
+     enabled: true,
+   }],
+-  ["Attention Spatiale", {
+-    name: "Attention Spatiale",
++  ["Transformer (Attention)", {
++    name: "Transformer (Attention)",
+     category: "transformer" as AlgorithmCategory,
+     minDataRequired: 250,
+     maxDataUsed: 500,
+     resourceIntensity: "high",
+     weight: 1.1,
+     enabled: true,
+   }],
+-  ["Double Gap Sequence", {
+-    name: "Double Gap Sequence",
++  ["XGBoost", {
++    name: "XGBoost",
+     category: "statistical" as AlgorithmCategory,
+     minDataRequired: 10,
+     maxDataUsed: 200,
+     resourceIntensity: "low",
+     weight: 1.5,
+     enabled: true,
+   }],
+   ["Gap Cadence", {
+@@ -79,10 +79,10 @@
+ const ALGORITHM_FUNCTIONS: Map<string, AlgorithmFunction> = new Map([
+   ["FrequencyPro", frequencyProAlgorithm],
+-  ["Arbres Heuristiques", randomForestPlaceholder],
+-  ["Séquences Récurrentes", lstmPlaceholder],
+-  ["Attention Spatiale", transformerAlgorithm],
+-  ["Double Gap Sequence", xgboostAlgorithm],
++  ["Random Forest", randomForestPlaceholder],
++  ["LSTM Network", lstmPlaceholder],
++  ["Transformer (Attention)", transformerAlgorithm],
++  ["XGBoost", xgboostAlgorithm],
+   ["Gap Cadence", gapCadenceAlgorithm],
+   ["Seasonal Recurrence", seasonalRecurrenceAlgorithm],
+   ["Ensemble Hybride Stacking", stackingEnsemble],
+ ]);

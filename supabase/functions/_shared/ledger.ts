@@ -45,7 +45,7 @@ export async function getHistoricalPerformanceMap(): Promise<Map<string, number>
 
   try {
     const { data, error } = await supabase
-      .from('algorithm_performance')
+      .from('algorithm_calibration_metrics')
       .select('algorithm_name, historical_accuracy');
 
     if (error) throw error;

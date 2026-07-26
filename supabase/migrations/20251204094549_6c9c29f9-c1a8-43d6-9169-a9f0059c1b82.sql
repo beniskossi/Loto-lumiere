@@ -14,7 +14,7 @@ SELECT cron.schedule(
   SELECT
     net.http_post(
         url:='https://kmkdwivnymcumgoorsiv.supabase.co/functions/v1/auto-fetch-results',
-        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtta2R3aXZueW1jdW1nb29yc2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxNjM2MzQsImV4cCI6MjA3NzczOTYzNH0.LsdZ342a8rfbCCa0ScYeOGUwJONS7ZIaYAMLleTM9t4"}'::jsonb,
+        headers := ('{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key', true) || '"}')::jsonb,
         body:=concat('{"triggered_at": "', now(), '"}')::jsonb
     ) as request_id;
   $$

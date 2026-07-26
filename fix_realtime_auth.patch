@@ -1,0 +1,10 @@
+--- src/hooks/useRealtimeSync.ts
++++ src/hooks/useRealtimeSync.ts
+@@ -10,6 +10,7 @@
+   useEffect(() => {
+     // S'abonner aux changements sur la table draw_results
+     const channel = supabase
++      // Using public channel since we only read data
+       .channel('schema-db-changes')
+       .on(
+         'postgres_changes',

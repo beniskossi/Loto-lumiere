@@ -1,0 +1,121 @@
+--- src/lib/algorithms/registry.ts
++++ src/lib/algorithms/registry.ts
+@@ -10,13 +10,13 @@
+ 
+ export type AlgorithmName = 
+   | 'FrequencyPro'
+-  | 'Arbres Heuristiques'
+-  | 'Séquences Récurrentes'
+-  | 'Attention Spatiale'
+-  | 'Double Gap Sequence'
+-  | 'Gap Cadence'
++  | 'Random Forest'
++  | 'LSTM Network'
++  | 'Transformer (Attention)'
++  | 'XGBoost'
+   | 'Ensemble Hybride Stacking'
+   | 'Baseline Aléatoire';
+ 
+ export interface ParameterSchema {
+   type: 'number' | 'string' | 'boolean';
+@@ -43,44 +43,44 @@
+     bestFor: 'Données avec patterns fréquenciels clairs'
+   },
+   'Random Forest': {
+-    name: 'Arbres Heuristiques',
+-    displayName: 'Ensemble bootstrap de tendances fréquentielles',
+-    description: 'Modèle statistique de rééchantillonnage (bootstrap) qui agrège les tendances fréquentielles de différents sous-échantillons.',
++    name: 'Random Forest',
++    displayName: 'Random Forest',
++    description: 'Entraîne des centaines d\'arbres de décision sur des caractéristiques croisées.',
+     category: 'ensemble',
+     defaultWeight: 0.8,
+     color: 'hsl(200 70% 50%)',
+     parametersSchema: {
+-      num_trees: { type: 'number', default: 10, min: 5, max: 50 },
+-      max_depth: { type: 'number', default: 5, min: 3, max: 15 }
++      nEstimators: { type: 'number', default: 100, min: 10, max: 1000 },
++      maxDepth: { type: 'number', default: 10, min: 3, max: 30 }
+     },
+-    strengths: ['Robuste au bruit', 'Analyse structurelle locale', 'Modélisation déterministe'],
+-    bestFor: 'Données avec interactions non-linéaires déterministes'
++    strengths: ['Non-linéarité', 'Robustesse au bruit', 'Cross-features'],
++    bestFor: 'Modélisation des interactions complexes entre les caractéristiques (parité, sum).'
+   },
+   'LSTM Network': {
+-    name: 'Séquences Récurrentes',
+-    displayName: 'Transformation récurrente déterministe expérimentale',
+-    description: 'Réseau de neurones récurrent avec mémoire à long terme simulé localement en JavaScript. Adapté pour l\'analyse de courtes séquences temporelles.',
++    name: 'LSTM Network',
++    displayName: 'LSTM Network',
++    description: 'Réseau neuronal récurrent capturant les dynamiques séquentielles et les mémoires longues.',
+     category: 'deep-learning',
+     defaultWeight: 0.9,
+     color: 'hsl(280 70% 55%)',
+     parametersSchema: {
+-      hidden_size: { type: 'number', default: 64, min: 32, max: 128 },
+-      num_layers: { type: 'number', default: 2, min: 1, max: 4 },
+-      sequence_length: { type: 'number', default: 20, min: 10, max: 50 }
++      lookbackWindow: { type: 'number', default: 10, min: 3, max: 50 },
++      hiddenUnits: { type: 'number', default: 64, min: 16, max: 256 }
+     },
+-    strengths: ['Mémoire séquentielle', 'Traitement léger local', 'Excellent sur séquences courtes'],
+-    bestFor: 'Séries temporelles avec dépendances courtes'
++    strengths: ['Mémoire temporelle', 'Séquences de tirages'],
++    bestFor: 'Détecter les patterns qui se construisent sur plusieurs tirages consécutifs.'
+   },
+   'Transformer (Attention)': {
+-    name: 'Attention Spatiale',
+-    displayName: 'Analyse d\'attention sinusoïdale expérimentale',
+-    description: 'Architecture d\'attention multi-têtes simulée localement pour capturer les relations complexes et proximales entre numéros.',
++    name: 'Transformer (Attention)',
++    displayName: 'Transformer (Attention)',
++    description: 'Mécanisme de self-attention pour identifier les relations distantes entre numéros et tirages.',
+     category: 'deep-learning',
+     defaultWeight: 1.1,
+     color: 'hsl(330 70% 55%)',
+     parametersSchema: {
+-      num_heads: { type: 'number', default: 4, min: 2, max: 8 },
+-      embed_dim: { type: 'number', default: 32, min: 16, max: 64 },
++      attentionHeads: { type: 'number', default: 4, min: 1, max: 16 },
+       layers: { type: 'number', default: 2, min: 1, max: 6 }
+     },
+-    strengths: ['Attention sur relations', 'Calcul matriciel simulé', 'Excellente modélisation proximale'],
+-    bestFor: 'Relations complexes entre numéros'
++    strengths: ['Relations globales', 'Contextualisation'],
++    bestFor: 'Comprendre quelles combinaisons spécifiques ont tendance à apparaître ensemble (anisotropie).'
+   },
+   'XGBoost': {
+-    name: 'Double Gap Sequence',
+-    displayName: 'Double Gap (Écarts des Écarts)',
+-    description: 'Analyse et projette la séquence des écarts des écarts (second ordre) pour prédire la tendance de tranche.',
++    name: 'XGBoost',
++    displayName: 'XGBoost',
++    description: 'Gradient boosting optimisé détectant les ruptures d\'écarts et la volatilité.',
+     category: 'statistical',
+     defaultWeight: 1.5,
+     color: 'hsl(28 90% 50%)',
+     parametersSchema: {
+-      window_size: { type: 'number', default: 10, min: 5, max: 30 }
++      learningRate: { type: 'number', default: 0.1, min: 0.01, max: 0.5 },
++      maxDepth: { type: 'number', default: 6, min: 3, max: 15 }
+     },
+-    strengths: ['Projection de tendance', 'Analyse du second ordre', 'Haute précision'],
+-    bestFor: 'Détection des retournements de tendance'
+-  },
+-  'Gap Cadence': {
+-    name: 'Gap Cadence',
+-    displayName: 'Cadence Morphologique',
+-    description: 'Recherche la cadence rythmique des écarts pour détecter les patterns et la morphologie du prochain tirage.',
+-    category: 'statistical',
+-    defaultWeight: 1.4,
+-    color: 'hsl(180 70% 45%)',
+-    parametersSchema: {
+-      cadence_depth: { type: 'number', default: 5, min: 2, max: 15 }
+-    },
+-    strengths: ['Détection de patterns rythmiques', 'Morphologie', 'Explicabilité'],
+-    bestFor: 'Anticipation des vagues d\'apparition'
++    strengths: ['Haute précision', 'Volatilité', 'Non-linéarité'],
++    bestFor: 'Prédictions sur des métriques fortement variables comme les Gaps.'
+   },
+   'Ensemble Hybride Stacking': {

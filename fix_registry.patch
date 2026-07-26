@@ -1,0 +1,81 @@
+--- src/lib/algorithms/registry.ts
++++ src/lib/algorithms/registry.ts
+@@ -10,13 +10,13 @@
+ 
+ export type AlgorithmName = 
+   | 'FrequencyPro'
+-  | 'Arbres Heuristiques'
+-  | 'Séquences Récurrentes'
+-  | 'Attention Spatiale'
+-  | 'Double Gap Sequence'
+-  | 'Gap Cadence'
++  | 'Random Forest'
++  | 'LSTM Network'
++  | 'Transformer (Attention)'
++  | 'XGBoost'
+   | 'Ensemble Hybride Stacking'
+   | 'Baseline Aléatoire';
+ 
+ export interface ParameterSchema {
+   type: 'number' | 'string' | 'boolean';
+@@ -43,26 +43,26 @@
+     bestFor: "Détecter les numéros statistiquement dominants avec lissage bayésien."
+   },
+   {
+-    name: 'Arbres Heuristiques',
+-    displayName: 'Random Forest',
++    name: 'Random Forest',
++    displayName: 'Random Forest',
+     description: "Entraîne des centaines d'arbres de décision sur des caractéristiques croisées.",
+     category: 'ensemble',
+     defaultWeight: 0.8,
+     color: 'var(--chart-2)',
+     parametersSchema: {
+       nEstimators: { type: 'number', default: 100, min: 10, max: 1000 },
+       maxDepth: { type: 'number', default: 10, min: 3, max: 30 }
+     },
+     strengths: ["Non-linéarité", "Robustesse au bruit", "Cross-features"],
+     bestFor: "Modélisation des interactions complexes entre les caractéristiques (parité, sum)."
+   },
+   {
+-    name: 'Séquences Récurrentes',
+-    displayName: 'LSTM Network',
++    name: 'LSTM Network',
++    displayName: 'LSTM Network',
+     description: "Réseau neuronal récurrent capturant les dynamiques séquentielles et les mémoires longues.",
+     category: 'deep-learning',
+     defaultWeight: 0.9,
+     color: 'var(--chart-3)',
+     parametersSchema: {
+       lookbackWindow: { type: 'number', default: 10, min: 3, max: 50 },
+       hiddenUnits: { type: 'number', default: 64, min: 16, max: 256 }
+@@ -70,25 +70,25 @@
+     strengths: ["Mémoire temporelle", "Séquences de tirages"],
+     bestFor: "Détecter les patterns qui se construisent sur plusieurs tirages consécutifs."
+   },
+   {
+-    name: 'Attention Spatiale',
+-    displayName: 'Transformer',
++    name: 'Transformer (Attention)',
++    displayName: 'Transformer (Attention)',
+     description: "Mécanisme de self-attention pour identifier les relations distantes entre numéros et tirages.",
+     category: 'deep-learning',
+     defaultWeight: 0.85,
+     color: 'var(--chart-4)',
+     parametersSchema: {
+       attentionHeads: { type: 'number', default: 4, min: 1, max: 16 },
+       layers: { type: 'number', default: 2, min: 1, max: 6 }
+     },
+     strengths: ["Relations globales", "Contextualisation"],
+     bestFor: "Comprendre quelles combinaisons spécifiques ont tendance à apparaître ensemble (anisotropie)."
+   },
+   {
+-    name: 'Double Gap Sequence',
+-    displayName: 'XGBoost',
++    name: 'XGBoost',
++    displayName: 'XGBoost',
+     description: "Gradient boosting optimisé détectant les ruptures d'écarts et la volatilité.",
+     category: 'ensemble',
+     defaultWeight: 0.75,
+     color: 'var(--chart-5)',
+     parametersSchema: {
