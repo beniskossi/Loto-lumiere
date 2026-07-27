@@ -1,6 +1,6 @@
 {
-  "name": "Remix: Lotto 5/90 Predictive Engine",
-  "description": "An advanced lottery predictive platform using lightweight machine learning algorithms (frequency, gaps, Markov, affinity, spectral, fractal) with empirical calibration, backtesting, and a real-time ticket analyzer.",
+  "name": "LOTO LUMIERE",
+  "description": "Application web de prédiction et d’analyse avancée des résultats de loterie (format 5/90) combinant statistiques avancées, algorithmes de Machine Learning et formules mathématiques explicables.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

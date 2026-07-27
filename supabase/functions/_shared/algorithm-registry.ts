@@ -19,11 +19,32 @@ import {
   gapCadenceAlgorithm,
   seasonalRecurrenceAlgorithm,
   gapSequenceAlgorithm,
+  xgboostAlgorithm,
+  baselineUniformeAlgorithm,
   generateFallbackPrediction 
 } from "./algorithms.ts";
 import { transformerAlgorithm } from "./transformer.ts";
 import { stackingEnsemble } from "./stacking.ts";
 import { log } from "./utils.ts";
+
+// ====================== MAPPING DES ALIASES ======================
+
+export const ALGORITHM_ALIASES: Record<string, string> = {
+  "Arbres Heuristiques": "Random Forest",
+  "Séquences Récurrentes": "LSTM Network",
+  "Attention Spatiale": "Transformer (Attention)",
+  "Transformer": "Transformer (Attention)",
+  "Ensemble Stacking": "Ensemble Hybride Stacking",
+  "RandomForest": "Random Forest",
+  "LSTM": "LSTM Network",
+  "XGBoost Algorithm": "XGBoost",
+  "Baseline Uniforme (Théorique)": "Baseline Aléatoire",
+  "Baseline Uniforme": "Baseline Aléatoire",
+};
+
+export function normalizeAlgorithmName(name: string): string {
+  return ALGORITHM_ALIASES[name] || name;
+}
 
 // ====================== CONFIGURATION DES ALGORITHMES ======================
 
@@ -40,7 +61,7 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
   ["Random Forest", {
     name: "Random Forest",
     category: "forest" as AlgorithmCategory,
-    minDataRequired: 30,
+    minDataRequired: 15,
     maxDataUsed: 300,
     resourceIntensity: "low",
     weight: 0.8,
@@ -49,19 +70,46 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
   ["LSTM Network", {
     name: "LSTM Network",
     category: "recurrent" as AlgorithmCategory,
-    minDataRequired: 60,
+    minDataRequired: 20,
     maxDataUsed: 200,
     resourceIntensity: "medium",
     weight: 0.9,
     enabled: true,
   }],
-  ["Attention Spatiale", {
-    name: "Attention Spatiale",
+  ["Transformer (Attention)", {
+    name: "Transformer (Attention)",
     category: "transformer" as AlgorithmCategory,
-    minDataRequired: 250,
+    minDataRequired: 30,
     maxDataUsed: 500,
     resourceIntensity: "high",
     weight: 1.1,
+    enabled: true,
+  }],
+  ["XGBoost", {
+    name: "XGBoost",
+    category: "statistical" as AlgorithmCategory,
+    minDataRequired: 15,
+    maxDataUsed: 300,
+    resourceIntensity: "medium",
+    weight: 1.5,
+    enabled: true,
+  }],
+  ["Ensemble Hybride Stacking", {
+    name: "Ensemble Hybride Stacking",
+    category: "ensemble" as AlgorithmCategory,
+    minDataRequired: 30,
+    maxDataUsed: 500,
+    resourceIntensity: "high",
+    weight: 1.2,
+    enabled: true,
+  }],
+  ["Baseline Aléatoire", {
+    name: "Baseline Aléatoire",
+    category: "statistical" as AlgorithmCategory,
+    minDataRequired: 1,
+    maxDataUsed: 1,
+    resourceIntensity: "low",
+    weight: 0.1,
     enabled: true,
   }],
   ["Double Gap Sequence", {
@@ -88,7 +136,7 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     minDataRequired: 20,
     maxDataUsed: 500,
     resourceIntensity: "medium",
-    weight: 1.6, // High weight since it's a sophisticated pattern algorithm
+    weight: 1.6,
     enabled: true,
   }],
   ["Seasonal Recurrence", {
@@ -100,29 +148,38 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 1.1,
     enabled: true,
   }],
-  ["Ensemble Hybride Stacking", {
-    name: "Ensemble Hybride Stacking",
-    category: "ensemble" as AlgorithmCategory,
-    minDataRequired: 100,
-    maxDataUsed: 500,
-    resourceIntensity: "high",
-    weight: 1.2,
-    enabled: true,
-  }],
 ]);
+
+// Register legacy aliases into configs
+const legacyAliases: [string, string][] = [
+  ["Arbres Heuristiques", "Random Forest"],
+  ["Séquences Récurrentes", "LSTM Network"],
+  ["Attention Spatiale", "Transformer (Attention)"],
+];
+for (const [legacyName, targetName] of legacyAliases) {
+  const targetConfig = ALGORITHM_CONFIGS.get(targetName);
+  if (targetConfig) {
+    ALGORITHM_CONFIGS.set(legacyName, { ...targetConfig, name: legacyName });
+  }
+}
 
 // ====================== FONCTIONS D'EXÉCUTION ======================
 
 const ALGORITHM_FUNCTIONS: Map<string, AlgorithmFunction> = new Map([
   ["FrequencyPro", frequencyProAlgorithm],
+  ["Random Forest", randomForestAlgorithm],
   ["Arbres Heuristiques", randomForestAlgorithm],
+  ["LSTM Network", lstmAlgorithm],
   ["Séquences Récurrentes", lstmAlgorithm],
+  ["Transformer (Attention)", transformerAlgorithm],
   ["Attention Spatiale", transformerAlgorithm],
+  ["XGBoost", xgboostAlgorithm],
+  ["Ensemble Hybride Stacking", stackingEnsemble],
+  ["Baseline Aléatoire", baselineUniformeAlgorithm],
   ["Double Gap Sequence", doubleGapSequenceAlgorithm],
   ["Gap Cadence", gapCadenceAlgorithm],
   ["Séquence des Écarts", gapSequenceAlgorithm],
   ["Seasonal Recurrence", seasonalRecurrenceAlgorithm],
-  ["Ensemble Hybride Stacking", stackingEnsemble],
 ]);
 
 // ====================== CLASSE PRINCIPALE ======================
@@ -154,14 +211,15 @@ export class AlgorithmRegistryManager {
    * Récupère un algorithme par nom
    */
   get(name: string): AlgorithmRegistry | undefined {
-    return this.registry.get(name);
+    const normalized = normalizeAlgorithmName(name);
+    return this.registry.get(normalized) || this.registry.get(name);
   }
 
   /**
    * Récupère la configuration d'un algorithme
    */
   getConfig(name: string): AlgorithmConfig | undefined {
-    return this.registry.get(name)?.config;
+    return this.get(name)?.config;
   }
 
   /**
@@ -217,7 +275,7 @@ export class AlgorithmRegistryManager {
    * Exécute un algorithme spécifique
    */
   execute(name: string, results: DrawResult[]): PredictionResult {
-    const algo = this.registry.get(name);
+    const algo = this.get(name);
     
     if (!algo) {
       log("warn", `Algorithme inconnu: ${name}, utilisation de FrequencyPro`);

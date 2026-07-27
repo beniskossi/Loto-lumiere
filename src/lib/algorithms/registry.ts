@@ -141,10 +141,15 @@ export const ALGORITHM_NAMES = Object.keys(ALGORITHMS) as AlgorithmName[];
 export const CORE_ALGORITHMS = ALGORITHM_NAMES;
 
 /**
- * Récupère la définition d'un algorithme par son nom
+ * Récupère la définition d'un algorithme par son nom (supporte les noms canoniques et les anciens alias).
  */
 export function getAlgorithm(name: string): AlgorithmDefinition | undefined {
-  return ALGORITHMS[name as AlgorithmName];
+  if (!name) return undefined;
+  if (name in ALGORITHMS) {
+    return ALGORITHMS[name as AlgorithmName];
+  }
+  const normalized = normalizeAlgorithmName(name);
+  return ALGORITHMS[normalized];
 }
 
 /**
@@ -169,8 +174,13 @@ export function getNormalizedWeights(): Record<AlgorithmName, number> {
 }
 
 /**
- * Vérifie si un nom d'algorithme est valide
+ * Vérifie si un nom d'algorithme est valide (canonique ou alias reconnu)
  */
 export function isValidAlgorithm(name: string): name is AlgorithmName {
-  return ALGORITHM_NAMES.includes(name as AlgorithmName);
+  if (ALGORITHM_NAMES.includes(name as AlgorithmName)) return true;
+  const normalized = normalizeAlgorithmName(name);
+  return ALGORITHM_NAMES.includes(normalized);
 }
+
+export { normalizeAlgorithmName, syncAlgorithmRegistryInDB, ALGORITHM_NAME_MAPPINGS } from './unifyRegistry';
+

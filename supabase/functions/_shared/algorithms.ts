@@ -10,9 +10,9 @@ import { generateDeterministicFallback, selectBalancedNumbers, log, Deterministi
 export { transformerAlgorithm } from "./transformer.ts";
 export { stackingEnsemble } from "./stacking.ts";
 export { doubleGapSequenceAlgorithm, gapCadenceAlgorithm, seasonalRecurrenceAlgorithm } from "./new-algorithms.ts";
+export { xgboostAlgorithm } from "./algorithms/xgboost.ts";
 import { posteriorDirichlet, getTopDirichletPredictions } from "./core/dirichlet.ts";
 import { PCG32 } from "./core/pcg32.ts";
-import { xgboostAlgorithm } from "./algorithms/xgboost.ts";
 
 const EPSILON = 1e-10;
 

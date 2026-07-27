@@ -141,7 +141,7 @@ BEGIN
 
   IF kind IS NULL THEN
     RETURN; -- l'objet n'existe pas, rien à faire
-  ELSIF kind = 'r' THEN
+  ELSIF kind IN ('r', 'p') THEN -- table normale ou table partitionnée
     EXECUTE format('DROP TABLE IF EXISTS %I.%I CASCADE', schema_name, rel_name);
   ELSIF kind = 'v' THEN
     EXECUTE format('DROP VIEW IF EXISTS %I.%I CASCADE', schema_name, rel_name);
@@ -150,7 +150,7 @@ BEGIN
   ELSE
     -- Type d'objet inattendu (index, séquence, type composite, foreign table...) :
     -- on ne tente rien plutôt que de risquer une suppression incorrecte.
-    RAISE NOTICE 'drop_relation_if_exists: % .% a un relkind inattendu (%), ignoré', schema_name, rel_name, kind;
+    RAISE NOTICE 'drop_relation_if_exists: %.% a un relkind inattendu (%), ignoré', schema_name, rel_name, kind;
   END IF;
 END;
 $$;

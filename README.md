@@ -1,73 +1,57 @@
-# Welcome to your Lovable project
+# LOTO LUMIERE
 
-## Project info
+**LOTO LUMIERE** est une application web de prédiction et d'analyse avancée des résultats de loterie (format 5 numéros sur 90) combinant statistiques avancées, algorithmes de Machine Learning, réseaux de neurones deep learning et formules mathématiques explicables.
 
-**URL**: https://lovable.dev/projects/4b8a55d7-725a-44fc-99c4-4a42a3052adf
+---
 
-## How can I edit this code?
+## 🌟 Vision & Valeurs
+- **Transparence & Explicabilité** : Chaque prédiction fournit des facteurs explicatifs clairs (analyse fréquentielle, récurrences, vélocité des écarts, consensus).
+- **Performance Hybride ML** : Combinaison de 6 algorithmes optimaux + 1 baseline de contrôle + système de formules explicables.
+- **Sécurité & Intégrité** : Moteur d'inférence déterministe, politiques RLS strictes sur Supabase, et audit forensique.
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 📐 Les 6 Algorithmes Optimaux + Baseline
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4b8a55d7-725a-44fc-99c4-4a42a3052adf) and start prompting.
+1. **FrequencyPro** *(Statistique)* : Analyse fréquentielle avec lissage bayésien et loi de Dirichlet.
+2. **Random Forest** *(Ensemble)* : Entraîne des centaines d'arbres de décision sur des caractéristiques croisées.
+3. **LSTM Network** *(Deep Learning)* : Réseau neuronal récurrent capturant les dynamiques séquentielles et fenêtres temporelles.
+4. **Transformer (Attention)** *(Deep Learning)* : Mécanisme de self-attention pour identifier les co-occurrences distantes.
+5. **XGBoost** *(Ensemble)* : Gradient boosting optimisé sur la vélocité et la régression des écarts (gaps).
+6. **Ensemble Hybride Stacking** *(Hybride)* : Méta-apprenant combinant intelligemment l'ensemble des modèles.
+7. **Baseline Aléatoire** *(Contrôle)* : Générateur pseudo-aléatoire déterministe (PCG32) servant de point de comparaison.
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 🛠️ Tech Stack
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- **Frontend** : React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Recharts, Framer Motion, PWA.
+- **Backend** : Supabase (PostgreSQL, 22 Edge Functions en Deno, Auth, RLS, Materialized Views).
+- **Data & ML** : Implémentations locales en Edge Functions Deno/TypeScript, moteur de calibration & backtesting.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## 🚀 Démarrage Rapide
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Installation des dépendances
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Lancement du serveur de développement
 npm run dev
+
+# Tests & Validation
+npm run test
+npm run lint
+
+# Déploiement du schéma et des Edge Functions Supabase
+npm run supabase:deploy
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📁 Structure du Projet
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/4b8a55d7-725a-44fc-99c4-4a42a3052adf) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- `/src` : Application React (Composants UI, Dashboards, Hooks, Registre frontend `src/lib/algorithms/registry.ts`).
+- `/supabase/functions` : 22 Edge Functions Deno & modules partagés (`_shared/`).
+- `/supabase/migrations` : Migrations PostgreSQL idempotent et schéma principal `20260101000000_master_schema (3).sql`.

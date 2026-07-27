@@ -38,14 +38,28 @@ echo "🔄 Déploiement des Edge Functions..."
 
 # Fonctions principales
 FUNCTIONS=(
-    "generate-prediction-v2"
+    "adaptive-orchestration"
     "advanced-ai-prediction-v2"
-    "evaluate-predictions"
-    "train-algorithms"
+    "advanced-monitoring"
+    "ai-prediction-analyzer"
+    "auto-fetch-results"
     "auto-tune-algorithms"
-    "select-best-algorithm"
+    "automated-validation"
+    "chronological-training"
+    "evaluate-algorithms"
+    "evaluate-ledger"
+    "evaluate-predictions"
+    "forensic-audit"
     "multi-algorithm-comparison"
+    "multi-draw-prediction"
+    "personalized-prediction"
+    "precalculate-predictions"
+    "prediction-feedback"
+    "prune-weights"
     "scrape-results"
+    "seed-data"
+    "select-best-algorithm"
+    "train-algorithms"
 )
 
 for func in "${FUNCTIONS[@]}"; do
