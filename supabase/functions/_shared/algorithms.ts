@@ -315,4 +315,5 @@ export function lstmAlgorithm(results: DrawResult[]): PredictionResult {
 }
 
 export { xgboostAlgorithm };
+export { gapSequenceAlgorithm } from "./algorithms/gap-sequence.ts";
 

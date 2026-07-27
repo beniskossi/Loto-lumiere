@@ -153,6 +153,8 @@ function calculateDataMetrics(results: DrawResult[]): DataMetrics {
     historicalCount: results.length,
     quality: calculateDataQuality(results),
     freshness: calculateFreshness(results),
+    completeness: 1.0,
+    consistency: 1.0,
   };
 }
 
@@ -175,7 +177,7 @@ async function executePredictions(
   if (selectedAlgorithm === "Ensemble Hybride Stacking") {
     optimizedPrediction = stackingEnsemble(results);
   } else if (predictions.length > 1) {
-    optimizedPrediction = smartEnsemble(predictions, dataMetrics.quality);
+    optimizedPrediction = await smartEnsemble.generateEnsemblePrediction(results, options.useAIOrchestration);
   } else {
     optimizedPrediction = predictions[0] || generateFallbackPrediction();
   }
@@ -209,18 +211,24 @@ async function performAdvancedAnalysis(
     
     const bayesianResult = calculateBayesianModelAverage(predictionsMap, priorPerformance);
     
-    if (bayesianResult && bayesianResult.topNumbers.length >= 5) {
+    if (bayesianResult && bayesianResult.numbers.length >= 5) {
       analysisResults.bayesianPrediction = {
-        numbers: bayesianResult.topNumbers.slice(0, 5).sort((a, b) => a - b),
-        confidence: Math.min(0.95, bayesianResult.overallConfidence * 1.1),
-        score: bayesianResult.overallConfidence,
+        category: "ensemble",
         algorithm: "Bayesian Ensemble",
         factors: ["Moyenne Bayésienne Multi-Modèles", "Inférence Probabiliste"],
+        score: bayesianResult.confidence,
+        numbers: bayesianResult.numbers.slice(0, 5).sort((a, b) => a - b),
+        confidence: Math.min(0.95, bayesianResult.confidence * 1.1),
       };
     }
     
-    analysisResults.consensus = calculateConsensusMetrics(predictions);
-    analysisResults.periodicity = detectPeriodicPatterns(results);
+    analysisResults.consensus = calculateConsensusMetrics(predictionsMap);
+    
+    const periodicPatterns = detectPeriodicPatterns(results);
+    analysisResults.periodicity = {
+      count: periodicPatterns.length,
+      dueNumbers: Array.from(new Set(periodicPatterns.flatMap(p => p.affectedNumbers)))
+    };
     
   } catch (error) {
     log("warn", "Erreur lors de l'analyse avancée", { error });
@@ -275,13 +283,13 @@ function applyEnhancedFormulas(
   options: PredictionOptions
 ): { prediction: PredictionResult; enhanced?: EnhancedPredictionResult; breakdown?: EnhancedScoreBreakdown } {
   try {
-    const enhanced = generateOptimizedPrediction(results, finalPrediction.numbers);
+    const enhanced = generateOptimizedPrediction(results, finalPrediction);
     
-    if (enhanced && enhanced.recommendedNumbers && enhanced.recommendedNumbers.length === 5) {
+    if (enhanced && enhanced.numbers && enhanced.numbers.length === 5) {
       const mergedPrediction = {
         ...finalPrediction,
-        numbers: enhanced.recommendedNumbers.sort((a, b) => a - b),
-        confidence: Math.min(0.95, finalPrediction.confidence * (1 + (enhanced.compositeScore / 200))),
+        numbers: enhanced.numbers.sort((a, b) => a - b),
+        confidence: Math.min(0.95, finalPrediction.confidence * (1 + (enhanced.breakdown.composite / 200))),
         factors: [
           ...finalPrediction.factors,
           ...enhanced.narratives.slice(0, 3)
@@ -302,14 +310,77 @@ function applyEnhancedFormulas(
 }
 
 export function generateExplanations(
-  predictions: PredictionResult[],
+  input: any,
   results: DrawResult[],
-  options: any
-): any[] {
-  return predictions.map(p => ({
-    algorithm: p.algorithm,
-    explanation: p.factors.join(", ")
-  }));
+  options?: any
+): {
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  recommendation: string;
+  algorithmInfo: {
+    name: string;
+    description: string;
+    strengths: string[];
+    optimalRange: string;
+  };
+} {
+  const isEngineResult = input && typeof input === "object" && !Array.isArray(input);
+  const selectedAlgo = isEngineResult && input.selectedAlgorithm ? input.selectedAlgorithm : (Array.isArray(input) && input[0]?.algorithm) || "FrequencyPro";
+  const algoReason = isEngineResult && input.algorithmReason ? input.algorithmReason : "Analyse statistique et apprentissage automatique";
+  const predictions: PredictionResult[] = isEngineResult ? (input.predictions || []) : (Array.isArray(input) ? input : []);
+  const topPrediction: PredictionResult | undefined = isEngineResult ? (input.optimizedPrediction || predictions[0]) : predictions[0];
+  const metrics = isEngineResult && input.dataMetrics ? input.dataMetrics : { quality: 0.8, freshness: 0.9, historicalCount: results?.length || 0 };
+
+  const confidencePct = Math.round(((topPrediction?.confidence || 0.5) * 100));
+  const historicalCount = metrics?.historicalCount ?? results?.length ?? 0;
+
+  const summary = `Prédiction générée via le modèle ${selectedAlgo} avec une confiance estimée de ${confidencePct}% basée sur ${historicalCount} tirages historiques.`;
+
+  const strengths: string[] = [];
+  if (historicalCount >= 50) {
+    strengths.push(`Volume de données historiques élevé (${historicalCount} tirages analysés)`);
+  }
+  if ((metrics?.quality ?? 1) >= 0.7) {
+    strengths.push("Haute régularité statistique et qualité d'échantillon");
+  }
+  if (topPrediction?.factors && topPrediction.factors.length > 0) {
+    strengths.push(...topPrediction.factors.slice(0, 3));
+  } else {
+    strengths.push("Convergence des fréquences et des gaps de récurrence");
+  }
+
+  const weaknesses: string[] = [];
+  if (historicalCount < 30) {
+    weaknesses.push("Échantillon historique réduit pouvant limiter la précision");
+  }
+  if ((metrics?.freshness ?? 1) < 0.6) {
+    weaknesses.push("Périodicité des données récentes nécessitant une mise à jour");
+  }
+  if (weaknesses.length === 0) {
+    weaknesses.push("Fluctuation aléatoire inhérente aux tirages indépendants");
+  }
+
+  const recNumbers = topPrediction?.numbers && topPrediction.numbers.length === 5
+    ? topPrediction.numbers.slice().sort((a: number, b: number) => a - b).join(", ")
+    : "1, 2, 3, 4, 5";
+
+  const recommendation = `Combinaison recommandée [${recNumbers}] basée sur l'optimisation ${selectedAlgo}.`;
+
+  const algorithmInfo = {
+    name: selectedAlgo,
+    description: algoReason || `Modèle de prédiction avancée ${selectedAlgo}`,
+    strengths: strengths.slice(0, 3),
+    optimalRange: "10 à 500 tirages historiques",
+  };
+
+  return {
+    summary,
+    strengths,
+    weaknesses,
+    recommendation,
+    algorithmInfo,
+  };
 }
 
 function generateFallbackPrediction(): PredictionResult {
@@ -318,6 +389,7 @@ function generateFallbackPrediction(): PredictionResult {
     numbers: [1, 2, 3, 4, 5],
     confidence: 0.0556,
     score: 0.0556,
+    category: "statistical",
     factors: ["Distribution uniforme de référence (5/90)"]
   };
 }

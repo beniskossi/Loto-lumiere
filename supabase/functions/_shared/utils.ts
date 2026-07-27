@@ -271,7 +271,7 @@ export function calculateNumberAutocorrelation(
 
   // Créer la série binaire chronologique (de la plus ancienne à la plus récente)
   const chronological = [...results].reverse();
-  const series = chronological.map(r => r.winning_numbers.includes(num) ? 1 : 0);
+  const series: number[] = chronological.map(r => r.winning_numbers.includes(num) ? 1 : 0);
   
   const mean = series.reduce((a, b) => a + b, 0) / n;
   

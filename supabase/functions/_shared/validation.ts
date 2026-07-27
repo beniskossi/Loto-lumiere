@@ -12,14 +12,20 @@ const VALID_DRAW_NAMES = [
   "Benediction", "Prestige", "Awale", "Espoir"
 ];
 
-// Draw name validation schema with strict constraints
+// Helper to normalize strings for accent-insensitive and case-insensitive comparison
+const normalizeStr = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+// Draw name validation schema with flexible matching
 export const drawNameSchema = z.string()
   .trim()
   .min(1, 'Draw name is required')
   .max(50, 'Draw name must be less than 50 characters')
-  .regex(/^[a-zA-Z0-9\s\u00C0-\u017F-]+$/, 'Draw name can only contain letters, numbers, spaces, accents, and hyphens')
+  .transform((val) => {
+    const match = VALID_DRAW_NAMES.find(n => normalizeStr(n) === normalizeStr(val));
+    return match || val;
+  })
   .refine(
-    (val) => VALID_DRAW_NAMES.includes(val),
+    (val) => VALID_DRAW_NAMES.includes(val) || VALID_DRAW_NAMES.some(n => normalizeStr(n) === normalizeStr(val)),
     { message: 'Nom de tirage inconnu ou invalide dans le programme' }
   );
 
@@ -72,51 +78,51 @@ export const predictionRequestSchema = z.object({
   analysisDepth: analysisDepthSchema,
   useSmartEnsemble: booleanFlagSchema,
   useAIOrchestration: booleanFlagSchema,
-}).strict();
+}).passthrough();
 
 // Personalized prediction request
 export const personalizedPredictionRequestSchema = z.object({
   drawName: drawNameSchema,
   userId: userIdSchema,
   analysisDepth: analysisDepthSchema,
-}).strict();
+}).passthrough();
 
 // Multi-draw prediction request
 export const multiDrawPredictionRequestSchema = z.object({
   drawNames: drawNamesArraySchema,
   budgetPerDraw: z.number().int().min(100).max(100000).optional().default(1000),
-}).strict();
+}).passthrough();
 
 // Auto-tune request
 export const autoTuneRequestSchema = z.object({
   drawName: drawNameSchema.optional(),
   forceRetrain: booleanFlagSchema,
-}).strict();
+}).passthrough();
 
 // Evaluate predictions request
 export const evaluatePredictionsRequestSchema = z.object({
   drawName: drawNameSchema.optional(),
   limit: z.number().int().min(1).max(500).optional().default(100),
-}).strict();
+}).passthrough();
 
 // Adaptive orchestration request
 export const adaptiveOrchestrationRequestSchema = z.object({
   drawName: drawNameSchema,
   drawDate: drawDateSchema,
   forceAdjustment: booleanFlagSchema,
-}).strict();
+}).passthrough();
 
 // Algorithm comparison request
 export const algorithmComparisonRequestSchema = z.object({
   drawName: drawNameSchema,
   includeMetrics: booleanFlagSchema,
-}).strict();
+}).passthrough();
 
 // Best algorithm selection request
 export const bestAlgorithmRequestSchema = z.object({
   drawName: drawNameSchema,
   minPredictions: z.number().int().min(1).max(100).optional().default(10),
-}).strict();
+}).passthrough();
 
 // Prediction feedback request
 export const predictionFeedbackRequestSchema = z.object({
@@ -128,7 +134,7 @@ export const predictionFeedbackRequestSchema = z.object({
       { message: 'Numbers must be unique' }
     ),
   userRating: z.number().int().min(1).max(5).optional(),
-}).strict();
+}).passthrough();
 
 // Validation helper function
 export function validateRequest<T>(schema: z.ZodSchema<T>, data: unknown): { success: true; data: T } | { success: false; error: string } {

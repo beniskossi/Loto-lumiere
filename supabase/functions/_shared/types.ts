@@ -176,6 +176,7 @@ export interface PredictionOptions {
   useSmartEnsemble?: boolean;
   useAIOrchestration?: boolean;
   multiAlgorithm?: boolean;
+  algorithms?: string[];
   useEnhancedFormulas?: boolean;
   useBayesian?: boolean;
   usePeriodicity?: boolean;
@@ -248,6 +249,7 @@ export const ALGORITHM_NAMES = {
   TRANSFORMER: "Attention Spatiale",
   DOUBLE_GAP_SEQUENCE: "Double Gap Sequence",
   GAP_CADENCE: "Gap Cadence",
+  GAP_SEQUENCE: "Séquence des Écarts",
   STACKING: "Ensemble Hybride Stacking",
   SMART_ENSEMBLE: "Smart Ensemble",
   BAYESIAN: "Bayesian Ensemble",

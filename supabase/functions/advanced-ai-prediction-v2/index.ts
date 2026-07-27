@@ -220,7 +220,7 @@ async function fetchHistoricalData(
   const cached = dataCache.get(cacheKey);
   if (cached) {
     log("info", `Cache hit for data for ${drawName}`, { drawName, analysisDepth });
-    return cached;
+    return cached as DrawResult[];
   }
 
   // Utiliser analysisDepth comme limite (min 10, max 500 pour économiser la mémoire)

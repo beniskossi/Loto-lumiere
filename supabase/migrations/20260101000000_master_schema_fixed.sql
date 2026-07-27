@@ -120,6 +120,41 @@ BEGIN
 END;
 $$;
 
+-- Idempotent relation dropper: supprime une table, une vue OU une vue matérialisée
+-- selon ce qu'elle est RÉELLEMENT dans la base, peu importe son historique de migrations.
+-- Corrige la classe d'erreurs "ERROR 42809: X is not a view/table" qui survient quand
+-- DROP VIEW IF EXISTS / DROP TABLE IF EXISTS sont exécutés dans le mauvais ordre par
+-- rapport au type effectif de l'objet (IF EXISTS ne protège que contre l'absence de
+-- l'objet, pas contre un mauvais type d'objet).
+DROP FUNCTION IF EXISTS public.drop_relation_if_exists(text, text) CASCADE;
+CREATE OR REPLACE FUNCTION public.drop_relation_if_exists(rel_name text, schema_name text DEFAULT 'public')
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  kind "char";
+BEGIN
+  SELECT c.relkind INTO kind
+  FROM pg_catalog.pg_class c
+  JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = schema_name AND c.relname = rel_name;
+
+  IF kind IS NULL THEN
+    RETURN; -- l'objet n'existe pas, rien à faire
+  ELSIF kind = 'r' THEN
+    EXECUTE format('DROP TABLE IF EXISTS %I.%I CASCADE', schema_name, rel_name);
+  ELSIF kind = 'v' THEN
+    EXECUTE format('DROP VIEW IF EXISTS %I.%I CASCADE', schema_name, rel_name);
+  ELSIF kind = 'm' THEN
+    EXECUTE format('DROP MATERIALIZED VIEW IF EXISTS %I.%I CASCADE', schema_name, rel_name);
+  ELSE
+    -- Type d'objet inattendu (index, séquence, type composite, foreign table...) :
+    -- on ne tente rien plutôt que de risquer une suppression incorrecte.
+    RAISE NOTICE 'drop_relation_if_exists: % .% a un relkind inattendu (%), ignoré', schema_name, rel_name, kind;
+  END IF;
+END;
+$$;
+
 -- ----------------------------------------------------------------------------
 -- 2. CORE DOMAIN TABLES
 -- ----------------------------------------------------------------------------
@@ -891,9 +926,7 @@ $$;
 -- 4. MATERIALIZED VIEWS, VIEWS & ALIASES
 -- ----------------------------------------------------------------------------
 
-DROP MATERIALIZED VIEW IF EXISTS public.mv_algorithm_stats CASCADE;
-DROP VIEW IF EXISTS public.mv_algorithm_stats CASCADE;
-DROP TABLE IF EXISTS public.mv_algorithm_stats CASCADE;
+SELECT public.drop_relation_if_exists('mv_algorithm_stats');
 CREATE MATERIALIZED VIEW public.mv_algorithm_stats AS
 SELECT 
   ac.algorithm_name,
@@ -907,9 +940,7 @@ GROUP BY ac.algorithm_name;
 
 CREATE UNIQUE INDEX IF NOT EXISTS mv_algorithm_stats_pkey ON public.mv_algorithm_stats (algorithm_name);
 
-DROP MATERIALIZED VIEW IF EXISTS public.mv_enhanced_stats CASCADE;
-DROP VIEW IF EXISTS public.mv_enhanced_stats CASCADE;
-DROP TABLE IF EXISTS public.mv_enhanced_stats CASCADE;
+SELECT public.drop_relation_if_exists('mv_enhanced_stats');
 CREATE MATERIALIZED VIEW public.mv_enhanced_stats AS
 SELECT 
   ap.model_used AS algorithm_name,
@@ -924,40 +955,33 @@ GROUP BY ap.model_used;
 CREATE UNIQUE INDEX IF NOT EXISTS mv_enhanced_stats_pkey ON public.mv_enhanced_stats (algorithm_name);
 
 -- Views for backward compatibility and aliases
-DROP VIEW IF EXISTS public.profiles CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
+SELECT public.drop_relation_if_exists('profiles');
 CREATE VIEW public.profiles AS 
 SELECT id, id AS user_id, username, full_name, avatar_url, bio, role, level, experience_points, total_predictions, successful_predictions, created_at, updated_at 
 FROM public.user_profiles;
 
-DROP VIEW IF EXISTS public.user_roles CASCADE;
-DROP TABLE IF EXISTS public.user_roles CASCADE;
+SELECT public.drop_relation_if_exists('user_roles');
 CREATE VIEW public.user_roles AS 
 SELECT id, id AS user_id, role, created_at 
 FROM public.user_profiles;
 
-DROP VIEW IF EXISTS public.prediction_ledger CASCADE;
-DROP TABLE IF EXISTS public.prediction_ledger CASCADE;
+SELECT public.drop_relation_if_exists('prediction_ledger');
 CREATE VIEW public.prediction_ledger AS 
 SELECT * FROM public.ledger_entries;
 
-DROP VIEW IF EXISTS public.tracked_predictions CASCADE;
-DROP TABLE IF EXISTS public.tracked_predictions CASCADE;
+SELECT public.drop_relation_if_exists('tracked_predictions');
 CREATE VIEW public.tracked_predictions AS 
 SELECT * FROM public.user_prediction_tracking;
 
-DROP VIEW IF EXISTS public.prediction_tracking CASCADE;
-DROP TABLE IF EXISTS public.prediction_tracking CASCADE;
+SELECT public.drop_relation_if_exists('prediction_tracking');
 CREATE VIEW public.prediction_tracking AS 
 SELECT * FROM public.user_prediction_tracking;
 
-DROP VIEW IF EXISTS public.algorithm_evaluations CASCADE;
-DROP TABLE IF EXISTS public.algorithm_evaluations CASCADE;
+SELECT public.drop_relation_if_exists('algorithm_evaluations');
 CREATE VIEW public.algorithm_evaluations AS 
 SELECT * FROM public.algorithm_performance;
 
-DROP VIEW IF EXISTS public.algorithm_rankings CASCADE;
-DROP TABLE IF EXISTS public.algorithm_rankings CASCADE;
+SELECT public.drop_relation_if_exists('algorithm_rankings');
 CREATE VIEW public.algorithm_rankings AS
 SELECT 
   model_used,
@@ -974,8 +998,7 @@ SELECT
 FROM public.algorithm_performance
 GROUP BY model_used, draw_name;
 
-DROP VIEW IF EXISTS public.algorithm_rankings_detailed CASCADE;
-DROP TABLE IF EXISTS public.algorithm_rankings_detailed CASCADE;
+SELECT public.drop_relation_if_exists('algorithm_rankings_detailed');
 CREATE VIEW public.algorithm_rankings_detailed AS
 SELECT 
   model_used,

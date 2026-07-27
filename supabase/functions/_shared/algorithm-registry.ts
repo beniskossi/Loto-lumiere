@@ -18,6 +18,7 @@ import {
   doubleGapSequenceAlgorithm,
   gapCadenceAlgorithm,
   seasonalRecurrenceAlgorithm,
+  gapSequenceAlgorithm,
   generateFallbackPrediction 
 } from "./algorithms.ts";
 import { transformerAlgorithm } from "./transformer.ts";
@@ -81,6 +82,15 @@ const ALGORITHM_CONFIGS: Map<string, AlgorithmConfig> = new Map([
     weight: 1.4,
     enabled: true,
   }],
+  ["Séquence des Écarts", {
+    name: "Séquence des Écarts",
+    category: "statistical" as AlgorithmCategory,
+    minDataRequired: 20,
+    maxDataUsed: 500,
+    resourceIntensity: "medium",
+    weight: 1.6, // High weight since it's a sophisticated pattern algorithm
+    enabled: true,
+  }],
   ["Seasonal Recurrence", {
     name: "Seasonal Recurrence",
     category: "statistical" as AlgorithmCategory,
@@ -110,6 +120,7 @@ const ALGORITHM_FUNCTIONS: Map<string, AlgorithmFunction> = new Map([
   ["Attention Spatiale", transformerAlgorithm],
   ["Double Gap Sequence", doubleGapSequenceAlgorithm],
   ["Gap Cadence", gapCadenceAlgorithm],
+  ["Séquence des Écarts", gapSequenceAlgorithm],
   ["Seasonal Recurrence", seasonalRecurrenceAlgorithm],
   ["Ensemble Hybride Stacking", stackingEnsemble],
 ]);

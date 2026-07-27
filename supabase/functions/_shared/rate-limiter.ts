@@ -15,7 +15,7 @@ export class RateLimiter {
   constructor(options: { windowMs?: number; maxRequests?: number } = {}) {
     this.windowMs = options.windowMs || 60000; // 1 minute par défaut
     this.maxRequests = options.maxRequests || 10; // 10 requêtes max par défaut
-    this.cleanupInterval = setInterval(() => this.cleanup(), this.windowMs);
+    this.cleanupInterval = setInterval(() => this.cleanup(), this.windowMs) as unknown as number;
   }
 
   /**

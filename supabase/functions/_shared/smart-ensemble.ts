@@ -154,7 +154,7 @@ export class SmartEnsemble {
           `Modèles: ${modelsUsed.join(", ")}`
         ],
         score: confidence * 0.95,
-        category: useAIOrchestration ? "hybrid" : "ensemble"
+        category: "ensemble"
       };
     } catch (error) {
       log("error", "Smart ensemble failed", { error: error instanceof Error ? error.message : error });

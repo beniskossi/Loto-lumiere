@@ -1,5 +1,6 @@
 import type { DrawResult, PredictionResult } from "../types.ts";
 import { generateDeterministicFallback } from "../utils.ts";
+import { generateFallbackPrediction } from "../algorithms.ts";
 
 /**
  * Gradient Boosting Decision Trees (XGBoost) - Implémentation Locale

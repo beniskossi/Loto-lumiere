@@ -966,7 +966,7 @@ export function calculateDFTHarmonicScores(results: DrawResult[]): Map<number, n
   const sortedDraws = [...results].sort((a, b) => new Date(a.draw_date).getTime() - new Date(b.draw_date).getTime());
 
   for (let n = 1; n <= size; n++) {
-    const signal = sortedDraws.map(d => d.winning_numbers.includes(n) ? 1 : 0);
+    const signal: number[] = sortedDraws.map(d => d.winning_numbers.includes(n) ? 1 : 0);
     const mean = signal.reduce((acc, v) => acc + v, 0) / N;
     const zeroMeanSignal = signal.map(v => v - mean);
 
