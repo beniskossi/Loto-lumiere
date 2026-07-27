@@ -1,7 +1,7 @@
 // Configuration dynamique chargée depuis la base de données
 // Valeurs par défaut utilisées si la config n'est pas disponible
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { log } from "./utils.ts";
 
 export interface OptimalGapConfig {

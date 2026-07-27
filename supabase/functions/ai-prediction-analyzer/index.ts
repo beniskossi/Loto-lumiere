@@ -1,7 +1,7 @@
 // AI Prediction Analyzer - Analyse avancée par IA avec tool calling structuré
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { predictionRequestSchema, validateRequest } from "../_shared/validation.ts";
 import { RateLimiter, getClientIdentifier, createRateLimitResponse } from "../_shared/rate-limiter.ts";
 import { callAIForAnalysis, performQuickAnalysis, enrichAnalysis } from "../_shared/ai-analysis.ts";

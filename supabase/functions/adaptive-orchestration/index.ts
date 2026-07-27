@@ -1,6 +1,6 @@
 // Adaptive Orchestration - Orchestration adaptative avancée avec analyse de performance
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { adaptiveOrchestrationRequestSchema, validateRequest } from "../_shared/validation.ts";
 import { RateLimiter, getClientIdentifier, createRateLimitResponse } from "../_shared/rate-limiter.ts";
 import { 
