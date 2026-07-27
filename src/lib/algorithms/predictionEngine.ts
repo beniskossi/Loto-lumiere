@@ -12,6 +12,8 @@ export interface ScoreBreakdown {
   rawFrequency?: number;
   currentGap?: number;
   avgGap?: number;
+  recentEvenRatio?: number;
+  decadeDiscrepancy?: number;
 }
 
 export interface PredictionEngineOptions {
@@ -28,6 +30,12 @@ export interface PredictionEngineOptions {
 
 export class LocalPredictionEngine {
   private static MAX_NUMBER = 90;
+
+  private static gamma(x: number): number {
+    if (x <= 0) return 1;
+    // Stirling's approximation with correction terms for high-fidelity gamma values
+    return Math.sqrt((2 * Math.PI) / x) * Math.pow(x / Math.E, x) * (1 + 1 / (12 * x) + 1 / (288 * x * x));
+  }
 
   /**
    * Generates local predictions based on four high-fidelity analytical pillars:
@@ -125,29 +133,51 @@ export class LocalPredictionEngine {
     for (let n = 1; n <= maxNum; n++) {
       frequencies[n] = bayesianProbs.get(n)?.expectedProbability || 0;
     }
-    // Calculate F2 (Poisson-Gap Recurrence Score)
+    // Calculate F2 (Weibull-Gap Recurrence Score - High Fidelity stochastic distribution model)
     const gapScores = new Array(maxNum + 1).fill(0);
     const avgGaps = new Array(maxNum + 1).fill(0);
+    
     for (let num = 1; num <= maxNum; num++) {
-      const appearances = allAppearancesIndices[num];
+      const appearances = allAppearancesIndices[num] || [];
       let avgGap = sortedDraws.length / Math.max(1, appearances.length);
+      const gapList: number[] = [];
 
       if (appearances.length >= 2) {
         let sumGaps = 0;
         for (let idx = 0; idx < appearances.length - 1; idx++) {
-          sumGaps += appearances[idx + 1] - appearances[idx];
+          const g = appearances[idx + 1] - appearances[idx];
+          gapList.push(g);
+          sumGaps += g;
         }
         avgGap = sumGaps / (appearances.length - 1);
       }
       avgGaps[num] = avgGap;
 
       const currentGap = gaps[num];
-      // Probability of occurrence: P(X >= 1) = 1 - e^(-lambda * currentGap / avgGap)
-      const ratio = currentGap / Math.max(1, avgGap);
-      gapScores[num] = 1 - Math.exp(-pLambda * ratio);
+
+      // Calculate sample standard deviation of gaps for Weibull parameters estimation
+      let stdDevGap = 0;
+      if (gapList.length >= 2) {
+        const variance = gapList.reduce((sum, val) => sum + Math.pow(val - avgGap, 2), 0) / (gapList.length - 1);
+        stdDevGap = Math.sqrt(variance);
+      }
+
+      let beta = 1.0; // shape parameter (defaults to exponential, where beta=1)
+      if (stdDevGap > 0 && avgGap > 0) {
+        // High-precision empirical approximation for Weibull shape parameter beta
+        beta = Math.max(0.4, Math.min(3.5, Math.pow(stdDevGap / avgGap, -1.086)));
+      }
+
+      // scale parameter eta = mean / gamma(1 + 1/beta)
+      const gammaArg = 1 + 1 / beta;
+      const eta = avgGap / Math.max(0.001, this.gamma(gammaArg));
+
+      // Weibull CDF represents cumulative hazard expectation: 1 - exp(-(currentGap / eta)^beta)
+      const ratio = currentGap / Math.max(0.1, eta);
+      gapScores[num] = 1 - Math.exp(-pLambda * Math.pow(ratio, beta));
     }
 
-    // Calculate F3 (Markov transition chain)
+    // Calculate F3 (Markov transition chain with Bayesian Laplace Additive Smoothing)
     const markovScores = new Array(maxNum + 1).fill(0);
     const latestDraw = sortedDraws[0];
     const latestNumbers = latestDraw ? latestDraw.winningNumbers || [] : [];
@@ -174,7 +204,7 @@ export class LocalPredictionEngine {
           }
         }
       } else if (mOrder === 2 && latestNumbers.length > 0 && secondLatestNumbers.length > 0) {
-        // Second-order transitions: we look for sequences where (i-2) matched second-latest and (i-1) matched latest
+        // Second-order transitions: look for sequences where (i-2) matched second-latest and (i-1) matched latest
         for (let i = sortedDraws.length - 1; i > 1; i--) {
           const tMinus2Numbers = sortedDraws[i].winningNumbers || [];
           const tMinus1Numbers = sortedDraws[i - 1].winningNumbers || [];
@@ -212,16 +242,15 @@ export class LocalPredictionEngine {
         }
       }
 
-      if (matchCount > 0) {
-        for (let num = 1; num <= maxNum; num++) {
-          markovScores[num] = transitionCounts[num] / matchCount;
-        }
+      // Bayesian Laplace Additive Smoothing
+      const alphaSmoothing = 0.15;
+      for (let num = 1; num <= maxNum; num++) {
+        markovScores[num] = (transitionCounts[num] + alphaSmoothing) / (matchCount + maxNum * alphaSmoothing);
       }
     }
 
-    // Calculate F4 (Ornstein-Uhlenbeck Mean Reversion Momentum)
-    // We compute the discrepancy of the last 10 draws against the historical mean sum.
-    // If recent sums are low, we boost larger numbers. If recent sums are high, we boost smaller numbers.
+    // Calculate F4 (Ornstein-Uhlenbeck Mean Reversion Momentum with Sum, Parity & Spatial Anisotropy Grid Equilibrium)
+    // We compute the discrepancy of the last 10 draws against the historical averages.
     const recentWindowSize = Math.min(10, sortedDraws.length);
     const recentSums = sortedDraws.slice(0, recentWindowSize).map(
       d => (d.winningNumbers || []).reduce((sum, n) => sum + n, 0)
@@ -229,17 +258,73 @@ export class LocalPredictionEngine {
     const recentAvgSum = recentSums.length > 0 ? recentSums.reduce((a, b) => a + b, 0) / recentSums.length : meanSum;
 
     const discrepancy = recentAvgSum - meanSum; // positive means recent sums are higher than average
+
+    // Calculate recent parity ratio and spatial grid frequencies (rows & columns)
+    let totalRecentNumbers = 0;
+    let recentEvenCount = 0;
+    const recentRowCounts = new Array(9).fill(0); // decades/rows: 1-10, 11-20, ..., 81-90
+    const recentColCounts = new Array(10).fill(0); // columns: ending in 1, 2, ..., 0
+
+    sortedDraws.slice(0, recentWindowSize).forEach(d => {
+      const numbers = d.winningNumbers || [];
+      numbers.forEach(n => {
+        if (n >= 1 && n <= maxNum) {
+          totalRecentNumbers++;
+          if (n % 2 === 0) {
+            recentEvenCount++;
+          }
+          const row = Math.floor((n - 1) / 10);
+          const col = (n - 1) % 10;
+          if (row >= 0 && row < 9) {
+            recentRowCounts[row]++;
+          }
+          if (col >= 0 && col < 10) {
+            recentColCounts[col]++;
+          }
+        }
+      });
+    });
+
+    const recentEvenRatio = totalRecentNumbers > 0 ? recentEvenCount / totalRecentNumbers : 0.5;
+    const parityDiscrepancy = recentEvenRatio - 0.5; // positive means an excess of even numbers
+
+    const expectedRowRatio = 1 / 9;
+    const expectedColRatio = 1 / 10;
+    const rowDiscrepancies = new Array(9).fill(0);
+    const colDiscrepancies = new Array(10).fill(0);
+
+    for (let r = 0; r < 9; r++) {
+      const ratio = totalRecentNumbers > 0 ? recentRowCounts[r] / totalRecentNumbers : expectedRowRatio;
+      rowDiscrepancies[r] = ratio - expectedRowRatio;
+    }
+    for (let c = 0; c < 10; c++) {
+      const ratio = totalRecentNumbers > 0 ? recentColCounts[c] / totalRecentNumbers : expectedColRatio;
+      colDiscrepancies[c] = ratio - expectedColRatio;
+    }
+
     const momentumScores = new Array(maxNum + 1).fill(0);
 
     for (let num = 1; num <= maxNum; num++) {
-      // The individual number's deviation from the median number 45.5
+      // 1. Sum deviation reversion
       const numberDeviation = num - 45.5;
-      // If discrepancy > 0, we favor numberDeviation < 0 (mean-reverting shift).
-      // If discrepancy < 0, we favor numberDeviation > 0.
-      // Score is higher if the number drives the sum in the opposite direction of the discrepancy.
       const reversionPull = -discrepancy * numberDeviation;
-      // Map to positive scale using standard Gaussian scaling
-      momentumScores[num] = Math.exp(reversionPull / (stdDevSum * 5));
+      const sumReversion = Math.exp(reversionPull / (stdDevSum * 5));
+
+      // 2. Parity reversion
+      const isEven = num % 2 === 0;
+      const parityReversion = isEven
+        ? Math.exp(-parityDiscrepancy * 3.0)
+        : Math.exp(parityDiscrepancy * 3.0);
+
+      // 3. Spatial Anisotropy Row & Column Reversion
+      const row = Math.floor((num - 1) / 10);
+      const col = (num - 1) % 10;
+      const rowDisc = row >= 0 && row < 9 ? rowDiscrepancies[row] : 0;
+      const colDisc = col >= 0 && col < 10 ? colDiscrepancies[col] : 0;
+      const spatialReversion = Math.exp(-rowDisc * 3.0) * Math.exp(-colDisc * 3.0);
+
+      // Aggregate stochastically via multiplicative scaling priors
+      momentumScores[num] = sumReversion * parityReversion * spatialReversion;
     }
 
     // Normalize and aggregate
@@ -262,6 +347,8 @@ export class LocalPredictionEngine {
         normMomentum * wMomentum
       ) / totalWeight;
 
+      const dec = Math.floor((num - 1) / 10);
+
       breakdowns.push({
         number: num,
         frequencyScore: normFreq,
@@ -272,6 +359,8 @@ export class LocalPredictionEngine {
         rawFrequency: allAppearancesIndices[num]?.length || 0,
         currentGap: gaps[num],
         avgGap: avgGaps[num],
+        recentEvenRatio,
+        decadeDiscrepancy: dec >= 0 && dec < 9 ? rowDiscrepancies[dec] : 0,
       });
     }
 
@@ -301,6 +390,11 @@ export class LocalPredictionEngine {
     const directionLabel = discrepancy > 0 ? "supérieures à la normale" : "inférieures à la normale";
     insights.push(
       `Régression vers la moyenne : Les sommes récentes sont ${directionLabel} (${recentAvgSum.toFixed(1)} vs ${meanSum.toFixed(1)}), favorisant les numéros d'équilibrage.`
+    );
+
+    const parityLabel = recentEvenRatio > 0.5 ? "un excès de nombres pairs" : "un excès de nombres impairs";
+    insights.push(
+      `Équilibre de parité : Les tirages récents présentent ${parityLabel} (${(recentEvenRatio * 100).toFixed(1)}% pairs), ce qui ajuste le score de retour à l'équilibre.`
     );
 
     return {

@@ -190,7 +190,7 @@ export const InteractiveMathSandbox = ({ scores, params, drawCount }: Interactiv
                 <div className="flex items-center justify-between text-xs font-semibold">
                   <div className="flex items-center gap-1.5 text-emerald-500">
                     <Zap className="h-4 w-4" />
-                    <span>F4 : Ornstein-Uhlenbeck (Régression)</span>
+                    <span>F4 : Équilibre & Régression (OU)</span>
                   </div>
                   <Badge variant="secondary" className="font-mono text-[10px] text-emerald-500 bg-emerald-500/5">
                     Poids : {wMomentum}%
@@ -198,9 +198,11 @@ export const InteractiveMathSandbox = ({ scores, params, drawCount }: Interactiv
                 </div>
 
                 <div className="text-[11px] bg-secondary/15 p-2 rounded-lg font-mono text-muted-foreground leading-relaxed border border-border/10">
-                  <span className="text-foreground font-semibold">Équation :</span> M = e<sup>-(Δ<sub>somme</sub> × (Num - 45.5)) / (σ × 5)</sup>
-                  <div className="mt-1 grid grid-cols-2 gap-2 text-[10px] border-t border-border/10 pt-1">
+                  <span className="text-foreground font-semibold">Équation :</span> M = M<sub>somme</sub> × M<sub>parité</sub> × M<sub>décade</sub>
+                  <div className="mt-1.5 grid grid-cols-2 gap-2 text-[10px] border-t border-border/10 pt-1.5">
                     <span>• Centrage Médian : <strong className="text-foreground">{(selectedNum - 45.5).toFixed(1)}</strong></span>
+                    <span>• Ratio Pairs Récents : <strong className="text-foreground">{((selectedScore.recentEvenRatio ?? 0.5) * 100).toFixed(1)}%</strong></span>
+                    <span>• Discrépance Décade : <strong className="text-foreground">{((selectedScore.decadeDiscrepancy ?? 0) * 100).toFixed(1)}%</strong></span>
                     <span>• Score normalisé : <strong className="text-emerald-500 font-bold">{((selectedScore.momentumScore || 0) * 100).toFixed(1)}%</strong></span>
                   </div>
                 </div>

@@ -21,7 +21,7 @@ export function gapSequenceAlgorithm(results: DrawResult[], binSize: number = 10
   const gapHistory: number[][] = Array.from({ length: numDraws + 1 }, () => Array(91).fill(0));
 
   // Initialize gaps to max possible (or 0, but let's assume 0 initially, and they increment)
-  let currentGaps = Array(91).fill(numDraws); 
+  const currentGaps = Array(91).fill(numDraws); 
   
   // We need to trace back from the beginning.
   // Actually, a better way to initialize is to do a first pass to find the first appearance of each number.

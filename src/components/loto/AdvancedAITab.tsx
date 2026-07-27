@@ -26,10 +26,16 @@ import {
   Lightbulb,
   Cpu,
   ShieldCheck,
-  CheckCircle
+  CheckCircle,
+  Scale,
+  History,
+  Grid3X3,
+  Trophy
 } from "lucide-react";
 import { useAdvancedPrediction } from "@/hooks/useAdvancedPrediction";
 import { useAuth } from "@/hooks/useAuth";
+import { useNumberStatistics } from "@/hooks/useNumberStatistics";
+import { useDrawResults } from "@/hooks/useDrawResults";
 import { NumberBall } from "@/components/NumberBall";
 import { AIPredictionAnalyzer } from "@/components/AIPredictionAnalyzer";
 import { motion, AnimatePresence } from "framer-motion";
@@ -104,8 +110,17 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
   const [showComparison, setShowComparison] = useState(false);
   const [showAIAnalysis, setShowAIAnalysis] = useState(false);
   
+  // Custom Fine-Tuning Sliders
+  const [parityBias, setParityBias] = useState<number>(0); // -100 (Odd) to +100 (Even)
+  const [recencyBias, setRecencyBias] = useState<number>(0); // -100 (Cold) to +100 (Hot)
+  const [decadeBalance, setDecadeBalance] = useState<number>(30); // 0 (None) to 100 (Strict dispersion)
+  const [markovInfluence, setMarkovInfluence] = useState<number>(20); // 0 to 100
+  const [harmonicAlignment, setHarmonicAlignment] = useState<number>(30); // 0 to 100
+
   const { data, isLoading, refetch, isFetching } = useAdvancedPrediction(drawName, { useSmartEnsemble: true });
-  
+  const { data: statistics } = useNumberStatistics(drawName);
+  const { data: historyResults } = useDrawResults(drawName, 10);
+
   // Préparer les prédictions pour l'analyse IA
   const predictionsForAI = useMemo(() => {
     if (!data?.predictions) return [];
@@ -118,12 +133,128 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
     }));
   }, [data?.predictions]);
 
-  // Calculate custom prediction based on weights
+  // Calculer la distribution historique des décades sur les derniers tirages
+  const recentDecadeCounts = useMemo(() => {
+    const counts = new Array(9).fill(0);
+    if (!historyResults || historyResults.length === 0) return counts.fill(1/9);
+    let total = 0;
+    historyResults.forEach(draw => {
+      const numbers = draw.winning_numbers || [];
+      numbers.forEach(n => {
+        const decade = Math.floor((n - 1) / 10);
+        if (decade >= 0 && decade < 9) {
+          counts[decade]++;
+          total++;
+        }
+      });
+    });
+    return total > 0 ? counts.map(c => c / total) : counts.fill(1/9);
+  }, [historyResults]);
+
+  // Calculate custom prediction based on weights, parity bias, recency bias, and decade balance
   const customPrediction = useMemo(() => {
     if (!data?.predictions || data.predictions.length === 0) return null;
     
-    if (mode === "automatic" || mode === "adaptive") {
+    if (mode === "automatic") {
       return data.optimizedPrediction || data.predictions[0];
+    }
+
+    if (mode === "adaptive") {
+      // Adaptive mode: dynamic low-overlap / diversified ensemble calculation
+      // We want to select 5 numbers that are highly recommended by the algorithms but have low historical co-occurrence (Jaccard) with each other
+      const candidates = new Set<number>();
+      const candidateScores: Record<number, number> = {};
+      
+      // Collect all candidates and their base weighted algorithm scores
+      data.predictions.forEach(pred => {
+        pred.numbers.forEach(num => {
+          if (num >= 1 && num <= 90) {
+            candidates.add(num);
+            candidateScores[num] = (candidateScores[num] || 0) + pred.confidence;
+          }
+        });
+      });
+
+      // Find co-occurrence counts of all pairs in the historyResults
+      const pairCounts: Record<string, number> = {};
+      const singleCounts: Record<number, number> = {};
+
+      historyResults?.forEach(draw => {
+        const nums = draw.winning_numbers || [];
+        nums.forEach(n1 => {
+          singleCounts[n1] = (singleCounts[n1] || 0) + 1;
+          nums.forEach(n2 => {
+            if (n1 < n2) {
+              const pairKey = `${n1}-${n2}`;
+              pairCounts[pairKey] = (pairCounts[pairKey] || 0) + 1;
+            }
+          });
+        });
+      });
+
+      // Select numbers one-by-one to build a diversified set of 5 numbers
+      const selected: number[] = [];
+      const remaining = Array.from(candidates).sort((a, b) => candidateScores[b] - candidateScores[a]);
+
+      if (remaining.length > 0) {
+        // First number is the highest scoring candidate
+        selected.push(remaining.shift()!);
+
+        while (selected.length < 5 && remaining.length > 0) {
+          let bestNextNum = remaining[0];
+          let bestNextScore = -Infinity;
+          let bestIdx = 0;
+
+          for (let i = 0; i < remaining.length; i++) {
+            const num = remaining[i];
+            const baseScore = candidateScores[num];
+
+            // Calculate Jaccard penalty with currently selected numbers
+            let jaccardPenalty = 0;
+            selected.forEach(sel => {
+              const minN = Math.min(sel, num);
+              const maxN = Math.max(sel, num);
+              const pairKey = `${minN}-${maxN}`;
+              const joint = pairCounts[pairKey] || 0;
+              const union = (singleCounts[sel] || 0) + (singleCounts[num] || 0) - joint;
+              const jaccard = union > 0 ? joint / union : 0;
+              jaccardPenalty += jaccard;
+            });
+
+            // Diversification score: baseScore - coefficient * jaccardPenalty
+            const divScore = baseScore - 1.5 * jaccardPenalty;
+            if (divScore > bestNextScore) {
+              bestNextScore = divScore;
+              bestNextNum = num;
+              bestIdx = i;
+            }
+          }
+
+          selected.push(bestNextNum);
+          remaining.splice(bestIdx, 1);
+        }
+      }
+
+      // Fill up if we have fewer than 5 numbers using deterministic candidate rank
+      if (selected.length < 5) {
+        for (let n = 1; n <= 90 && selected.length < 5; n++) {
+          if (!selected.includes(n)) selected.push(n);
+        }
+      }
+
+      const sortedSelected = [...selected].sort((a, b) => a - b);
+      return {
+        numbers: sortedSelected,
+        confidence: Math.max(0.1, Math.min(0.99, (data.optimizedPrediction?.confidence || 0.7) * 0.95)),
+        algorithm: "Ensemble Adaptatif Diversifié",
+        factors: [
+          "Atténuation de recouvrement Jaccard",
+          "Calcul d'asymétrie stochastique",
+          "Analyse de co-occurrence de paire"
+        ],
+        score: (data.optimizedPrediction?.confidence || 0.7) * 0.9,
+        category: "adaptive"
+      };
     }
 
     // Manual mode: combine predictions based on weights
@@ -131,38 +262,187 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
     if (enabledAlgos.length === 0) return null;
 
     const totalWeight = enabledAlgos.reduce((sum, w) => sum + w.weight, 0);
-    const numberScores: Record<number, number> = {};
+    
+    // Initialise scores for all numbers between 1 and 90
+    const finalScores: Record<number, number> = {};
+    for (let num = 1; num <= 90; num++) {
+      finalScores[num] = 0;
+    }
 
+    // 1. Base scores from predicted algorithms
     data.predictions.forEach(pred => {
-      const algo = weights.find(w => pred.algorithm.includes(w.name.split(" ")[0]));
+      const algo = weights.find(w => 
+        pred.algorithm.toLowerCase().includes(w.name.split(" ")[0].toLowerCase()) ||
+        w.name.toLowerCase().includes(pred.algorithm.toLowerCase())
+      );
       if (!algo || !algo.enabled) return;
       
       const normalizedWeight = algo.weight / totalWeight;
       pred.numbers.forEach(num => {
-        numberScores[num] = (numberScores[num] || 0) + normalizedWeight * pred.confidence;
+        if (num >= 1 && num <= 90) {
+          finalScores[num] += normalizedWeight * pred.confidence * 10;
+        }
       });
     });
 
-    const sortedNumbers = Object.entries(numberScores)
-      .sort(([, a], [, b]) => b - a)
+    // 2. Add fallback support for numbers not covered by algorithms to allow parameters to function
+    for (let num = 1; num <= 90; num++) {
+      if (finalScores[num] === 0) {
+        finalScores[num] = 0.05;
+      }
+    }
+
+    // 3. Apply Parity Bias (Odd vs Even)
+    if (parityBias !== 0) {
+      for (let num = 1; num <= 90; num++) {
+        const isEven = num % 2 === 0;
+        const parityFactor = isEven ? (parityBias / 100) : -(parityBias / 100);
+        finalScores[num] *= (1 + parityFactor * 0.8);
+      }
+    }
+
+    // 4. Apply Recency Bias (Hot vs Cold)
+    if (recencyBias !== 0 && statistics && statistics.length > 0) {
+      let maxGap = 1;
+      let maxFreq = 0.01;
+      statistics.forEach(s => {
+        if (s.days_since_last > maxGap) maxGap = s.days_since_last;
+        if (s.frequency > maxFreq) maxFreq = s.frequency;
+      });
+
+      statistics.forEach(s => {
+        const num = s.number;
+        if (num >= 1 && num <= 90) {
+          const normGap = s.days_since_last / maxGap;
+          const normFreq = s.frequency / maxFreq;
+
+          if (recencyBias > 0) {
+            // Hot: favors low gaps and high frequencies
+            const gapScore = 1 - normGap;
+            const hotFactor = (gapScore * 0.6 + normFreq * 0.4) * (recencyBias / 100);
+            finalScores[num] *= (1 + hotFactor * 1.5);
+          } else {
+            // Cold: favors high gaps and lower frequencies
+            const gapScore = normGap;
+            const coldFactor = (gapScore * 0.7 + (1 - normFreq) * 0.3) * (-recencyBias / 100);
+            finalScores[num] *= (1 + coldFactor * 1.5);
+          }
+        }
+      });
+    }
+
+    // 5. Apply Decade Anti-Concentration Balance
+    if (decadeBalance > 0 && recentDecadeCounts) {
+      for (let num = 1; num <= 90; num++) {
+        const decade = Math.floor((num - 1) / 10);
+        if (decade >= 0 && decade < 9) {
+          const expectedRatio = 1 / 9;
+          const actualRatio = recentDecadeCounts[decade] || expectedRatio;
+          const deviation = actualRatio - expectedRatio;
+          
+          // Penalize overrepresented decades, encourage underrepresented ones
+          const balanceFactor = -deviation * (decadeBalance / 100);
+          finalScores[num] *= (1 + balanceFactor * 1.2);
+        }
+      }
+    }
+
+    // 5.5 Apply Transitional Markov Influence
+    if (markovInfluence > 0 && historyResults && historyResults.length > 1) {
+      const latestNumbers = historyResults[0]?.winning_numbers || [];
+      const transitionCounts: Record<number, number> = {};
+      let totalTransitions = 0;
+
+      for (let i = historyResults.length - 1; i > 0; i--) {
+        const prevNumbers = historyResults[i].winning_numbers || [];
+        const nextNumbers = historyResults[i - 1].winning_numbers || [];
+        const intersection = latestNumbers.filter(n => prevNumbers.includes(n));
+        if (intersection.length > 0) {
+          nextNumbers.forEach(n => {
+            transitionCounts[n] = (transitionCounts[n] || 0) + intersection.length;
+            totalTransitions += intersection.length;
+          });
+        }
+      }
+
+      if (totalTransitions > 0) {
+        for (let num = 1; num <= 90; num++) {
+          const prob = (transitionCounts[num] || 0) / totalTransitions;
+          finalScores[num] *= (1 + prob * (markovInfluence / 100) * 3.0);
+        }
+      }
+    }
+
+    // 5.6 Apply Harmonic Gap / Fibonacci Spatial Alignment
+    if (harmonicAlignment > 0 && historyResults && historyResults.length > 0) {
+      const latestNumbers = historyResults[0]?.winning_numbers || [];
+      const fibSpacings = [1, 2, 3, 5, 8, 13, 21, 34];
+      const gridSpacings = [9, 10, 11]; // vertical and diagonal grid adjacent
+
+      for (let num = 1; num <= 90; num++) {
+        let maxBoost = 0;
+        latestNumbers.forEach(latestNum => {
+          const diff = Math.abs(num - latestNum);
+          if (fibSpacings.includes(diff)) {
+            maxBoost = Math.max(maxBoost, 0.25); // Fibonacci spacing boost
+          } else if (gridSpacings.includes(diff)) {
+            maxBoost = Math.max(maxBoost, 0.20); // Grid alignment boost
+          }
+        });
+        if (maxBoost > 0) {
+          finalScores[num] *= (1 + maxBoost * (harmonicAlignment / 100) * 1.5);
+        }
+      }
+    }
+
+    // 6. Sort and pick the top 5 numbers
+    const sortedNumbers = Object.entries(finalScores)
+      .map(([num, score]) => ({ number: parseInt(num), score }))
+      .sort((a, b) => b.score - a.score)
       .slice(0, 5)
-      .map(([num]) => parseInt(num))
+      .map(item => item.number)
       .sort((a, b) => a - b);
 
     const avgConfidence = enabledAlgos.reduce((sum, w) => {
-      const pred = data.predictions.find(p => p.algorithm.includes(w.name.split(" ")[0]));
-      return sum + (pred?.confidence || 0) * (w.weight / totalWeight);
+      const pred = data.predictions.find(p => 
+        p.algorithm.toLowerCase().includes(w.name.split(" ")[0].toLowerCase()) ||
+        w.name.toLowerCase().includes(p.algorithm.toLowerCase())
+      );
+      return sum + (pred?.confidence || 0.15) * (w.weight / totalWeight);
     }, 0);
 
     return {
-      numbers: sortedNumbers.length >= 5 ? sortedNumbers : data.predictions[0].numbers,
-      confidence: avgConfidence || data.predictions[0].confidence,
+      numbers: sortedNumbers.length === 5 ? sortedNumbers : data.predictions[0].numbers,
+      confidence: Math.max(0.1, Math.min(0.99, avgConfidence)),
       algorithm: "Fusion Personnalisée",
-      factors: [`${enabledAlgos.length} algorithmes`, "Poids personnalisés"],
+      factors: [
+        `${enabledAlgos.length} algos`,
+        parityBias !== 0 ? `Parité: ${parityBias > 0 ? "Pairs" : "Impairs"} (${Math.abs(parityBias)}%)` : "Parité Équilibrée",
+        recencyBias !== 0 ? `Écart: ${recencyBias > 0 ? "Hot" : "Cold"} (${Math.abs(recencyBias)}%)` : "Écart Équilibré",
+        decadeBalance > 0 ? `Dispersion: ${decadeBalance}%` : "Dispersion Libre",
+        markovInfluence > 0 ? `Markov: ${markovInfluence}%` : null,
+        harmonicAlignment > 0 ? `Harmonique: ${harmonicAlignment}%` : null
+      ].filter(Boolean) as string[],
       score: avgConfidence * 0.9,
       category: "custom"
     };
-  }, [data, weights, mode]);
+  }, [data, weights, mode, parityBias, recencyBias, decadeBalance, markovInfluence, harmonicAlignment, statistics, recentDecadeCounts, historyResults]);
+
+  // Calculate local retrospective performance simulation
+  const retrospectiveMatches = useMemo(() => {
+    if (!customPrediction || !historyResults || historyResults.length === 0) return [];
+    
+    return historyResults.slice(0, 5).map(draw => {
+      const matches = customPrediction.numbers.filter(n => draw.winning_numbers.includes(n));
+      return {
+        drawName: draw.draw_name,
+        drawDate: draw.draw_date,
+        winningNumbers: draw.winning_numbers,
+        matchedNumbers: matches,
+        matchCount: matches.length
+      };
+    });
+  }, [customPrediction, historyResults]);
 
   const handleWeightChange = useCallback((index: number, value: number) => {
     setWeights(prev => {
@@ -198,12 +478,31 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
         }
       });
     });
+    
+    // Auto-adjust fine tuning according to preset
+    if (presetType === "stats") {
+      setRecencyBias(40); // high recency / frequency bias
+      setParityBias(0);
+      setDecadeBalance(10);
+    } else if (presetType === "balanced") {
+      setRecencyBias(0);
+      setParityBias(0);
+      setDecadeBalance(30);
+    } else {
+      setRecencyBias(-10);
+      setParityBias(0);
+      setDecadeBalance(40);
+    }
+    
     toast.success(`Preset appliqué : ${presetType}`);
   };
 
   const handleReset = () => {
     setWeights(INITIAL_WEIGHTS);
-    toast.success("Poids réinitialisés");
+    setParityBias(0);
+    setRecencyBias(0);
+    setDecadeBalance(30);
+    toast.success("Paramètres réinitialisés");
   };
 
   const handleSaveFavorite = () => {
@@ -482,11 +781,220 @@ export const AdvancedAITab = ({ drawName }: AdvancedAITabProps) => {
                     )}
                   </motion.div>
                 ))}
+
+                {/* Fine-Tuning Advanced Math Sliders */}
+                <div className="border-t border-border/10 pt-4 mt-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-accent" />
+                      Optimisation & Ajustements Mathématiques
+                    </h3>
+                  </div>
+
+                  {/* Recency Slider */}
+                  <div className="space-y-2 bg-secondary/10 p-3 rounded-xl border border-border/5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-foreground flex items-center gap-1">
+                        <History className="w-3.5 h-3.5 text-amber-500" />
+                        Biais Temporel (Écart Récent)
+                      </span>
+                      <span className="font-mono text-[10px] text-amber-500 px-1.5 py-0.5 rounded bg-amber-500/5">
+                        {recencyBias > 0 ? `Chaud (+${recencyBias}%)` : recencyBias < 0 ? `Froid (${recencyBias}%)` : "Équilibré (0%)"}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[recencyBias]}
+                      onValueChange={(v) => setRecencyBias(v[0])}
+                      min={-100}
+                      max={100}
+                      step={10}
+                      className="py-1"
+                    />
+                    <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
+                      <span>❄️ Froid (Réversion)</span>
+                      <span>Neutre</span>
+                      <span>🔥 Chaud (Fréquent)</span>
+                    </div>
+                  </div>
+
+                  {/* Parity Slider */}
+                  <div className="space-y-2 bg-secondary/10 p-3 rounded-xl border border-border/5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-foreground flex items-center gap-1">
+                        <Scale className="w-3.5 h-3.5 text-blue-400" />
+                        Polarité de Parité
+                      </span>
+                      <span className="font-mono text-[10px] text-blue-400 px-1.5 py-0.5 rounded bg-blue-400/5">
+                        {parityBias > 0 ? `Pairs (+${parityBias}%)` : parityBias < 0 ? `Impairs (${parityBias}%)` : "Neutre (50/50)"}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[parityBias]}
+                      onValueChange={(v) => setParityBias(v[0])}
+                      min={-100}
+                      max={100}
+                      step={10}
+                      className="py-1"
+                    />
+                    <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
+                      <span>1️⃣ Impairs</span>
+                      <span>Équilibré</span>
+                      <span>2️⃣ Pairs</span>
+                    </div>
+                  </div>
+
+                  {/* Decade Balance Slider */}
+                  <div className="space-y-2 bg-secondary/10 p-3 rounded-xl border border-border/5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-foreground flex items-center gap-1">
+                        <Grid3X3 className="w-3.5 h-3.5 text-purple-400" />
+                        Dispersion Décennale (Uniformité)
+                      </span>
+                      <span className="font-mono text-[10px] text-purple-400 px-1.5 py-0.5 rounded bg-purple-400/5">
+                        {decadeBalance}%
+                      </span>
+                    </div>
+                    <Slider
+                      value={[decadeBalance]}
+                      onValueChange={(v) => setDecadeBalance(v[0])}
+                      min={0}
+                      max={100}
+                      step={10}
+                      className="py-1"
+                    />
+                    <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
+                      <span>Aléatoire (Libre)</span>
+                      <span>Modéré</span>
+                      <span>Strict (Anti-concentration)</span>
+                    </div>
+                  </div>
+
+                  {/* Markov Influence Slider */}
+                  <div className="space-y-2 bg-secondary/10 p-3 rounded-xl border border-border/5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-foreground flex items-center gap-1">
+                        <Brain className="w-3.5 h-3.5 text-pink-400" />
+                        Influence Transitionnelle (Markov)
+                      </span>
+                      <span className="font-mono text-[10px] text-pink-400 px-1.5 py-0.5 rounded bg-pink-400/5">
+                        {markovInfluence}%
+                      </span>
+                    </div>
+                    <Slider
+                      value={[markovInfluence]}
+                      onValueChange={(v) => setMarkovInfluence(v[0])}
+                      min={0}
+                      max={100}
+                      step={10}
+                      className="py-1"
+                    />
+                    <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
+                      <span>Standard (Neutre)</span>
+                      <span>Chaînes Courtes</span>
+                      <span>Prise de Décision Forte</span>
+                    </div>
+                  </div>
+
+                  {/* Harmonic Alignment Slider */}
+                  <div className="space-y-2 bg-secondary/10 p-3 rounded-xl border border-border/5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-foreground flex items-center gap-1">
+                        <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                        Ajustement Harmonique (Grille & Fibonacci)
+                      </span>
+                      <span className="font-mono text-[10px] text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-400/5">
+                        {harmonicAlignment}%
+                      </span>
+                    </div>
+                    <Slider
+                      value={[harmonicAlignment]}
+                      onValueChange={(v) => setHarmonicAlignment(v[0])}
+                      min={0}
+                      max={100}
+                      step={10}
+                      className="py-1"
+                    />
+                    <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
+                      <span>Désactivé (Brut)</span>
+                      <span>Résonance Légère</span>
+                      <span>Alignement Strict</span>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Live Retrospective Performance Simulator */}
+      {customPrediction && retrospectiveMatches.length > 0 && (
+        <Card className="border-border/30 bg-gradient-to-br from-background to-secondary/10 backdrop-blur-sm shadow-md">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-amber-500/10 rounded-lg">
+                <Trophy className="w-4 h-4 text-amber-500" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-bold text-foreground">
+                  Simulateur de Performance Rétrospective
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Calcul en temps réel de l'adéquation de votre configuration sur les 5 derniers tirages réels.
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2 pb-4">
+            <div className="space-y-2.5">
+              {retrospectiveMatches.map((match, i) => (
+                <div 
+                  key={i} 
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-secondary/15 border border-border/5 text-xs gap-3"
+                >
+                  <div className="flex flex-col min-w-[100px]">
+                    <span className="font-semibold text-foreground">{match.drawName}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(match.drawDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {match.winningNumbers.map((num, idx) => {
+                      const isMatched = match.matchedNumbers.includes(num);
+                      return (
+                        <span
+                          key={idx}
+                          className={cn(
+                            "w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs transition-all",
+                            isMatched 
+                              ? "bg-amber-500 text-amber-950 font-bold scale-110 shadow-sm shadow-amber-500/30" 
+                              : "bg-secondary text-muted-foreground border border-border/10"
+                          )}
+                        >
+                          {num}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  <div className="min-w-[90px] text-right">
+                    {match.matchCount > 0 ? (
+                      <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono text-[10px] py-0.5 px-2">
+                        {match.matchCount} {match.matchCount > 1 ? "matchs" : "match"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-muted-foreground/60 bg-secondary/5 font-mono text-[10px] py-0.5 px-2">
+                        Aucun match
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Algorithm Weights Visualization */}
       {customPrediction && (

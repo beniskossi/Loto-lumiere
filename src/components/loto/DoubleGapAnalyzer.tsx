@@ -26,7 +26,8 @@ import {
   Timer,
   Award,
   History,
-  Gauge
+  Gauge,
+  GitBranch
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -152,15 +153,36 @@ const GAP_TRANCHES = [
   { id: "D", name: "Sommeil (19+)", min: 19, max: 999, color: "text-cyan-400", border: "border-cyan-500/30", bg: "bg-cyan-500/10", glow: "shadow-cyan-500/20" },
 ];
 
+function getSliceName(gap: number, type: "tens" | "fives"): string {
+  if (type === "tens") {
+    if (gap <= 10) return "0-10";
+    if (gap <= 20) return "11-20";
+    if (gap <= 30) return "21-30";
+    if (gap <= 40) return "31-40";
+    if (gap <= 50) return "41-50";
+    return "50+";
+  } else {
+    if (gap <= 5) return "0-5";
+    if (gap <= 10) return "6-10";
+    if (gap <= 15) return "11-15";
+    if (gap <= 20) return "16-20";
+    if (gap <= 25) return "21-25";
+    if (gap <= 30) return "26-30";
+    return "30+";
+  }
+}
+
 export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
   const { data: results, isLoading: resultsLoading } = useDrawResults(drawName, 120);
   const { data: statistics, isLoading: statsLoading } = useNumberStatistics(drawName);
   const { alerts: cadenceAlerts } = useCadenceAlerts(drawName);
   
-  const [activeTab, setActiveTab] = useState<"dispersion" | "projection" | "simulator" | "performance">("dispersion");
+  const [activeTab, setActiveTab] = useState<"dispersion" | "projection" | "simulator" | "performance" | "sequence-patterns">("dispersion");
   const [customNumbers, setCustomNumbers] = useState<string>("");
   const [simulatorResult, setSimulatorResult] = useState<SimulatorResult | null>(null);
   const [backtestLimit, setBacktestLimit] = useState<number>(10);
+  const [sliceType, setSliceType] = useState<"tens" | "fives">("tens");
+  const [strictMatch, setStrictMatch] = useState<boolean>(false);
 
   const isLoading = resultsLoading || statsLoading;
 
@@ -654,6 +676,74 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
     toast.info("Combinaison optimale générée selon le profil des Écarts des Écarts.");
   };
 
+  // Injecter et simuler une combinaison de patterns d'écarts
+  const handleInjectAndSimulate = (nums: number[]) => {
+    const sorted = [...nums].sort((a, b) => a - b);
+    setCustomNumbers(sorted.join(", "));
+    setActiveTab("simulator");
+    
+    // Auto-trigger simulation
+    setTimeout(() => {
+      const uniqueNums = Array.from(new Set(sorted)).filter(n => n >= 1 && n <= 90);
+      if (uniqueNums.length !== 5) return;
+      
+      const gaps = uniqueNums.map(num => {
+        const stat = statistics?.find(s => s.number === num);
+        return stat ? stat.days_since_last : 25;
+      });
+
+      const sortedGaps = [...gaps].sort((a, b) => a - b);
+      const secondOrderGaps = [];
+      for (let j = 0; j < sortedGaps.length - 1; j++) {
+        secondOrderGaps.push(sortedGaps[j + 1] - sortedGaps[j]);
+      }
+
+      const mean = secondOrderGaps.reduce((acc, v) => acc + v, 0) / secondOrderGaps.length;
+      const variance = secondOrderGaps.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / secondOrderGaps.length;
+
+      const trancheCounts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
+      uniqueNums.forEach(num => {
+        const stat = statistics?.find(s => s.number === num);
+        const gap = stat ? stat.days_since_last : 0;
+        const tranche = GAP_TRANCHES.find(t => gap >= t.min && gap <= t.max);
+        if (tranche) {
+          trancheCounts[tranche.id]++;
+        }
+      });
+
+      const pattern = `${trancheCounts.A}A-${trancheCounts.B}B-${trancheCounts.C}C-${trancheCounts.D}D`;
+
+      // Harmony score
+      const scoreComponent1 = Math.max(0, 100 - Math.abs(mean - 5.5) * 12);
+      const scoreComponent2 = Math.max(0, 100 - Math.sqrt(variance) * 8);
+      const harmonyScore = Math.round((scoreComponent1 * 0.6) + (scoreComponent2 * 0.4));
+
+      let advice = "";
+      if (harmonyScore >= 75) {
+        advice = "Excellente harmonie ! Votre combinaison respecte parfaitement la séquence idéale des écarts des écarts. Les tensions statistiques sont idéalement réparties.";
+      } else if (harmonyScore >= 50) {
+        advice = "Harmonie modérée. La dispersion de vos écarts est acceptable, mais vous devriez essayer de remplacer un numéro trop chaud ou trop froid pour stabiliser l'écart des écarts moyen.";
+      } else {
+        advice = "Déséquilibre critique ! La séquence des écarts de vos numéros est trop asymétrique ou concentrée. Le risque d'un gap de second ordre hors-norme est statistiquement trop élevé.";
+      }
+
+      setSimulatorResult({
+        numbers: uniqueNums,
+        gaps,
+        sortedGaps,
+        secondOrderGaps,
+        mean: Math.round(mean * 100) / 100,
+        variance: Math.round(variance * 100) / 100,
+        trancheCounts,
+        pattern,
+        harmonyScore,
+        advice
+      });
+
+      toast.success("Combinaison ADN injectée et analysée avec succès !");
+    }, 100);
+  };
+
   // Préparation des données pour le graphique de distribution des écarts de second ordre
   const chartDistributionData = useMemo(() => {
     if (!gapAnalysisData) return [];
@@ -665,6 +755,166 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
       frequence: dist[i] || 0
     }));
   }, [gapAnalysisData]);
+
+  // 4. Analyseur de séquences et patterns d'écarts
+  const sequencePatternsData = useMemo(() => {
+    if (!results || results.length < 15 || !statistics) return null;
+
+    // Reconstruire l'historique chronologique pour calculer l'écart exact au moment du tirage
+    const drawsFromOldest = [...results].reverse();
+    const lastSeenAt = new Map<number, number>();
+
+    const historicalGapsOfDraws = drawsFromOldest.map((draw, drawIdx) => {
+      const winning = draw.winning_numbers || draw.winningNumbers || [];
+      const gaps = winning.map((num: number) => {
+        if (lastSeenAt.has(num)) {
+          return drawIdx - lastSeenAt.get(num)! - 1;
+        } else {
+          return 25; // écart par défaut réaliste
+        }
+      });
+
+      // Mettre à jour la date de dernière apparition
+      winning.forEach((num: number) => {
+        lastSeenAt.set(num, drawIdx);
+      });
+
+      const sortedGaps = [...gaps].sort((a, b) => a - b);
+      const slices = sortedGaps.map(g => getSliceName(g, sliceType));
+
+      return {
+        id: draw.id,
+        draw_name: draw.draw_name,
+        draw_date: draw.draw_date,
+        drawIdx,
+        winningNumbers: winning,
+        gaps,
+        sortedGaps,
+        slices,
+        patternKey: slices.join("-")
+      };
+    });
+
+    // Séquence du dernier tirage
+    const latestDrawGaps = historicalGapsOfDraws[historicalGapsOfDraws.length - 1];
+    if (!latestDrawGaps) return null;
+
+    const latestPatternKey = latestDrawGaps.patternKey;
+    const latestSlices = latestDrawGaps.slices;
+
+    // Calculateur de similarité d'occurrences
+    const getSimilarityScore = (seqA: string[], seqB: string[]) => {
+      let matches = 0;
+      const bUsed = new Array(seqB.length).fill(false);
+      for (let i = 0; i < seqA.length; i++) {
+        for (let j = 0; j < seqB.length; j++) {
+          if (!bUsed[j] && seqA[i] === seqB[j]) {
+            matches++;
+            bUsed[j] = true;
+            break;
+          }
+        }
+      }
+      return matches;
+    };
+
+    // Trouver les transitions historiques de motifs similaires
+    const matchedHistory: Array<{
+      draw: typeof latestDrawGaps;
+      nextDraw: typeof latestDrawGaps;
+      matches: number;
+    }> = [];
+
+    for (let i = 0; i < historicalGapsOfDraws.length - 1; i++) {
+      const histDraw = historicalGapsOfDraws[i];
+      const similarity = getSimilarityScore(latestSlices, histDraw.slices);
+      const isMatch = strictMatch ? similarity === 5 : similarity >= 3;
+      if (isMatch) {
+        matchedHistory.push({
+          draw: histDraw,
+          nextDraw: historicalGapsOfDraws[i + 1],
+          matches: similarity
+        });
+      }
+    }
+
+    // Classer par ordre chronologique décroissant (plus récent d'abord)
+    matchedHistory.sort((a, b) => b.nextDraw.drawIdx - a.nextDraw.drawIdx);
+
+    // Calculer les probabilités de transition pour le tirage suivant
+    const positionTransitionCounts: Array<Record<string, number>> = Array.from({ length: 5 }, () => ({}));
+    let totalMatchesUsed = matchedHistory.length;
+
+    matchedHistory.forEach(({ nextDraw }) => {
+      nextDraw.slices.forEach((slice, pos) => {
+        positionTransitionCounts[pos][slice] = (positionTransitionCounts[pos][slice] || 0) + 1;
+      });
+    });
+
+    if (totalMatchesUsed === 0) {
+      // Fallback sur tous les tirages
+      for (let i = 0; i < historicalGapsOfDraws.length; i++) {
+        historicalGapsOfDraws[i].slices.forEach((slice, pos) => {
+          positionTransitionCounts[pos][slice] = (positionTransitionCounts[pos][slice] || 0) + 1;
+        });
+      }
+      totalMatchesUsed = historicalGapsOfDraws.length;
+    }
+
+    const projectedNextSlices = positionTransitionCounts.map((counts) => {
+      const sorted = Object.entries(counts)
+        .map(([slice, count]) => ({ slice, probability: Math.round((count / totalMatchesUsed) * 100) }))
+        .sort((a, b) => b.probability - a.probability);
+      return sorted[0] || { slice: sliceType === "tens" ? "0-10" : "0-5", probability: 100 };
+    });
+
+    // Sélectionner les candidats dans la grille d'écart actuelle
+    const candidateNumbers: Array<{
+      number: number;
+      gap: number;
+      matchingPositions: number[];
+      score: number;
+    }> = [];
+
+    const doubleGapScores = calculateDoubleGapSequenceClient(results);
+    const gapCadenceScores = calculateGapCadenceClient(results);
+
+    for (let n = 1; n <= 90; n++) {
+      const stat = statistics.find(s => s.number === n);
+      const currentGap = stat ? stat.days_since_last : 0;
+      const gapSlice = getSliceName(currentGap, sliceType);
+
+      const matchingPositions: number[] = [];
+      projectedNextSlices.forEach((proj, pos) => {
+        if (proj.slice === gapSlice) {
+          matchingPositions.push(pos);
+        }
+      });
+
+      if (matchingPositions.length > 0) {
+        const score = ((doubleGapScores.get(n) || 0) * 0.5) + ((gapCadenceScores.get(n) || 0) * 0.5);
+        candidateNumbers.push({
+          number: n,
+          gap: currentGap,
+          matchingPositions,
+          score
+        });
+      }
+    }
+
+    candidateNumbers.sort((a, b) => b.score - a.score);
+    const dnaFilteredTop5 = candidateNumbers.slice(0, 5);
+
+    return {
+      latestDrawGaps,
+      sliceType,
+      strictMatch,
+      matchedHistory,
+      projectedNextSlices,
+      candidateNumbers,
+      dnaFilteredTop5
+    };
+  }, [results, statistics, sliceType, strictMatch]);
 
   if (isLoading) {
     return (
@@ -759,11 +1009,11 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
       )}
 
       {/* Tabs list */}
-      <div className="grid grid-cols-2 md:flex border-b border-border/40 p-1 bg-muted/20 rounded-lg gap-2">
+      <div className="flex flex-wrap md:flex-nowrap border-b border-border/40 p-1 bg-muted/20 rounded-lg gap-2 overflow-x-auto scrollbar-none">
         <Button
           variant={activeTab === "dispersion" ? "secondary" : "ghost"}
           size="sm"
-          className="text-xs sm:text-sm flex-1"
+          className="text-xs sm:text-sm flex-1 min-w-[140px]"
           onClick={() => setActiveTab("dispersion")}
         >
           <BarChart3 className="w-4 h-4 mr-1.5 text-purple-400" />
@@ -772,16 +1022,25 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
         <Button
           variant={activeTab === "projection" ? "secondary" : "ghost"}
           size="sm"
-          className="text-xs sm:text-sm flex-1"
+          className="text-xs sm:text-sm flex-1 min-w-[140px]"
           onClick={() => setActiveTab("projection")}
         >
           <Sparkles className="w-4 h-4 mr-1.5 text-amber-400" />
           Projections de Tranche
         </Button>
         <Button
+          variant={activeTab === "sequence-patterns" ? "secondary" : "ghost"}
+          size="sm"
+          className="text-xs sm:text-sm flex-1 min-w-[140px]"
+          onClick={() => setActiveTab("sequence-patterns")}
+        >
+          <GitBranch className="w-4 h-4 mr-1.5 text-indigo-400" />
+          Séquences & Patterns
+        </Button>
+        <Button
           variant={activeTab === "simulator" ? "secondary" : "ghost"}
           size="sm"
-          className="text-xs sm:text-sm flex-1"
+          className="text-xs sm:text-sm flex-1 min-w-[140px]"
           onClick={() => setActiveTab("simulator")}
         >
           <Sliders className="w-4 h-4 mr-1.5 text-emerald-400" />
@@ -790,7 +1049,7 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
         <Button
           variant={activeTab === "performance" ? "secondary" : "ghost"}
           size="sm"
-          className="text-xs sm:text-sm flex-1 col-span-2 md:col-span-1"
+          className="text-xs sm:text-sm flex-1 min-w-[140px]"
           onClick={() => setActiveTab("performance")}
         >
           <Gauge className="w-4 h-4 mr-1.5 text-blue-400" />
@@ -1004,6 +1263,299 @@ export const DoubleGapAnalyzer = ({ drawName }: DoubleGapAnalyzerProps) => {
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
+        ) : activeTab === "sequence-patterns" && sequencePatternsData ? (
+          <motion.div
+            key="sequence-patterns"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {/* Header info */}
+            <Card className="bg-gradient-to-br from-card to-muted/10 border-border/40 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                <GitBranch className="w-40 h-40 text-indigo-400" />
+              </div>
+              <CardHeader className="pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-500/10 rounded-lg">
+                      <GitBranch className="w-5 h-5 text-indigo-400" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Analyseur de Patterns & Séquences d'Écarts</CardTitle>
+                      <CardDescription>
+                        Recherche et modélise les transitions historiques des séquences d'écarts du dernier tirage pour projeter les futures opportunités.
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-muted/40 p-1.5 rounded-xl border border-border/30 self-start sm:self-auto">
+                    <Button
+                      variant={sliceType === "tens" ? "secondary" : "ghost"}
+                      size="sm"
+                      className="text-[10px] h-6 px-2.5 rounded-lg"
+                      onClick={() => setSliceType("tens")}
+                    >
+                      Dizaines
+                    </Button>
+                    <Button
+                      variant={sliceType === "fives" ? "secondary" : "ghost"}
+                      size="sm"
+                      className="text-[10px] h-6 px-2.5 rounded-lg"
+                      onClick={() => setSliceType("fives")}
+                    >
+                      Par 5
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground leading-relaxed space-y-2">
+                <p>
+                  Ce module analyse la **séquence chronologique des écarts** des numéros sortants. Par exemple, si le dernier tirage comportait des numéros d'écarts [2, 12, 18, 29, 32], sa séquence par dizaines est <code className="text-indigo-400 bg-indigo-500/10 px-1 py-0.5 rounded">0-10, 11-20, 11-20, 21-30, 31-40</code>.
+                </p>
+                <p>
+                  Nous parcourons l'historique pour identifier chaque tirage ayant présenté un motif d'écart similaire, puis nous calculons par **chaînes de Markov de transition** quelles tranches d'écarts ont suivi à l'étape suivante. Enfin, l'**ADN algorithmique** filtre ces candidats pour isoler le Top 5 idéal.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Current Sequence and Parameters */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left & Middle: Séquence Actuelle */}
+              <Card className="lg:col-span-2 bg-card/40 border-border/30 backdrop-blur-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-indigo-400" />
+                    Séquence d'Écarts du Dernier Tirage
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Gaps récents et classification par tranches pour le tirage {sequencePatternsData.latestDrawGaps.draw_name} ({sequencePatternsData.latestDrawGaps.draw_date})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-4">
+                  <div className="flex flex-wrap gap-4 justify-center md:justify-around py-4 bg-muted/10 rounded-2xl border border-border/20">
+                    {sequencePatternsData.latestDrawGaps.winningNumbers.map((num, idx) => {
+                      const gap = sequencePatternsData.latestDrawGaps.gaps[idx];
+                      const slice = getSliceName(gap, sliceType);
+                      return (
+                        <div key={num} className="flex flex-col items-center gap-2 p-2 min-w-[90px] rounded-xl hover:bg-muted/20 transition-all border border-border/5">
+                          <NumberBall number={num} size="md" />
+                          <div className="text-center">
+                            <span className="text-[10px] text-muted-foreground block">Écart Réel</span>
+                            <strong className="text-sm font-mono text-amber-400">{gap}j</strong>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] border-indigo-500/30 text-indigo-300 bg-indigo-950/20 px-2 py-0.5 font-semibold">
+                            {slice}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Sorted sequence string */}
+                  <div className="flex items-center justify-between text-xs border-t border-border/25 pt-4">
+                    <span className="text-muted-foreground">Séquence d'Écarts Triée :</span>
+                    <strong className="font-mono text-white tracking-wider bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-500/10">
+                      {sequencePatternsData.latestDrawGaps.sortedGaps.join(" → ")}
+                    </strong>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Séquence de Tranches :</span>
+                    <strong className="font-mono text-indigo-300 tracking-wider">
+                      {sequencePatternsData.latestDrawGaps.slices.join(" | ")}
+                    </strong>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Match Criteria */}
+              <Card className="bg-card/40 border-border/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                    <Sliders className="w-4 h-4 text-indigo-400" />
+                    Critères de Corrélation
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Sensibilité de la recherche historique
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-3">
+                  <div className="space-y-2">
+                    <span className="text-xs text-muted-foreground block">Mode de Correspondance</span>
+                    <div className="grid grid-cols-2 gap-2 bg-muted/20 p-1 rounded-xl border border-border/30">
+                      <Button
+                        variant={!strictMatch ? "secondary" : "ghost"}
+                        size="sm"
+                        className="text-[10px] h-7 rounded-lg"
+                        onClick={() => setStrictMatch(false)}
+                      >
+                        Souple (3/5 ou +)
+                      </Button>
+                      <Button
+                        variant={strictMatch ? "secondary" : "ghost"}
+                        size="sm"
+                        className="text-[10px] h-7 rounded-lg"
+                        onClick={() => setStrictMatch(true)}
+                      >
+                        Strict (5/5)
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-muted-foreground leading-relaxed bg-indigo-950/10 p-3 rounded-xl border border-indigo-500/10 space-y-2">
+                    <div className="flex justify-between">
+                      <span>Motifs identiques trouvés :</span>
+                      <strong className="text-white font-mono">{sequencePatternsData.matchedHistory.length}</strong>
+                    </div>
+                    <p>
+                      {!strictMatch 
+                        ? "Le mode souple accepte les tirages historiques ayant au moins 3 tranches identiques (dans n'importe quel ordre). Recommandé pour avoir un échantillon représentatif."
+                        : "Le mode strict exige que les 5 tranches d'écarts soient rigoureusement identiques à celles du dernier tirage."
+                      }
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Historical transition matching list */}
+            {sequencePatternsData.matchedHistory.length > 0 && (
+              <Card className="bg-card/40 border-border/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                    <History className="w-4 h-4 text-indigo-400" />
+                    Registre des Transitions Historiques Trouvées
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Tirages passés similaires et la séquence d'écarts apparue juste après (tirage t + 1).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 overflow-x-auto max-h-60 overflow-y-auto">
+                  <table className="w-full text-xs text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="border-b border-border/20 bg-muted/20 text-muted-foreground uppercase text-[9px] tracking-wider">
+                        <th className="p-3 font-semibold">Tirage de Base (t)</th>
+                        <th className="p-3 font-semibold">Motif (t)</th>
+                        <th className="p-3 font-semibold text-center">Similarité</th>
+                        <th className="p-3 font-semibold">Tirage Suivant (t+1)</th>
+                        <th className="p-3 font-semibold">Séquence d'Écarts Suivante (t+1)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/10 font-mono text-[11px]">
+                      {sequencePatternsData.matchedHistory.slice(0, 5).map(({ draw, nextDraw, matches }) => (
+                        <tr key={draw.id} className="hover:bg-muted/10 transition-colors">
+                          <td className="p-3 text-white font-bold">{draw.draw_name}</td>
+                          <td className="p-3 text-muted-foreground">{draw.slices.join(", ")}</td>
+                          <td className="p-3 text-center">
+                            <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-[10px] px-1.5 h-5 font-bold">
+                              {matches}/5
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-emerald-400 font-bold">{nextDraw.draw_name}</td>
+                          <td className="p-3 text-white">{nextDraw.slices.join(" → ")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {sequencePatternsData.matchedHistory.length > 5 && (
+                    <div className="p-3 text-center text-[10px] text-muted-foreground border-t border-border/10">
+                      + {sequencePatternsData.matchedHistory.length - 5} autres transitions historiques analysées en arrière-plan
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Projection & Algorithmic DNA filtering results */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left: Projected Slices */}
+              <Card className="bg-card/40 border-border/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                    Séquence d'Écarts Projetée pour le Prochain Tirage
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Slices d'écarts les plus probables à chaque position du prochain tirage.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-3">
+                  <div className="space-y-3">
+                    {sequencePatternsData.projectedNextSlices.map((proj, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-muted/15 border border-border/10">
+                        <span className="text-xs text-muted-foreground">Position d'Écart {idx + 1} :</span>
+                        <div className="flex items-center gap-3">
+                          <Badge className="bg-indigo-600 text-white border-none text-xs px-2.5 py-0.5 font-mono font-bold">
+                            Tranche {proj.slice}
+                          </Badge>
+                          <span className="text-xs text-indigo-400 font-mono font-bold">{proj.probability}% prob.</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-3 bg-indigo-950/20 rounded-xl border border-indigo-500/10 text-[11px] text-muted-foreground leading-relaxed">
+                    <strong>Interprétation :</strong> La séquence de transition suggère de rechercher des numéros dont l'écart actuel correspond à la tranche projetée à chaque position ci-dessus.
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Right: DNA Filtered Candidates */}
+              <Card className="bg-gradient-to-b from-indigo-950/20 to-card/40 border-indigo-500/20 relative">
+                <div className="absolute top-2 right-2">
+                  <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[10px] font-bold">
+                    ADN Algorithmique
+                  </Badge>
+                </div>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
+                    Top 5 Filtré par l'ADN Algorithmique
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Les 5 numéros optimaux satisfaisant les tranches de transition projetées et triés par score d'ensemble.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-3">
+                  {sequencePatternsData.dnaFilteredTop5.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-center gap-3 py-3">
+                        {sequencePatternsData.dnaFilteredTop5.map(({ number }) => (
+                          <NumberBall key={number} number={number} size="md" />
+                        ))}
+                      </div>
+
+                      <div className="space-y-2">
+                        {sequencePatternsData.dnaFilteredTop5.map(({ number, gap, score }) => (
+                          <div key={number} className="flex items-center justify-between text-xs p-2 rounded-lg bg-muted/10 border border-border/10">
+                            <div className="flex items-center gap-2">
+                              <NumberBall number={number} size="xs" />
+                              <span className="text-muted-foreground text-[10px]">Écart actuel : <strong className="text-amber-400 font-mono">{gap}j</strong></span>
+                            </div>
+                            <span className="text-[11px] font-bold text-white font-mono">
+                              Score ADN : <strong className="text-indigo-400">{Math.round(score * 100)}%</strong>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <Button
+                        onClick={() => handleInjectAndSimulate(sequencePatternsData.dnaFilteredTop5.map(c => c.number))}
+                        className="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-xs py-2 rounded-xl border border-indigo-400/20 shadow-md font-bold transition-all flex items-center justify-center gap-2"
+                      >
+                        <Sliders className="w-4 h-4" />
+                        Injecter & Analyser dans l'Optimiseur
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="py-10 text-center text-xs text-muted-foreground">
+                      Aucun candidat exact n'est sorti du filtre ADN. Essayez de passer en mode de correspondance "Souple" pour élargir le bassin.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </motion.div>
         ) : activeTab === "simulator" ? (
           <motion.div
